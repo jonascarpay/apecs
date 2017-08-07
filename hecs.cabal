@@ -17,4 +17,31 @@ executable hecs
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
-  build-depends:       base >= 4.7 && < 5
+  build-depends:
+    base,
+    containers,
+    singletons,
+    lens,
+    vector,
+    random,
+    transformers,
+    primitive
+
+  ghc-options:
+    -O2
+
+  default-extensions:
+    FunctionalDependencies,
+    ConstraintKinds,
+    GADTs,
+    TypeOperators,
+    FlexibleInstances,
+    FlexibleContexts,
+    MultiParamTypeClasses,
+    KindSignatures,
+    DataKinds,
+    ConstraintKinds,
+    TypeFamilies,
+    ScopedTypeVariables,
+    NoMonomorphismRestriction
+
