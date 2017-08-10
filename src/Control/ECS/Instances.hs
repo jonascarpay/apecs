@@ -33,12 +33,6 @@ instance (Component a, Component b) => Component (a, b) where
        Store stb' :: Store b <- store ety (Writes wb) (Store stb)
        return (Store (sta', stb'))
 
-  {-# INLINE destroy #-}
-  destroy ety (Store (sta, stb)) =
-    do Store sta' :: Store a <- destroy ety (Store sta)
-       Store stb' :: Store b <- destroy ety (Store stb)
-       return (Store (sta', stb'))
-
 instance (w `Stores` c1, w `Stores` c2) => w `Stores` (c1, c2) where
   {-# INLINE getStore #-}
   getStore w =
@@ -82,13 +76,6 @@ instance (Component a, Component b, Component c) => Component (a, b, c) where
     do Store sta' :: Store a <- store ety (Writes wa) (Store sta)
        Store stb' :: Store b <- store ety (Writes wb) (Store stb)
        Store stc' :: Store c <- store ety (Writes wc) (Store stc)
-       return (Store (sta', stb', stc'))
-
-  {-# INLINE destroy #-}
-  destroy ety (Store (sta, stb, stc)) =
-    do Store sta' :: Store a <- destroy ety (Store sta)
-       Store stb' :: Store b <- destroy ety (Store stb)
-       Store stc' :: Store c <- destroy ety (Store stc)
        return (Store (sta', stb', stc'))
 
 instance (w `Stores` a, w `Stores` b, w `Stores` c) => w `Stores` (a, b, c) where

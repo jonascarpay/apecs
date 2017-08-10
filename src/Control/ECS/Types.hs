@@ -23,7 +23,6 @@ class Component comp where
   slice    :: Store comp -> System (Slice comp)
   retrieve :: Entity -> Store comp -> System (Reads comp)
   store    :: Entity -> Writes comp -> Store comp -> System (Store comp)
-  destroy  :: Entity -> Store comp -> System (Store comp)
 
 class Component comp => world `Stores` comp where
   getStore :: world -> Store comp
