@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, TypeOperators, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, GeneralizedNewtypeDeriving, ScopedTypeVariables, TypeOperators, FlexibleInstances #-}
 
 module Control.ECS.Types where
 
