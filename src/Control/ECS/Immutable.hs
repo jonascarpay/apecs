@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Control.ECS.Immutable where
 
 import qualified Data.IntSet as S

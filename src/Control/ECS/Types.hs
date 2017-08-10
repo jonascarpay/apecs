@@ -3,6 +3,7 @@
 module Control.ECS.Types where
 
 import qualified Data.IntSet as S
+import Data.IORef
 
 {-| An entity consists of
       1. an identification tag
