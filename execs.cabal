@@ -20,35 +20,19 @@ executable execs
   other-modules:
     Control.ECS,
     Control.ECS.Types,
-    Control.ECS.Instances,
     Control.ECS.Immutable
   default-language:    Haskell2010
+
   build-depends:
     base,
     containers,
-    singletons,
-    lens,
-    vector,
-    random,
-    mtl,
-    primitive
+    stm
 
   ghc-options:
     -O2
+    -Wall
 
   default-extensions:
-    FunctionalDependencies,
-    ConstraintKinds,
-    GADTs,
-    TypeOperators,
-    FlexibleInstances,
-    FlexibleContexts,
-    MultiParamTypeClasses,
-    KindSignatures,
-    DataKinds,
-    ConstraintKinds,
     TypeFamilies,
-    ScopedTypeVariables,
-    GeneralizedNewtypeDeriving,
-    NoMonomorphismRestriction
-
+    MultiParamTypeClasses,
+    GeneralizedNewtypeDeriving

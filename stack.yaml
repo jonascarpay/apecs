@@ -1,6 +1,29 @@
 resolver: lts-8.15
 packages:
 - '.'
-extra-deps: []
+extra-deps:
+  - stm-2.4.4.1
 flags: {}
 extra-package-dbs: []
+
+setup-info:
+  ghc:
+    windows64:
+      8.2.1:
+        url: https://downloads.haskell.org/~ghc/8.2.1/ghc-8.2.1-x86_64-unknown-mingw32.tar.xz
+        sha1: bdede26c1a2cfcf4ebb08329853d285e32213b3d
+        content-length: 175053796
+    linux64:
+      8.2.1:
+        url: https://downloads.haskell.org/~ghc/8.2.1/ghc-8.2.1-x86_64-deb8-linux.tar.xz
+        sha1: 3e52527de6f1cad6d7f1c392ddde8148116d4e36
+        content-length: 126809836
+    macosx:
+      8.2.1:
+        url: https://downloads.haskell.org/~ghc/8.2.1/ghc-8.2.1-x86_64-apple-darwin.tar.xz
+        sha1: 101405b4fef87a44adf34e48bb63a1a4e945c5c9
+        content-length: 114088292
+
+compiler-check: match-exact
+compiler: ghc-8.2.1
+resolver: ghc-8.2.1
