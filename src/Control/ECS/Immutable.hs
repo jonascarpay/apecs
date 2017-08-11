@@ -10,10 +10,12 @@ import Control.Lens
 import Control.ECS.Types
 
 newtype SimpleMap c = SimpleMap c deriving (Eq, Show)
-instance Monad m => Component m (SimpleMap c) where
 
+instance Representable (SimpleMap c) where
   type Repr    (SimpleMap c) = Maybe c
   type Storage (SimpleMap c) = M.IntMap c
+
+instance Monad m => Component m (SimpleMap c) where
 
   empty = return $ Store mempty
 
@@ -23,11 +25,14 @@ instance Monad m => Component m (SimpleMap c) where
   store (Entity e) (Writes (Just x)) = unStore %= M.insert e x
   store (Entity e) (Writes Nothing)  = unStore %= M.delete e
 
-data SimpleFlag
-instance Monad m => Component m SimpleFlag where
 
+data SimpleFlag
+
+instance Representable SimpleFlag where
   type Repr    SimpleFlag = Bool
   type Storage SimpleFlag = S.IntSet
+
+instance Monad m => Component m SimpleFlag where
 
   empty = return $ Store mempty
 
@@ -37,11 +42,14 @@ instance Monad m => Component m SimpleFlag where
   store (Entity e) (Writes True) = unStore %= S.insert e
   store (Entity e) (Writes True) = unStore %= S.delete e
 
-data EntityCounter
-instance Monad m => Component m EntityCounter where
 
+data EntityCounter
+
+instance Representable EntityCounter where
   type Repr    EntityCounter = Int
   type Storage EntityCounter = Int
+
+instance Monad m => Component m EntityCounter where
 
   empty = return $ Store 0
 

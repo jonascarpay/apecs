@@ -8,10 +8,11 @@ import Control.Lens
 
 newtype Entity = Entity Int
 
-class Monad m => Component m c where
-
+class Representable c where
   type Repr    c :: *
   type Storage c :: *
+
+class (Representable c, Monad m) => Component m c where
 
   empty    :: m (Store c)
   slice    :: System (Store c) m (Slice c)
@@ -24,18 +25,25 @@ runSystem :: System s m a -> s -> m (a, s)
 runSystem = runStateT
 
 newtype Slice  comp = Slice S.IntSet
-newtype Reads  comp = Reads (Repr comp)
+newtype Reads  comp = Reads  (Repr comp)
 newtype Writes comp = Writes (Repr comp)
 newtype Store  comp = Store { _unStore :: Storage comp }
 makeLenses  ''Store
 makeWrapped ''Store
 
-instance (Monad (t m), Component m a, MonadTrans t) => Component (t m) a where
+instance (Monad (t m), MonadTrans t, Component m a) => Component (t m) a where
+  empty    = lift empty
+  slice    = slice
+  retrieve = retrieve
+  store    = store
 
-instance (Component m a, Component m b) => Component m (a, b) where
-
+instance (Representable a, Representable b) => Representable (a, b) where
   type Repr    (a, b) = (Repr a, Repr b)
   type Storage (a, b) = (Storage a, Storage b)
+
+instance ( Component m a
+         , Component m b
+         ) => Component m (a, b) where
 
   empty =
     do Store sta :: Store a <- empty
@@ -46,4 +54,18 @@ instance (Component m a, Component m b) => Component m (a, b) where
     do Store (sta, stb) <- get
        (Slice sla, Store sta') <- runSystem slice (Store sta :: Store a)
        (Slice slb, Store stb') <- runSystem slice (Store stb :: Store b)
-       undefined
+       put (Store (sta', stb'))
+       return . Slice $ S.intersection sla slb
+
+  retrieve ety =
+    do Store (sta, stb) <- get
+       (Reads ra, Store sta') <- runSystem (retrieve ety) (Store sta :: Store a)
+       (Reads rb, Store stb') <- runSystem (retrieve ety) (Store stb :: Store b)
+       put (Store (sta', stb'))
+       return (Reads (ra, rb))
+
+  store ety (Writes (wa, wb)) =
+    do Store (sta, stb) <- get
+       (Store sta') <- execStateT (store ety (Writes wa)) (Store sta :: Store a)
+       (Store stb') <- execStateT (store ety (Writes wb)) (Store stb :: Store b)
+       put (Store (sta', stb'))
