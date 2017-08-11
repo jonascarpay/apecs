@@ -1,8 +1,8 @@
 !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
 !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
 !_TAG_PROGRAM_NAME	hasktags
-Component	./src/Control/ECS/Types.hs	/^class Component comp where$/;"	c	line:11	language:Haskell
-Component	./src/Control/ECS/Types.hs	/^class Component comp where$/;"	c	line:11	language:Haskell
+Component	./src/Control/ECS/Types.hs	/^class Monad m => Component m c where$/;"	c	line:11	language:Haskell
+Component	./src/Control/ECS/Types.hs	/^class Monad m => Component m c where$/;"	c	line:11	language:Haskell
 Control.ECS	./src/Control/ECS.hs	/^module Control.ECS ($/;"	m	line:3	language:Haskell
 Control.ECS.Immutable	./src/Control/ECS/Immutable.hs	/^module Control.ECS.Immutable where$/;"	m	line:3	language:Haskell
 Control.ECS.Types	./src/Control/ECS/Types.hs	/^module Control.ECS.Types where$/;"	m	line:3	language:Haskell
@@ -11,43 +11,41 @@ Entity	./src/Control/ECS/Types.hs	/^newtype Entity = Entity Int$/;"	cons	line:9	
 EntityCounter	./src/Control/ECS/Immutable.hs	/^data EntityCounter$/;"	d	line:40	language:Haskell
 Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	nt	line:5	language:Haskell
 Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	cons	line:5	language:Haskell
-Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads (Repr comp)$/;"	nt	line:29	language:Haskell
-Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads (Repr comp)$/;"	cons	line:29	language:Haskell
-Repr	./src/Control/ECS/Types.hs	/^  type Repr    comp :: *$/;"	t	line:13	language:Haskell
+Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads (Repr comp)$/;"	nt	line:27	language:Haskell
+Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads (Repr comp)$/;"	cons	line:27	language:Haskell
+Repr	./src/Control/ECS/Types.hs	/^  type Repr    c :: *$/;"	t	line:13	language:Haskell
 SimpleFlag	./src/Control/ECS/Immutable.hs	/^data SimpleFlag$/;"	d	line:26	language:Haskell
 SimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap c deriving (Eq, Show)$/;"	nt	line:12	language:Haskell
 SimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap c deriving (Eq, Show)$/;"	cons	line:12	language:Haskell
-Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	nt	line:28	language:Haskell
-Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	cons	line:28	language:Haskell
-Storage	./src/Control/ECS/Types.hs	/^  type Storage comp :: *$/;"	t	line:14	language:Haskell
-Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	nt	line:31	language:Haskell
-Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	cons	line:31	language:Haskell
-System	./src/Control/ECS/Types.hs	/^newtype System s a = System {runSystem :: StateT s IO a}$/;"	nt	line:21	language:Haskell
-System	./src/Control/ECS/Types.hs	/^newtype System s a = System {runSystem :: StateT s IO a}$/;"	cons	line:21	language:Haskell
+Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	nt	line:26	language:Haskell
+Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	cons	line:26	language:Haskell
+Storage	./src/Control/ECS/Types.hs	/^  type Storage c :: *$/;"	t	line:14	language:Haskell
+Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	nt	line:29	language:Haskell
+Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	cons	line:29	language:Haskell
+System	./src/Control/ECS/Types.hs	/^type System = StateT$/;"	t	line:21	language:Haskell
 V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:4	language:Haskell
 V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:4	language:Haskell
 Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	nt	line:6	language:Haskell
 Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	cons	line:6	language:Haskell
 World	./src/Main.hs	/^data World = World$/;"	d	line:8	language:Haskell
 World	./src/Main.hs	/^data World = World$/;"	d	line:8	language:Haskell
-Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Repr comp)$/;"	nt	line:30	language:Haskell
-Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Repr comp)$/;"	cons	line:30	language:Haskell
-_unStore	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	c_a	line:31	language:Haskell
-comp	./src/Control/ECS/Types.hs	/^  type Repr    comp :: *$/;"	ft	line:13	language:Haskell
-comp	./src/Control/ECS/Types.hs	/^  type Storage comp :: *$/;"	ft	line:14	language:Haskell
-empty	./src/Control/ECS/Types.hs	/^  empty    :: Store comp$/;"	ft	line:16	language:Haskell
+Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Repr comp)$/;"	nt	line:28	language:Haskell
+Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Repr comp)$/;"	cons	line:28	language:Haskell
+_unStore	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	c_a	line:29	language:Haskell
+c	./src/Control/ECS/Types.hs	/^  type Repr    c :: *$/;"	ft	line:13	language:Haskell
+c	./src/Control/ECS/Types.hs	/^  type Storage c :: *$/;"	ft	line:14	language:Haskell
+empty	./src/Control/ECS/Types.hs	/^  empty    :: m (Store c)$/;"	ft	line:16	language:Haskell
 entityCounter	./src/Main.hs	/^  , entityCounter :: Store EntityCounter$/;"	c_a	line:11	language:Haskell
-instance	./src/Control/ECS/Immutable.hs	/^instance Component (SimpleMap c) where$/;"	fi	line:13	language:Haskell
-instance	./src/Control/ECS/Types.hs	/^instance (Component a, Component b) => Component (a, b) where$/;"	fi	line:38	language:Haskell
+instance	./src/Control/ECS/Immutable.hs	/^instance Monad m => Component m (SimpleMap c) where$/;"	fi	line:13	language:Haskell
+instance	./src/Control/ECS/Types.hs	/^instance (Component m a, Component m b) => Component m (a, b) where$/;"	fi	line:35	language:Haskell
 main	./Setup.hs	/^main = defaultMain$/;"	fi	line:2	language:Haskell
 main	./src/Main.hs	/^main = undefined$/;"	fi	line:14	language:Haskell
 positions	./src/Main.hs	/^  { positions     :: Store Position$/;"	c_a	line:9	language:Haskell
-retrieve	./src/Control/ECS/Types.hs	/^  retrieve :: Entity -> System (Store comp) (Reads comp)$/;"	ft	line:18	language:Haskell
-runSystem	./src/Control/ECS/Types.hs	/^newtype System s a = System {runSystem :: StateT s IO a}$/;"	c_a	line:21	language:Haskell
-runSystem'	./src/Control/ECS/Types.hs	/^runSystem' :: System s a -> s -> System c (a, s)$/;"	ft	line:35	language:Haskell
-runSystem'	./src/Control/ECS/Types.hs	/^runSystem' sys = liftIO . runStateT (runSystem sys)$/;"	fi	line:36	language:Haskell
-slice	./src/Control/ECS/Types.hs	/^  slice    :: System (Store comp) (Slice comp)$/;"	ft	line:17	language:Haskell
-store	./src/Control/ECS/Types.hs	/^  store    :: Entity -> Writes comp -> System (Store comp) ()$/;"	ft	line:19	language:Haskell
+retrieve	./src/Control/ECS/Types.hs	/^  retrieve :: Entity -> System (Store c) m (Reads c)$/;"	ft	line:18	language:Haskell
+runSystem	./src/Control/ECS/Types.hs	/^runSystem :: System s m a -> s -> m (a, s)$/;"	ft	line:23	language:Haskell
+runSystem	./src/Control/ECS/Types.hs	/^runSystem = runStateT$/;"	fi	line:24	language:Haskell
+slice	./src/Control/ECS/Types.hs	/^  slice    :: System (Store c) m (Slice c)$/;"	ft	line:17	language:Haskell
+store	./src/Control/ECS/Types.hs	/^  store    :: Entity -> Writes c -> System (Store c) m ()$/;"	ft	line:19	language:Haskell
 toList	./src/Control/ECS.hs	/^toList :: Slice c -> [Entity]$/;"	ft	line:16	language:Haskell
 toList	./src/Control/ECS.hs	/^toList (Slice s) = fmap Entity (S.toList s)$/;"	fi	line:17	language:Haskell
 union	./src/Control/ECS.hs	/^union :: Slice s1 -> Slice s2 -> Slice ()$/;"	ft	line:13	language:Haskell
