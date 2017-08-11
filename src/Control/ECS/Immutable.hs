@@ -7,6 +7,7 @@ import qualified Data.IntMap as M
 
 import Control.ECS.Types
 
+{-
 newtype SimpleMap c = SimpleMap c deriving (Eq, Show)
 instance Component (SimpleMap c) where
   type Repr    (SimpleMap c) = Maybe c
@@ -35,3 +36,4 @@ instance Component EntityCounter where
   slice _ = return (Slice (S.singleton (-1)))
   retrieve _ (Store ix) = return (Reads ix)
   store _ (Writes ix) _ = return (Store ix)
+  -}

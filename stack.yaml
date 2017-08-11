@@ -1,11 +1,7 @@
-resolver: lts-8.15
-packages:
-- '.'
-extra-deps:
-  - stm-2.4.4.1
 flags: {}
 extra-package-dbs: []
-
+packages:
+- .
 setup-info:
   ghc:
     windows64:
@@ -24,6 +20,38 @@ setup-info:
         sha1: 101405b4fef87a44adf34e48bb63a1a4e945c5c9
         content-length: 114088292
 
+extra-deps:
+- StateVar-1.1.0.4
+- adjunctions-4.3
+- base-orphans-0.6
+- bifunctors-5.4.2
+- cabal-doctest-1.0.2
+- call-stack-0.1.0
+- comonad-5.0.2
+- contravariant-1.4
+- distributive-0.5.3
+- exceptions-0.8.3
+- fail-4.9.0.0
+- free-4.12.4
+- hashable-1.2.6.1
+- kan-extensions-5.0.2
+- lens-4.15.4
+- mtl-2.2.1
+- parallel-3.2.1.1
+- prelude-extras-0.4.0.3
+- primitive-0.6.2.0
+- profunctors-5.2.1
+- reflection-2.1.2
+- semigroupoids-5.2.1
+- semigroups-0.18.3
+- stm-2.4.4.1
+- tagged-0.8.5
+- text-1.2.2.2
+- th-abstraction-0.2.5.0
+- transformers-compat-0.5.1.4
+- unordered-containers-0.2.8.0
+- vector-0.12.0.1
+- void-0.7.2
 compiler-check: match-exact
 compiler: ghc-8.2.1
 resolver: ghc-8.2.1

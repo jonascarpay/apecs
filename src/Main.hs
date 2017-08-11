@@ -6,9 +6,9 @@ newtype Position = Position (SimpleMap V2)
 newtype Velocity = Velocity (SimpleMap V2)
 
 data World = World
-  { positions     :: Storage Position
-  , velocities    :: Storage Velocity
-  , entityCounter :: Storage EntityCounter
+  { positions     :: Store Position
+  , velocities    :: Store Velocity
+  , entityCounter :: Store EntityCounter
   }
 
 main = undefined
