@@ -10,47 +10,45 @@ import Control.ECS.Core
 
 newtype SimpleMap c = SimpleMap {unSimpleMap :: M.IntMap c} deriving (Eq, Show, Monoid)
 
-instance CStorage (SimpleMap c) where
+instance SStorage (SimpleMap c) where
 
-  type Runtime (SimpleMap c) = Maybe c
+  type SRuntime (SimpleMap c) = Maybe c
 
-  empty = return mempty
+  sEmpty = return mempty
 
-  slice = Slice . M.keysSet . unSimpleMap <$> get
-  retrieve (Entity e) = Reads . M.lookup e . unSimpleMap <$> get
+  sSlice = M.keysSet . unSimpleMap <$> get
+  sRetrieve (Entity e) = M.lookup e . unSimpleMap <$> get
 
-  store (Entity e) (Writes (Just x)) = modify $ \(SimpleMap s) -> SimpleMap (M.insert e x s)
-  store (Entity e) (Writes Nothing)  = modify $ \(SimpleMap s) -> SimpleMap (M.delete e s)
+  sStore (Entity e) (Just x) = modify $ \(SimpleMap s) -> SimpleMap (M.insert e x s)
+  sStore (Entity e) Nothing  = modify $ \(SimpleMap s) -> SimpleMap (M.delete e s)
 
 
 newtype SimpleFlag = SimpleFlag {unSimpleFlag :: S.IntSet} deriving (Eq, Show, Monoid)
 
-instance CStorage SimpleFlag where
+instance SStorage SimpleFlag where
 
-  type Runtime SimpleFlag = Bool
+  type SRuntime SimpleFlag = Bool
 
-  empty = return mempty
+  sEmpty = return mempty
 
-  slice = Slice . unSimpleFlag <$> get
-  retrieve (Entity e) = Reads . S.member e . unSimpleFlag <$> get
+  sSlice = unSimpleFlag <$> get
+  sRetrieve (Entity e) = S.member e . unSimpleFlag <$> get
 
-  store (Entity e) (Writes True)  = modify $ \(SimpleFlag s) -> SimpleFlag (S.insert e s)
-  store (Entity e) (Writes False) = modify $ \(SimpleFlag s) -> SimpleFlag (S.delete e s)
+  sStore (Entity e) True  = modify $ \(SimpleFlag s) -> SimpleFlag (S.insert e s)
+  sStore (Entity e) False = modify $ \(SimpleFlag s) -> SimpleFlag (S.delete e s)
 
 
 newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Eq, Show)
 
-instance CStorage EntityCounter where
+instance Component EntityCounter where
+  type Storage EntityCounter = EntityCounter
 
-  type Runtime EntityCounter = Int
+instance SStorage EntityCounter where
 
-  empty = return (EntityCounter 0)
+  type SRuntime EntityCounter = Int
 
-  slice = return . Slice . S.singleton $ -1
-  retrieve _ = Reads . getCount <$> get
-  store _ (Writes count) = put (EntityCounter count)
+  sEmpty = return (EntityCounter 0)
 
-{-createEntity :: forall w m. (Monad m, Has w EntityCounter) => System w m Entity-}
-{-createEntity = embed $ do Reads c :: Reads EntityCounter <- retrieve undefined-}
-                          {-store undefined (Writes (c+1))-}
-                          {-return (Entity c)-}
+  sSlice = return . S.singleton $ -1
+  sRetrieve _ = getCount <$> get
+  sStore _ count = put (EntityCounter count)

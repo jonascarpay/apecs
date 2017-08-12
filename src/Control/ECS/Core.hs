@@ -7,43 +7,49 @@ import Control.Monad.State
 
 newtype Entity = Entity Int
 
-class CStorage (Storage c) => Component c where
+class SStorage (Storage c) => Component c where
   type Storage c :: *
 
-class CStorage c where
-  type Runtime c :: *
+class SStorage c where
+  type SRuntime c :: *
 
-  empty    :: System s c
-  slice    :: System c (Slice a)
-  retrieve :: Entity -> System c (Reads (Runtime c))
-  store    :: Entity -> Writes c -> System c ()
+  sEmpty    :: System s c
+  sSlice    :: System c S.IntSet
+  sRetrieve :: Entity -> System c (SRuntime c)
+  sStore    :: Entity -> SRuntime c -> System c ()
 
+-- Wrapper
+type Runtime a = SRuntime (Storage a)
 
-newtype Slice  comp = Slice S.IntSet
-newtype Reads  comp = Reads  (Runtime comp)
-newtype Writes comp = Writes (Runtime comp)
-newtype Store  comp = Store { unStore :: Storage comp }
+newtype Slice  c = Slice S.IntSet
+newtype Reads  c = Reads  (Runtime c)
+newtype Writes c = Writes (Runtime c)
+newtype Store  c = Store  {unStore :: Storage c}
 
-slice' :: CStorage (Storage c) => System (Storage c) (Slice c)
-slice' = slice
+empty :: Component c => System s (Store c)
+empty = Store <$> sEmpty
 
-retrieve' :: CStorage (Storage c) => Entity -> System (Storage c) (Reads c)
-retrieve' = retrieve
+slice :: Component c => System (Store c) (Slice c)
+slice = do Store s <- get
+           (a, s') <- runSystem sSlice s
+           put (Store s')
+           return $ Slice a
 
-type Runtime' c = Runtime (Storage c)
-
-class w `Has` c where
-  getC :: w -> c
-  putC :: c -> w -> w
-
-newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)
-deriving instance MonadState s (System s)
+retrieve :: Component c => Entity -> System (Storage c) (Reads c)
+retrieve e = Reads <$> sRetrieve e
 
 union :: Slice s1 -> Slice s2 -> Slice ()
 union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)
 
 toList :: Slice c -> [Entity]
 toList (Slice s) = fmap Entity (S.toList s)
+
+class w `Has` c where
+  getC :: w -> Store c
+  putC :: Store c -> w -> w
+
+newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)
+deriving instance MonadState s (System s)
 
 runSystemIO :: System s a -> s -> IO (a, s)
 runSystemIO (System st) = runStateT st
@@ -54,45 +60,48 @@ runSystem sys = System . lift . runSystemIO sys
 runWith :: s -> System s a -> System w (a, s)
 runWith = flip runSystem
 
-embed :: Has w c => System c a -> System w a
-embed sys = do w <- get
-               (a, c') <- runSystem sys (getC w)
-               put (putC c' w)
-               return a
+global :: Has w c => System (Store c) a -> System w a
+global sys = do w <- get
+                (a, c') <- runSystem sys (getC w)
+                put (putC c' w)
+                return a
 
 instance (Component a, Component b) => Component (a, b) where
   type Storage (a, b) = (Storage a, Storage b)
 
-instance ( CStorage a, CStorage b
-         ) => CStorage (a, b) where
+instance ( SStorage a, SStorage b
+         ) => SStorage (a, b) where
 
-  type Runtime (a, b) = (Runtime a, Runtime b)
+  type SRuntime (a, b) = (SRuntime a, SRuntime b)
 
-  empty =
-    do sta <- empty
-       stb <- empty
+  sEmpty =
+    do sta <- sEmpty
+       stb <- sEmpty
        return (sta, stb)
 
-  slice =
+  sSlice =
     do (sta, stb) <- get
-       (Slice sla, sta') <- runSystem slice sta
-       (Slice slb, stb') <- runSystem slice stb
+       (sla, sta') <- runSystem sSlice sta
+       (slb, stb') <- runSystem sSlice stb
        put (sta', stb')
-       return . Slice $ S.intersection sla slb
+       return $ S.intersection sla slb
 
-  retrieve ety =
+  sRetrieve ety =
     do (sta, stb) <- get
-       (Reads ra, sta') <- runSystem (retrieve ety) sta
-       (Reads rb, stb') <- runSystem (retrieve ety) stb
+       (ra, sta') <- runSystem (sRetrieve ety) sta
+       (rb, stb') <- runSystem (sRetrieve ety) stb
        put (sta', stb')
-       return (Reads (ra, rb))
+       return (ra, rb)
 
-  store ety (Writes (wa, wb)) =
+  sStore ety (wa, wb) =
     do (sta, stb) <- get
-       ((),sta') <- runSystem (store ety (Writes wa)) sta
-       ((),stb') <- runSystem (store ety (Writes wb)) stb
+       ((),sta') <- runSystem (sStore ety wa) sta
+       ((),stb') <- runSystem (sStore ety wb) stb
        put (sta', stb')
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
-  getC w = (getC w, getC w)
-  putC (a, b) = putC b . putC a
+  getC w = let Store sa :: Store a = getC w
+               Store sb :: Store b = getC w
+            in Store (sa, sb)
+
+  putC (Store (sa, sb)) = putC (Store sb :: Store b) . putC (Store sa :: Store a)
