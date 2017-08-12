@@ -1,7 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving, MultiParamTypeClasses, TypeOperators #-}
 
 import Control.ECS
-import Control.ECS.Immutable
 
 data V2 = V2 !Float !Float
 newtype Position = Position (SimpleMap V2)
@@ -13,4 +12,24 @@ data World = World
   , entityCounter :: Store EntityCounter
   }
 
-main = undefined
+instance World `Has` Position where
+  getC = positions
+  putC p' w = w {positions = p'}
+
+instance World `Has` Velocity where
+  getC = velocities
+  putC v' w = w {velocities = v'}
+
+instance World `Has` EntityCounter where
+  getC = entityCounter
+  putC c' w = w {entityCounter = c'}
+
+initWorld :: IO World
+initWorld = do p <- empty
+               v <- empty
+               c <- empty
+               return (World p v c)
+
+main :: IO ()
+main = do initWorld
+          print 1

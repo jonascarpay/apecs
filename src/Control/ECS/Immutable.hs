@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables, FlexibleContexts, TypeOperators, MultiParamTypeClasses, FlexibleInstances, TypeFamilies #-}
 
 module Control.ECS.Immutable where
 
@@ -6,7 +6,7 @@ import qualified Data.IntSet as S
 import qualified Data.IntMap as M
 import Control.Monad.State
 
-import Control.ECS.Types
+import Control.ECS.Core
 
 newtype SimpleMap c = SimpleMap c deriving (Eq, Show)
 
@@ -55,3 +55,8 @@ instance Monad m => Component m EntityCounter where
   slice = return . Slice . S.singleton $ -1
   retrieve _ = Reads . unStore <$> get
   store _ (Writes count) = put (Store count)
+
+createEntity :: forall w m. (Monad m, Has w EntityCounter) => System w m Entity
+createEntity = embed $ do Reads c :: Reads EntityCounter <- retrieve undefined
+                          store undefined (Writes (c+1))
+                          return (Entity c)
