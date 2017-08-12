@@ -4,18 +4,20 @@ module Control.ECS.Core where
 
 import qualified Data.IntSet as S
 import Control.Monad.State
+import GHC.Exts (Constraint)
 
 newtype Entity = Entity Int
 
-class Representable c where
+class Component c where
   type Runtime c :: *
   type Storage c :: *
 
-class (Representable c, Monad m) => Component m c where
-  empty    :: m (Store c)
-  slice    :: System (Store c) m (Slice c)
-  retrieve :: Entity -> System (Store c) m (Reads c)
-  store    :: Entity -> Writes c -> System (Store c) m ()
+  type Env c (m :: * -> *) :: Constraint
+
+  empty    :: Env c m => m (Store c)
+  slice    :: Env c m => System (Store c) m (Slice c)
+  retrieve :: Env c m => Entity -> System (Store c) m (Reads c)
+  store    :: Env c m => Entity -> Writes c -> System (Store c) m ()
 
 class world `Has` component where
   getC :: world -> Store component
@@ -32,7 +34,7 @@ union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)
 toList :: Slice c -> [Entity]
 toList (Slice s) = fmap Entity (S.toList s)
 
-embed :: (Component m c, w `Has` c) => System (Store c) m a -> System w m a
+embed :: (Monad m, Component c, w `Has` c) => System (Store c) m a -> System w m a
 embed sys = do w <- get
                (a, c') <- lift $ runSystem sys (getC w)
                modify (putC c')
@@ -43,13 +45,13 @@ newtype Reads  comp = Reads  (Runtime comp)
 newtype Writes comp = Writes (Runtime comp)
 newtype Store  comp = Store { unStore :: Storage comp }
 
-instance (Representable a, Representable b) => Representable (a, b) where
+instance ( Component a, Component b
+         ) => Component (a, b) where
+
   type Runtime (a, b) = (Runtime a, Runtime b)
   type Storage (a, b) = (Storage a, Storage b)
 
-instance ( Component m a
-         , Component m b
-         ) => Component m (a, b) where
+  type Env (a, b) m = (Monad m, Env a m, Env b m)
 
   empty =
     do Store sta :: Store a <- empty
