@@ -26,9 +26,7 @@ executable execs
   build-depends:
     base,
     containers,
-    mtl,
-    stm,
-    lens
+    mtl
 
   ghc-options:
     -O2

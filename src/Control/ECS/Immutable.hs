@@ -5,7 +5,6 @@ module Control.ECS.Immutable where
 import qualified Data.IntSet as S
 import qualified Data.IntMap as M
 import Control.Monad.State
-import Control.Lens
 
 import Control.ECS.Types
 
@@ -19,11 +18,11 @@ instance Monad m => Component m (SimpleMap c) where
 
   empty = return $ Store mempty
 
-  slice = Slice . M.keysSet . _unStore <$> get
-  retrieve (Entity e) = Reads . M.lookup e . _unStore <$> get
+  slice = Slice . M.keysSet . unStore <$> get
+  retrieve (Entity e) = Reads . M.lookup e . unStore <$> get
 
-  store (Entity e) (Writes (Just x)) = unStore %= M.insert e x
-  store (Entity e) (Writes Nothing)  = unStore %= M.delete e
+  store (Entity e) (Writes (Just x)) = modify $ \(Store s) -> Store (M.insert e x s)
+  store (Entity e) (Writes Nothing)  = modify $ \(Store s) -> Store (M.delete e s)
 
 
 data SimpleFlag
@@ -36,11 +35,11 @@ instance Monad m => Component m SimpleFlag where
 
   empty = return $ Store mempty
 
-  slice = Slice . _unStore <$> get
-  retrieve (Entity e) = Reads . S.member e . _unStore <$> get
+  slice = Slice . unStore <$> get
+  retrieve (Entity e) = Reads . S.member e . unStore <$> get
 
-  store (Entity e) (Writes True) = unStore %= S.insert e
-  store (Entity e) (Writes True) = unStore %= S.delete e
+  store (Entity e) (Writes True)  = modify $ \(Store s) -> Store (S.insert e s)
+  store (Entity e) (Writes False) = modify $ \(Store s) -> Store (S.delete e s)
 
 
 data EntityCounter
@@ -54,5 +53,5 @@ instance Monad m => Component m EntityCounter where
   empty = return $ Store 0
 
   slice = return . Slice . S.singleton $ -1
-  retrieve _ = Reads . _unStore <$> get
-  store _ (Writes count) = unStore .= count
+  retrieve _ = Reads . unStore <$> get
+  store _ (Writes count) = put (Store count)

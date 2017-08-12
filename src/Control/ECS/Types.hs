@@ -4,7 +4,6 @@ module Control.ECS.Types where
 
 import qualified Data.IntSet as S
 import Control.Monad.State
-import Control.Lens
 
 newtype Entity = Entity Int
 
@@ -28,9 +27,7 @@ runSystem = runStateT
 newtype Slice  comp = Slice S.IntSet
 newtype Reads  comp = Reads  (Runtime comp)
 newtype Writes comp = Writes (Runtime comp)
-newtype Store  comp = Store { _unStore :: Storage comp }
-makeLenses  ''Store
-makeWrapped ''Store
+newtype Store  comp = Store { unStore :: Storage comp }
 
 instance (Monad (t m), MonadTrans t, Component m a) => Component (t m) a where
   empty    = lift empty
