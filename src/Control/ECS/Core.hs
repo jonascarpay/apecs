@@ -1,4 +1,4 @@
-{-# LANGUAGE ConstraintKinds, FlexibleContexts, StandaloneDeriving, TemplateHaskell, TypeFamilies, MultiParamTypeClasses, GeneralizedNewtypeDeriving, ScopedTypeVariables, TypeOperators, FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds, FlexibleContexts, TypeFamilies, MultiParamTypeClasses, ScopedTypeVariables, TypeOperators, FlexibleInstances #-}
 
 module Control.ECS.Core where
 
@@ -8,16 +8,17 @@ import GHC.Exts (Constraint)
 
 newtype Entity = Entity Int
 
-class Component c where
-  type Runtime c :: *
+class CStorage (Storage c) => Component c where
   type Storage c :: *
 
+class CStorage c where
+  type Runtime c :: *
   type Env c (m :: * -> *) :: Constraint
 
-  empty    :: Env c m => m (Store c)
-  slice    :: Env c m => System (Store c) m (Slice c)
-  retrieve :: Env c m => Entity -> System (Store c) m (Reads c)
-  store    :: Env c m => Entity -> Writes c -> System (Store c) m ()
+  empty    :: Env c m => m c
+  slice    :: Env c m => System c m (Slice a)
+  retrieve :: Env c m => Entity -> System c m (Reads c)
+  store    :: Env c m => Entity -> Writes c -> System c m ()
 
 class world `Has` component where
   getC :: world -> Store component
@@ -45,38 +46,40 @@ newtype Reads  comp = Reads  (Runtime comp)
 newtype Writes comp = Writes (Runtime comp)
 newtype Store  comp = Store { unStore :: Storage comp }
 
-instance ( Component a, Component b
-         ) => Component (a, b) where
+instance (Component a, Component b) => Component (a, b) where
+  type Storage (a, b) = (Storage a, Storage b)
+
+instance ( CStorage a, CStorage b
+         ) => CStorage (a, b) where
 
   type Runtime (a, b) = (Runtime a, Runtime b)
-  type Storage (a, b) = (Storage a, Storage b)
 
   type Env (a, b) m = (Monad m, Env a m, Env b m)
 
   empty =
-    do Store sta :: Store a <- empty
-       Store stb :: Store b <- empty
-       return $ Store (sta, stb)
+    do sta <- empty
+       stb <- empty
+       return $ (sta, stb)
 
   slice =
-    do Store (sta, stb) <- get
-       (Slice sla, Store sta') <- lift $ runSystem slice (Store sta :: Store a)
-       (Slice slb, Store stb') <- lift $ runSystem slice (Store stb :: Store b)
-       put (Store (sta', stb'))
+    do (sta, stb) <- get
+       (Slice sla, sta') <- lift $ runSystem slice sta
+       (Slice slb, stb') <- lift $ runSystem slice stb
+       put (sta', stb')
        return . Slice $ S.intersection sla slb
 
   retrieve ety =
-    do Store (sta, stb) <- get
-       (Reads ra, Store sta') <- lift $ runSystem (retrieve ety) (Store sta :: Store a)
-       (Reads rb, Store stb') <- lift $ runSystem (retrieve ety) (Store stb :: Store b)
-       put (Store (sta', stb'))
+    do (sta, stb) <- get
+       (Reads ra, sta') <- lift $ runSystem (retrieve ety) sta
+       (Reads rb, stb') <- lift $ runSystem (retrieve ety) stb
+       put (sta', stb')
        return (Reads (ra, rb))
 
   store ety (Writes (wa, wb)) =
-    do Store (sta, stb) <- get
-       (Store sta') <- lift $ execStateT (store ety (Writes wa)) (Store sta :: Store a)
-       (Store stb') <- lift $ execStateT (store ety (Writes wb)) (Store stb :: Store b)
-       put (Store (sta', stb'))
+    do (sta, stb) <- get
+       sta' <- lift $ execStateT (store ety (Writes wa)) sta
+       stb' <- lift $ execStateT (store ety (Writes wb)) stb
+       put (sta', stb')
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   getC w = let Store sta :: Store a = getC w

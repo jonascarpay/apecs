@@ -2,19 +2,11 @@
 
 import Control.ECS
 
-class Foo a where type Fam a
-data Bar
-instance Foo Bar where type Fam Bar = ()
-
-newtype Baz = Baz Bar
-
-instance Foo Baz where type Fam Baz = Fam Bar
-
--- Fam Baz -> Fam Bar -> Maybe Bar
-
-
 data V2 = V2 !Float !Float
+
 newtype Position = Position (SimpleMap V2)
+instance Component Position where type Storage Position = SimpleMap Position
+
 newtype Velocity = Velocity (SimpleMap V2)
 
 data World = World
