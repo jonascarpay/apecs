@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving, StandaloneDeriving, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE FlexibleInstances, TypeFamilies, GeneralizedNewtypeDeriving, StandaloneDeriving, MultiParamTypeClasses, TypeOperators #-}
 
 import Control.ECS
 
@@ -17,15 +17,15 @@ data World = World
   , entityCounter :: Store EntityCounter
   }
 
-instance World `Has` Position where
+instance World `Has` Store Position where
   getC = positions
   putC p' w = w {positions = p'}
 
-instance World `Has` Velocity where
+instance World `Has` Store Velocity where
   getC = velocities
   putC v' w = w {velocities = v'}
 
-instance World `Has` EntityCounter where
+instance World `Has` Store EntityCounter where
   getC = entityCounter
   putC c' w = w {entityCounter = c'}
 
