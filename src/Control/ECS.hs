@@ -55,3 +55,6 @@ instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
 
   putC (Store (sa, sb)) = putC (Store sb :: Store b) . putC (Store sa :: Store a)
 
+runWith :: s -> System s a -> System w (a, s)
+runWith = flip runSystem
+

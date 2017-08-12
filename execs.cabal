@@ -31,3 +31,8 @@ executable execs
   ghc-options:
     -O2
     -Wall
+
+  default-extensions:
+    TypeOperators,
+    TypeFamilies,
+    MultiParamTypeClasses

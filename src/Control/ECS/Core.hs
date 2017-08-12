@@ -27,9 +27,6 @@ runSystemIO (System st) = runStateT st
 runSystem :: System s a -> s -> System w (a, s)
 runSystem sys = System . lift . runSystemIO sys
 
-runWith :: s -> System s a -> System w (a, s)
-runWith = flip runSystem
-
 instance (Component a, Component b) => Component (a, b) where
   type Storage (a, b) = (Storage a, Storage b)
 

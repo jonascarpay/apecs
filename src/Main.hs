@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances, TypeFamilies, GeneralizedNewtypeDeriving, StandaloneDeriving, MultiParamTypeClasses, TypeOperators #-}
-
 import Control.ECS
 
 data V2 = V2 !Float !Float
