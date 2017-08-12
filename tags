@@ -10,13 +10,13 @@ Entity	./src/Control/ECS/Core.hs	/^newtype Entity = Entity Int$/;"	nt	line:8	lan
 Entity	./src/Control/ECS/Core.hs	/^newtype Entity = Entity Int$/;"	cons	line:8	language:Haskell
 EntityCounter	./src/Control/ECS/Immutable.hs	/^newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Eq, Show)$/;"	nt	line:41	language:Haskell
 EntityCounter	./src/Control/ECS/Immutable.hs	/^newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Eq, Show)$/;"	cons	line:41	language:Haskell
-Has	./src/Control/ECS/Core.hs	/^instance (w `Has` a, w `Has` b) => w `Has` (a, b) where$/;"	fi	line:102	language:Haskell
+Has	./src/Control/ECS.hs	/^instance (w `Has` a, w `Has` b) => w `Has` (a, b) where$/;"	fi	line:51	language:Haskell
 Has	./src/Main.hs	/^instance World `Has` Position where$/;"	fi	line:21	language:Haskell
 Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	nt	line:7	language:Haskell
 Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	cons	line:7	language:Haskell
-Reads	./src/Control/ECS/Core.hs	/^newtype Reads  c = Reads  (Runtime c)$/;"	nt	line:25	language:Haskell
-Reads	./src/Control/ECS/Core.hs	/^newtype Reads  c = Reads  (Runtime c)$/;"	cons	line:25	language:Haskell
-Runtime	./src/Control/ECS/Core.hs	/^type Runtime a = SRuntime (Storage a)$/;"	t	line:22	language:Haskell
+Reads	./src/Control/ECS.hs	/^newtype Reads  c = Reads  (Runtime c)$/;"	nt	line:19	language:Haskell
+Reads	./src/Control/ECS.hs	/^newtype Reads  c = Reads  (Runtime c)$/;"	cons	line:19	language:Haskell
+Runtime	./src/Control/ECS.hs	/^type Runtime a = SRuntime (Storage a)$/;"	t	line:16	language:Haskell
 SRuntime	./src/Control/ECS/Core.hs	/^  type SRuntime c :: *$/;"	t	line:14	language:Haskell
 SStorage	./src/Control/ECS/Core.hs	/^class SStorage c where$/;"	c	line:13	language:Haskell
 SStorage	./src/Control/ECS/Core.hs	/^class SStorage c where$/;"	c	line:13	language:Haskell
@@ -24,62 +24,62 @@ SimpleFlag	./src/Control/ECS/Immutable.hs	/^newtype SimpleFlag = SimpleFlag {unS
 SimpleFlag	./src/Control/ECS/Immutable.hs	/^newtype SimpleFlag = SimpleFlag {unSimpleFlag :: S.IntSet} deriving (Eq, Show, Monoid)$/;"	cons	line:26	language:Haskell
 SimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap {unSimpleMap :: M.IntMap c} deriving (Eq, Show, Monoid)$/;"	nt	line:11	language:Haskell
 SimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap {unSimpleMap :: M.IntMap c} deriving (Eq, Show, Monoid)$/;"	cons	line:11	language:Haskell
-Slice	./src/Control/ECS/Core.hs	/^newtype Slice  c = Slice S.IntSet$/;"	nt	line:24	language:Haskell
-Slice	./src/Control/ECS/Core.hs	/^newtype Slice  c = Slice S.IntSet$/;"	cons	line:24	language:Haskell
+Slice	./src/Control/ECS.hs	/^newtype Slice  c = Slice S.IntSet$/;"	nt	line:18	language:Haskell
+Slice	./src/Control/ECS.hs	/^newtype Slice  c = Slice S.IntSet$/;"	cons	line:18	language:Haskell
 Storage	./src/Control/ECS/Core.hs	/^  type Storage c :: *$/;"	t	line:11	language:Haskell
-Store	./src/Control/ECS/Core.hs	/^newtype Store  c = Store  {unStore :: Storage c}$/;"	nt	line:27	language:Haskell
-Store	./src/Control/ECS/Core.hs	/^newtype Store  c = Store  {unStore :: Storage c}$/;"	cons	line:27	language:Haskell
-System	./src/Control/ECS/Core.hs	/^newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)$/;"	nt	line:51	language:Haskell
-System	./src/Control/ECS/Core.hs	/^newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)$/;"	cons	line:51	language:Haskell
+Store	./src/Control/ECS.hs	/^newtype Store  c = Store  {unStore :: Storage c}$/;"	nt	line:21	language:Haskell
+Store	./src/Control/ECS.hs	/^newtype Store  c = Store  {unStore :: Storage c}$/;"	cons	line:21	language:Haskell
+System	./src/Control/ECS/Core.hs	/^newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)$/;"	nt	line:21	language:Haskell
+System	./src/Control/ECS/Core.hs	/^newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)$/;"	cons	line:21	language:Haskell
 V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:5	language:Haskell
 V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:5	language:Haskell
 Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	nt	line:11	language:Haskell
 Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	cons	line:11	language:Haskell
 World	./src/Main.hs	/^data World = World$/;"	d	line:15	language:Haskell
 World	./src/Main.hs	/^data World = World$/;"	d	line:15	language:Haskell
-Writes	./src/Control/ECS/Core.hs	/^newtype Writes c = Writes (Runtime c)$/;"	nt	line:26	language:Haskell
-Writes	./src/Control/ECS/Core.hs	/^newtype Writes c = Writes (Runtime c)$/;"	cons	line:26	language:Haskell
-a	./src/Control/ECS/Core.hs	/^type Runtime a = SRuntime (Storage a)$/;"	fi	line:22	language:Haskell
+Writes	./src/Control/ECS.hs	/^newtype Writes c = Writes (Runtime c)$/;"	nt	line:20	language:Haskell
+Writes	./src/Control/ECS.hs	/^newtype Writes c = Writes (Runtime c)$/;"	cons	line:20	language:Haskell
+a	./src/Control/ECS.hs	/^type Runtime a = SRuntime (Storage a)$/;"	fi	line:16	language:Haskell
 c	./src/Control/ECS/Core.hs	/^  type Storage c :: *$/;"	ft	line:11	language:Haskell
 c	./src/Control/ECS/Core.hs	/^  type SRuntime c :: *$/;"	ft	line:14	language:Haskell
-empty	./src/Control/ECS/Core.hs	/^empty :: Component c => System s (Store c)$/;"	ft	line:29	language:Haskell
-empty	./src/Control/ECS/Core.hs	/^empty = Store <$> sEmpty$/;"	fi	line:30	language:Haskell
+empty	./src/Control/ECS.hs	/^empty :: Component c => System s (Store c)$/;"	ft	line:27	language:Haskell
+empty	./src/Control/ECS.hs	/^empty = Store <$> sEmpty$/;"	fi	line:28	language:Haskell
 entityCounter	./src/Main.hs	/^  , entityCounter :: Store EntityCounter$/;"	c_a	line:18	language:Haskell
-getC	./src/Control/ECS/Core.hs	/^  getC :: w -> Store c$/;"	ft	line:48	language:Haskell
+getC	./src/Control/ECS.hs	/^  getC :: w -> Store c$/;"	ft	line:24	language:Haskell
 getCount	./src/Control/ECS/Immutable.hs	/^newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Eq, Show)$/;"	c_a	line:41	language:Haskell
-global	./src/Control/ECS/Core.hs	/^global :: Has w c => System (Store c) a -> System w a$/;"	ft	line:63	language:Haskell
-global	./src/Control/ECS/Core.hs	/^global sys = do w <- get$/;"	fi	line:64	language:Haskell
+global	./src/Control/ECS.hs	/^global :: Has w c => System (Store c) a -> System w a$/;"	ft	line:45	language:Haskell
+global	./src/Control/ECS.hs	/^global sys = do w <- get$/;"	fi	line:46	language:Haskell
 initWorld	./src/Main.hs	/^initWorld :: System s World$/;"	ft	line:33	language:Haskell
 initWorld	./src/Main.hs	/^initWorld = do p <- empty$/;"	fi	line:34	language:Haskell
-instance	./src/Control/ECS/Core.hs	/^instance (Component a, Component b) => Component (a, b) where$/;"	fi	line:69	language:Haskell
+instance	./src/Control/ECS/Core.hs	/^instance (Component a, Component b) => Component (a, b) where$/;"	fi	line:33	language:Haskell
 instance	./src/Control/ECS/Immutable.hs	/^instance SStorage (SimpleMap c) where$/;"	fi	line:13	language:Haskell
 instance	./src/Main.hs	/^instance Component Position where$/;"	fi	line:8	language:Haskell
 main	./Setup.hs	/^main = defaultMain$/;"	fi	line:2	language:Haskell
 main	./src/Main.hs	/^main :: IO ()$/;"	ft	line:39	language:Haskell
 main	./src/Main.hs	/^main = do --initWorld$/;"	fi	line:40	language:Haskell
 positions	./src/Main.hs	/^  { positions     :: Store Position$/;"	c_a	line:16	language:Haskell
-putC	./src/Control/ECS/Core.hs	/^  putC :: Store c -> w -> w$/;"	ft	line:49	language:Haskell
-retrieve	./src/Control/ECS/Core.hs	/^retrieve :: Component c => Entity -> System (Storage c) (Reads c)$/;"	ft	line:38	language:Haskell
-retrieve	./src/Control/ECS/Core.hs	/^retrieve e = Reads <$> sRetrieve e$/;"	fi	line:39	language:Haskell
-runSystem	./src/Control/ECS/Core.hs	/^runSystem :: System s a -> s -> System w (a, s)$/;"	ft	line:57	language:Haskell
-runSystem	./src/Control/ECS/Core.hs	/^runSystem sys = System . lift . runSystemIO sys$/;"	fi	line:58	language:Haskell
-runSystemIO	./src/Control/ECS/Core.hs	/^runSystemIO :: System s a -> s -> IO (a, s)$/;"	ft	line:54	language:Haskell
-runSystemIO	./src/Control/ECS/Core.hs	/^runSystemIO (System st) = runStateT st$/;"	fi	line:55	language:Haskell
-runWith	./src/Control/ECS/Core.hs	/^runWith :: s -> System s a -> System w (a, s)$/;"	ft	line:60	language:Haskell
-runWith	./src/Control/ECS/Core.hs	/^runWith = flip runSystem$/;"	fi	line:61	language:Haskell
+putC	./src/Control/ECS.hs	/^  putC :: Store c -> w -> w$/;"	ft	line:25	language:Haskell
+retrieve	./src/Control/ECS.hs	/^retrieve :: Component c => Entity -> System (Storage c) (Reads c)$/;"	ft	line:36	language:Haskell
+retrieve	./src/Control/ECS.hs	/^retrieve e = Reads <$> sRetrieve e$/;"	fi	line:37	language:Haskell
+runSystem	./src/Control/ECS/Core.hs	/^runSystem :: System s a -> s -> System w (a, s)$/;"	ft	line:27	language:Haskell
+runSystem	./src/Control/ECS/Core.hs	/^runSystem sys = System . lift . runSystemIO sys$/;"	fi	line:28	language:Haskell
+runSystemIO	./src/Control/ECS/Core.hs	/^runSystemIO :: System s a -> s -> IO (a, s)$/;"	ft	line:24	language:Haskell
+runSystemIO	./src/Control/ECS/Core.hs	/^runSystemIO (System st) = runStateT st$/;"	fi	line:25	language:Haskell
+runWith	./src/Control/ECS/Core.hs	/^runWith :: s -> System s a -> System w (a, s)$/;"	ft	line:30	language:Haskell
+runWith	./src/Control/ECS/Core.hs	/^runWith = flip runSystem$/;"	fi	line:31	language:Haskell
 sEmpty	./src/Control/ECS/Core.hs	/^  sEmpty    :: System s c$/;"	ft	line:16	language:Haskell
 sRetrieve	./src/Control/ECS/Core.hs	/^  sRetrieve :: Entity -> System c (SRuntime c)$/;"	ft	line:18	language:Haskell
 sSlice	./src/Control/ECS/Core.hs	/^  sSlice    :: System c S.IntSet$/;"	ft	line:17	language:Haskell
 sStore	./src/Control/ECS/Core.hs	/^  sStore    :: Entity -> SRuntime c -> System c ()$/;"	ft	line:19	language:Haskell
-slice	./src/Control/ECS/Core.hs	/^slice :: Component c => System (Store c) (Slice c)$/;"	ft	line:32	language:Haskell
-slice	./src/Control/ECS/Core.hs	/^slice = do Store s <- get$/;"	fi	line:33	language:Haskell
-toList	./src/Control/ECS/Core.hs	/^toList :: Slice c -> [Entity]$/;"	ft	line:44	language:Haskell
-toList	./src/Control/ECS/Core.hs	/^toList (Slice s) = fmap Entity (S.toList s)$/;"	fi	line:45	language:Haskell
+slice	./src/Control/ECS.hs	/^slice :: Component c => System (Store c) (Slice c)$/;"	ft	line:30	language:Haskell
+slice	./src/Control/ECS.hs	/^slice = do Store s <- get$/;"	fi	line:31	language:Haskell
+toList	./src/Control/ECS.hs	/^toList :: Slice c -> [Entity]$/;"	ft	line:42	language:Haskell
+toList	./src/Control/ECS.hs	/^toList (Slice s) = fmap Entity (S.toList s)$/;"	fi	line:43	language:Haskell
 unSimpleFlag	./src/Control/ECS/Immutable.hs	/^newtype SimpleFlag = SimpleFlag {unSimpleFlag :: S.IntSet} deriving (Eq, Show, Monoid)$/;"	c_a	line:26	language:Haskell
 unSimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap {unSimpleMap :: M.IntMap c} deriving (Eq, Show, Monoid)$/;"	c_a	line:11	language:Haskell
-unStore	./src/Control/ECS/Core.hs	/^newtype Store  c = Store  {unStore :: Storage c}$/;"	c_a	line:27	language:Haskell
-union	./src/Control/ECS/Core.hs	/^union :: Slice s1 -> Slice s2 -> Slice ()$/;"	ft	line:41	language:Haskell
-union	./src/Control/ECS/Core.hs	/^union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)$/;"	fi	line:42	language:Haskell
+unStore	./src/Control/ECS.hs	/^newtype Store  c = Store  {unStore :: Storage c}$/;"	c_a	line:21	language:Haskell
+union	./src/Control/ECS.hs	/^union :: Slice s1 -> Slice s2 -> Slice ()$/;"	ft	line:39	language:Haskell
+union	./src/Control/ECS.hs	/^union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)$/;"	fi	line:40	language:Haskell
 velocities	./src/Main.hs	/^  , velocities    :: Store Velocity$/;"	c_a	line:17	language:Haskell
-w	./src/Control/ECS/Core.hs	/^class w `Has` c where$/;"	c	line:47	language:Haskell
-w	./src/Control/ECS/Core.hs	/^class w `Has` c where$/;"	c	line:47	language:Haskell
+w	./src/Control/ECS.hs	/^class w `Has` c where$/;"	c	line:23	language:Haskell
+w	./src/Control/ECS.hs	/^class w `Has` c where$/;"	c	line:23	language:Haskell
