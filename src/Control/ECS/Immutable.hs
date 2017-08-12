@@ -13,7 +13,6 @@ newtype SimpleMap c = SimpleMap {unSimpleMap :: M.IntMap c} deriving (Eq, Show, 
 instance CStorage (SimpleMap c) where
 
   type Runtime (SimpleMap c) = Maybe c
-  type Env (SimpleMap c) m = Monad m
 
   empty = return mempty
 
@@ -29,7 +28,6 @@ newtype SimpleFlag = SimpleFlag {unSimpleFlag :: S.IntSet} deriving (Eq, Show, M
 instance CStorage SimpleFlag where
 
   type Runtime SimpleFlag = Bool
-  type Env SimpleFlag m = Monad m
 
   empty = return mempty
 
@@ -45,7 +43,6 @@ newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Eq, Show)
 instance CStorage EntityCounter where
 
   type Runtime EntityCounter = Int
-  type Env EntityCounter m = Monad m
 
   empty = return (EntityCounter 0)
 

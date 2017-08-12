@@ -5,7 +5,9 @@ import Control.ECS
 data V2 = V2 !Float !Float
 
 newtype Position = Position (SimpleMap V2)
-instance Component Position where type Storage Position = SimpleMap Position
+
+instance Component Position where
+  type Storage Position = SimpleMap Position
 
 newtype Velocity = Velocity (SimpleMap V2)
 
