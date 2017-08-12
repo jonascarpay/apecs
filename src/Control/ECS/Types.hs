@@ -9,15 +9,16 @@ import Control.Lens
 newtype Entity = Entity Int
 
 class Representable c where
-  type Repr    c :: *
+  type Runtime c :: *
   type Storage c :: *
 
 class (Representable c, Monad m) => Component m c where
-
   empty    :: m (Store c)
   slice    :: System (Store c) m (Slice c)
   retrieve :: Entity -> System (Store c) m (Reads c)
   store    :: Entity -> Writes c -> System (Store c) m ()
+
+class a `Has` b where
 
 type System = StateT
 
@@ -25,8 +26,8 @@ runSystem :: System s m a -> s -> m (a, s)
 runSystem = runStateT
 
 newtype Slice  comp = Slice S.IntSet
-newtype Reads  comp = Reads  (Repr comp)
-newtype Writes comp = Writes (Repr comp)
+newtype Reads  comp = Reads  (Runtime comp)
+newtype Writes comp = Writes (Runtime comp)
 newtype Store  comp = Store { _unStore :: Storage comp }
 makeLenses  ''Store
 makeWrapped ''Store
@@ -38,7 +39,7 @@ instance (Monad (t m), MonadTrans t, Component m a) => Component (t m) a where
   store    = store
 
 instance (Representable a, Representable b) => Representable (a, b) where
-  type Repr    (a, b) = (Repr a, Repr b)
+  type Runtime (a, b) = (Runtime a, Runtime b)
   type Storage (a, b) = (Storage a, Storage b)
 
 instance ( Component m a

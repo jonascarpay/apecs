@@ -9,47 +9,49 @@ Control.ECS.Types	./src/Control/ECS/Types.hs	/^module Control.ECS.Types where$/;
 Entity	./src/Control/ECS/Types.hs	/^newtype Entity = Entity Int$/;"	nt	line:9	language:Haskell
 Entity	./src/Control/ECS/Types.hs	/^newtype Entity = Entity Int$/;"	cons	line:9	language:Haskell
 EntityCounter	./src/Control/ECS/Immutable.hs	/^data EntityCounter$/;"	d	line:46	language:Haskell
-Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	nt	line:5	language:Haskell
-Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	cons	line:5	language:Haskell
-Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads  (Repr comp)$/;"	nt	line:28	language:Haskell
-Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads  (Repr comp)$/;"	cons	line:28	language:Haskell
-Repr	./src/Control/ECS/Types.hs	/^  type Repr    c :: *$/;"	t	line:12	language:Haskell
+Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	nt	line:8	language:Haskell
+Position	./src/Main.hs	/^newtype Position = Position (SimpleMap V2)$/;"	cons	line:8	language:Haskell
+Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads  (Runtime comp)$/;"	nt	line:29	language:Haskell
+Reads	./src/Control/ECS/Types.hs	/^newtype Reads  comp = Reads  (Runtime comp)$/;"	cons	line:29	language:Haskell
 Representable	./src/Control/ECS/Types.hs	/^class Representable c where$/;"	c	line:11	language:Haskell
 Representable	./src/Control/ECS/Types.hs	/^class Representable c where$/;"	c	line:11	language:Haskell
+Runtime	./src/Control/ECS/Types.hs	/^  type Runtime c :: *$/;"	t	line:12	language:Haskell
 SimpleFlag	./src/Control/ECS/Immutable.hs	/^data SimpleFlag$/;"	d	line:29	language:Haskell
 SimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap c deriving (Eq, Show)$/;"	nt	line:12	language:Haskell
 SimpleMap	./src/Control/ECS/Immutable.hs	/^newtype SimpleMap c = SimpleMap c deriving (Eq, Show)$/;"	cons	line:12	language:Haskell
-Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	nt	line:27	language:Haskell
-Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	cons	line:27	language:Haskell
+Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	nt	line:28	language:Haskell
+Slice	./src/Control/ECS/Types.hs	/^newtype Slice  comp = Slice S.IntSet$/;"	cons	line:28	language:Haskell
 Storage	./src/Control/ECS/Types.hs	/^  type Storage c :: *$/;"	t	line:13	language:Haskell
-Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	nt	line:30	language:Haskell
-Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	cons	line:30	language:Haskell
-System	./src/Control/ECS/Types.hs	/^type System = StateT$/;"	t	line:22	language:Haskell
-V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:4	language:Haskell
-V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:4	language:Haskell
-Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	nt	line:6	language:Haskell
-Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	cons	line:6	language:Haskell
-World	./src/Main.hs	/^data World = World$/;"	d	line:8	language:Haskell
-World	./src/Main.hs	/^data World = World$/;"	d	line:8	language:Haskell
-Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Repr comp)$/;"	nt	line:29	language:Haskell
-Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Repr comp)$/;"	cons	line:29	language:Haskell
-_unStore	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	c_a	line:30	language:Haskell
-c	./src/Control/ECS/Types.hs	/^  type Repr    c :: *$/;"	ft	line:12	language:Haskell
+Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	nt	line:31	language:Haskell
+Store	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	cons	line:31	language:Haskell
+System	./src/Control/ECS/Types.hs	/^type System = StateT$/;"	t	line:23	language:Haskell
+V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:7	language:Haskell
+V2	./src/Main.hs	/^data V2 = V2 !Float !Float$/;"	d	line:7	language:Haskell
+Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	nt	line:9	language:Haskell
+Velocity	./src/Main.hs	/^newtype Velocity = Velocity (SimpleMap V2)$/;"	cons	line:9	language:Haskell
+World	./src/Main.hs	/^data World = World$/;"	d	line:11	language:Haskell
+World	./src/Main.hs	/^data World = World$/;"	d	line:11	language:Haskell
+Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Runtime comp)$/;"	nt	line:30	language:Haskell
+Writes	./src/Control/ECS/Types.hs	/^newtype Writes comp = Writes (Runtime comp)$/;"	cons	line:30	language:Haskell
+_entityCounter	./src/Main.hs	/^  , _entityCounter :: Store EntityCounter$/;"	c_a	line:14	language:Haskell
+_positions	./src/Main.hs	/^  { _positions     :: Store Position$/;"	c_a	line:12	language:Haskell
+_unStore	./src/Control/ECS/Types.hs	/^newtype Store  comp = Store { _unStore :: Storage comp }$/;"	c_a	line:31	language:Haskell
+_velocities	./src/Main.hs	/^  , _velocities    :: Store Velocity$/;"	c_a	line:13	language:Haskell
+a	./src/Control/ECS/Types.hs	/^class a `Has` b where$/;"	c	line:21	language:Haskell
+a	./src/Control/ECS/Types.hs	/^class a `Has` b where$/;"	c	line:21	language:Haskell
+c	./src/Control/ECS/Types.hs	/^  type Runtime c :: *$/;"	ft	line:12	language:Haskell
 c	./src/Control/ECS/Types.hs	/^  type Storage c :: *$/;"	ft	line:13	language:Haskell
-empty	./src/Control/ECS/Types.hs	/^  empty    :: m (Store c)$/;"	ft	line:17	language:Haskell
-entityCounter	./src/Main.hs	/^  , entityCounter :: Store EntityCounter$/;"	c_a	line:11	language:Haskell
+empty	./src/Control/ECS/Types.hs	/^  empty    :: m (Store c)$/;"	ft	line:16	language:Haskell
 instance	./src/Control/ECS/Immutable.hs	/^instance Representable (SimpleMap c) where$/;"	fi	line:14	language:Haskell
-instance	./src/Control/ECS/Types.hs	/^instance (Monad (t m), MonadTrans t, Component m a) => Component (t m) a where$/;"	fi	line:34	language:Haskell
+instance	./src/Control/ECS/Types.hs	/^instance (Monad (t m), MonadTrans t, Component m a) => Component (t m) a where$/;"	fi	line:35	language:Haskell
 main	./Setup.hs	/^main = defaultMain$/;"	fi	line:2	language:Haskell
-main	./src/Main.hs	/^main = undefined$/;"	fi	line:14	language:Haskell
-positions	./src/Main.hs	/^  { positions     :: Store Position$/;"	c_a	line:9	language:Haskell
-retrieve	./src/Control/ECS/Types.hs	/^  retrieve :: Entity -> System (Store c) m (Reads c)$/;"	ft	line:19	language:Haskell
-runSystem	./src/Control/ECS/Types.hs	/^runSystem :: System s m a -> s -> m (a, s)$/;"	ft	line:24	language:Haskell
-runSystem	./src/Control/ECS/Types.hs	/^runSystem = runStateT$/;"	fi	line:25	language:Haskell
-slice	./src/Control/ECS/Types.hs	/^  slice    :: System (Store c) m (Slice c)$/;"	ft	line:18	language:Haskell
-store	./src/Control/ECS/Types.hs	/^  store    :: Entity -> Writes c -> System (Store c) m ()$/;"	ft	line:20	language:Haskell
+main	./src/Main.hs	/^main = undefined$/;"	fi	line:18	language:Haskell
+retrieve	./src/Control/ECS/Types.hs	/^  retrieve :: Entity -> System (Store c) m (Reads c)$/;"	ft	line:18	language:Haskell
+runSystem	./src/Control/ECS/Types.hs	/^runSystem :: System s m a -> s -> m (a, s)$/;"	ft	line:25	language:Haskell
+runSystem	./src/Control/ECS/Types.hs	/^runSystem = runStateT$/;"	fi	line:26	language:Haskell
+slice	./src/Control/ECS/Types.hs	/^  slice    :: System (Store c) m (Slice c)$/;"	ft	line:17	language:Haskell
+store	./src/Control/ECS/Types.hs	/^  store    :: Entity -> Writes c -> System (Store c) m ()$/;"	ft	line:19	language:Haskell
 toList	./src/Control/ECS.hs	/^toList :: Slice c -> [Entity]$/;"	ft	line:16	language:Haskell
 toList	./src/Control/ECS.hs	/^toList (Slice s) = fmap Entity (S.toList s)$/;"	fi	line:17	language:Haskell
 union	./src/Control/ECS.hs	/^union :: Slice s1 -> Slice s2 -> Slice ()$/;"	ft	line:13	language:Haskell
 union	./src/Control/ECS.hs	/^union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)$/;"	fi	line:14	language:Haskell
-velocities	./src/Main.hs	/^  , velocities    :: Store Velocity$/;"	c_a	line:10	language:Haskell

@@ -12,7 +12,7 @@ import Control.ECS.Types
 newtype SimpleMap c = SimpleMap c deriving (Eq, Show)
 
 instance Representable (SimpleMap c) where
-  type Repr    (SimpleMap c) = Maybe c
+  type Runtime (SimpleMap c) = Maybe c
   type Storage (SimpleMap c) = M.IntMap c
 
 instance Monad m => Component m (SimpleMap c) where
@@ -29,7 +29,7 @@ instance Monad m => Component m (SimpleMap c) where
 data SimpleFlag
 
 instance Representable SimpleFlag where
-  type Repr    SimpleFlag = Bool
+  type Runtime SimpleFlag = Bool
   type Storage SimpleFlag = S.IntSet
 
 instance Monad m => Component m SimpleFlag where
@@ -46,7 +46,7 @@ instance Monad m => Component m SimpleFlag where
 data EntityCounter
 
 instance Representable EntityCounter where
-  type Repr    EntityCounter = Int
+  type Runtime EntityCounter = Int
   type Storage EntityCounter = Int
 
 instance Monad m => Component m EntityCounter where
