@@ -20,13 +20,16 @@ executable execs
   other-modules:
     Control.ECS,
     Control.ECS.Core,
-    Control.ECS.Immutable
+    Control.ECS.Immutable,
+    Control.ECS.Mutable
   default-language:    Haskell2010
 
   build-depends:
     base,
     containers,
-    mtl
+    mtl,
+    criterion,
+    hashtables
 
   ghc-options:
     -O2
@@ -37,4 +40,5 @@ executable execs
     TypeFamilies,
     MultiParamTypeClasses,
     FlexibleInstances,
-    ScopedTypeVariables
+    ScopedTypeVariables,
+    Strict

@@ -26,22 +26,22 @@ class w `Has` c where
 empty :: Component c => System s (Store c)
 empty = Store <$> sEmpty
 
-slice :: Component c => System (Store c) (Slice c)
-slice = do Store s <- get
-           (a, s') <- runSystem sSlice s
-           put (Store s')
-           return $ Slice a
+slice :: forall w c. (Has w c, Component c) => System w (Slice c)
+slice = embed $ do Store s <- get
+                   (a, s') <- (runSystem sSlice s :: System (Store c) (S.IntSet, Storage c))
+                   put (Store s')
+                   return $ Slice a
 
-retrieve :: Component c => Entity -> System (Store c) (Reads c)
-retrieve e = do Store s <- get
-                (r, s') <- runSystem (sRetrieve e) s
-                put (Store s')
-                return $ Reads r
-
-store :: Component c => Entity -> Writes c -> System (Store c) ()
-store e (Writes w) = do Store s <- get
-                        ((), s') <- runSystem (sStore e w) s
+retrieve :: forall w c. (Has w c, Component c) => Entity -> System w (Reads c)
+retrieve e = embed $ do Store s <- get
+                        (r, s') <- (runSystem (sRetrieve e) s :: System (Store c) (Runtime c, Storage c))
                         put (Store s')
+                        return $ Reads r
+
+store :: forall w c. (Has w c, Component c) => Entity -> Writes c -> System w ()
+store e (Writes w) = embed $ do Store s <- get
+                                ((), s' :: Storage c) <- runSystem (sStore e w) s
+                                put (Store s' :: Store c)
 
 union :: Slice s1 -> Slice s2 -> Slice ()
 union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)
@@ -73,29 +73,43 @@ uninitialized = error "Read uninitialized world state"
 defaultMain :: System w a -> IO ()
 defaultMain sys = void $ runSystemIO sys uninitialized
 
-getEntityCount :: System (Store EntityCounter) Int
-getEntityCount = unEntityCounter . unReads <$> retrieve undefined
+getEntityCount :: forall w. Has w EntityCounter => System w Int
+getEntityCount = unEntityCounter . unReads <$> (retrieve undefined :: System w (Reads EntityCounter))
 
-newEntity :: Has w EntityCounter => System w Entity
-newEntity = embed $ do (Reads (EntityCounter c) :: Reads EntityCounter) <- retrieve undefined
-                       store undefined (Writes $ EntityCounter (c+1))
-                       return (Entity c)
+newEntity :: forall w. Has w EntityCounter => System w Entity
+newEntity = do (Reads (EntityCounter c) :: Reads EntityCounter) <- retrieve nullEntity
+               store nullEntity (Writes $ EntityCounter (c+1) :: Writes EntityCounter)
+               return (Entity c)
 
 newEntityWith :: (Component c, Has w EntityCounter, Has w c) => Writes c -> System w Entity
 newEntityWith c = do e <- newEntity
-                     embed (store e c)
+                     store e c
                      return e
 
+nullEntity :: Entity
+nullEntity = Entity (-1)
+
 readGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
-readGlobal = embed $ retrieve undefined
+readGlobal = retrieve nullEntity
 
 writeGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
-writeGlobal = embed $ retrieve undefined
+writeGlobal = retrieve nullEntity
 
 appendGlobal :: forall a w. (Monoid a, Has w (Global a)) => a -> System w (Reads (Global a))
-appendGlobal a = embed $ do Reads m :: Reads (Global a) <- retrieve undefined
-                            store undefined (Writes (m `mappend` a))
-                            return (Reads m)
+appendGlobal a = do Reads m :: Reads (Global a) <- retrieve nullEntity
+                    store nullEntity (Writes (m `mappend` a) :: Writes (Global a))
+                    return (Reads m :: Reads (Global a))
 
-mapReads :: (Has w a, Has w b, Component a, Component b) => (a -> b) -> System w ()
-mapReads = undefined
+mapReads :: forall w a b. (Has w a, Has w b, Component a, Component b) => (Reads a -> Writes b) -> System w ()
+mapReads f = do sl :: Slice a <- slice
+                forSlice_ sl $ \e ->
+                  do ra <- retrieve e
+                     store e (f ra)
+
+sliceReads :: (Component c, Has w c) => Slice a -> (Reads c -> System w b) -> System w ()
+sliceReads sl sys = forM_ (toList sl) $ \e -> do r <- retrieve e
+                                                 sys r
+
+forSlice_ :: Monad m => Slice c -> (Entity -> m b) -> m ()
+forSlice_ sl = forM_ (toList sl)
+

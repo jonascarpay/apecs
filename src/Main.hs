@@ -1,12 +1,19 @@
+import Criterion
+import qualified Criterion.Main as C
+
 import Control.ECS
 import Control.Monad.State
 
 data V2 = V2 !Float !Float deriving (Eq, Show)
+instance Num V2 where
+  V2 x1 y1 + V2 x2 y2 = V2 (x1 + x2) (y1 + y2)
 
 veczero = V2 0 0
-pzero = Just $ Position veczero
-vzero = Just $ Velocity veczero
-czero = (pzero, vzero)
+vecone  = V2 1 1
+pzero   = Just $ Position veczero
+pone    = Just $ Position vecone
+vzero   = Just $ Velocity veczero
+vone    = Just $ Velocity vecone
 
 newtype Position = Position V2 deriving (Eq, Show)
 instance Component Position where
@@ -35,15 +42,23 @@ instance World `Has` EntityCounter where
   putC c' w = w {entityCounter = c'}
 
 initWorld :: System World ()
-initWorld = World <$> empty <*> empty <*> empty >>= put
+initWorld = do World <$> empty <*> empty <*> empty >>= put
+               replicateM_ 9000 $ newEntityWith (Writes pzero :: Writes Position)
+               replicateM_ 1000 $ newEntityWith (Writes (pzero, vone) :: Writes (Position, Velocity))
 
-main :: IO ()
-main = defaultMain $ do initWorld
-                        newEntityWith (Writes pzero :: Writes Position)
-                        newEntityWith (Writes vzero :: Writes Velocity)
-                        e' <- newEntityWith (Writes czero :: Writes (Position, Velocity))
-                        sl1 :: Slice Position <- embed $ slice
-                        sl2 :: Slice Velocity <- embed $ slice
-                        liftIO $ print sl1
-                        liftIO $ print sl2
+addPosition :: V2 -> Reads Position -> Writes Position
+addPosition v (Reads (Just (Position p))) = Writes (Just (Position (p+v)))
 
+stepVelocity :: Reads (Velocity, Position) -> Writes (Position)
+stepVelocity (Reads (Just (Velocity v), Just (Position p))) =
+             Writes (Just (Position (p + v)))
+
+stepWorld :: System World ()
+stepWorld = mapReads stepVelocity
+
+main =
+  do (_,w :: World) <- runSystemIO initWorld uninitialized
+     C.defaultMain [ bench "init" $ whnfIO (defaultMain initWorld)
+                   , bench "step" $ whnfIO (runWithIO w stepWorld)
+                   , bench "both" $ whnfIO (defaultMain (initWorld >> stepWorld))
+                   ]

@@ -3,7 +3,7 @@
 module Control.ECS.Core where
 
 import qualified Data.IntSet as S
-import Control.Monad.State
+import Control.Monad.State.Strict
 
 newtype Entity = Entity Int deriving (Eq, Show)
 
@@ -21,9 +21,11 @@ class SStorage c where
 newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)
 deriving instance MonadState s (System s)
 
+{-# INLINE runSystemIO #-}
 runSystemIO :: System s a -> s -> IO (a, s)
 runSystemIO (System st) = runStateT st
 
+{-# INLINE runSystem #-}
 runSystem :: System s a -> s -> System w (a, s)
 runSystem sys = System . lift . runSystemIO sys
 
@@ -35,11 +37,13 @@ instance ( SStorage a, SStorage b
 
   type SRuntime (a, b) = (SRuntime a, SRuntime b)
 
+  {-# INLINE sEmpty #-}
   sEmpty =
     do sta <- sEmpty
        stb <- sEmpty
        return (sta, stb)
 
+  {-# INLINE sSlice #-}
   sSlice =
     do (sta, stb) <- get
        (sla, sta') <- runSystem sSlice sta
@@ -47,6 +51,7 @@ instance ( SStorage a, SStorage b
        put (sta', stb')
        return $ S.intersection sla slb
 
+  {-# INLINE sRetrieve #-}
   sRetrieve ety =
     do (sta, stb) <- get
        (ra, sta') <- runSystem (sRetrieve ety) sta
@@ -54,6 +59,7 @@ instance ( SStorage a, SStorage b
        put (sta', stb')
        return (ra, rb)
 
+  {-# INLINE sStore #-}
   sStore ety (wa, wb) =
     do (sta, stb) <- get
        ((),sta') <- runSystem (sStore ety wa) sta
