@@ -17,6 +17,8 @@ class SStorage c where
   sSlice    :: System c S.IntSet
   sRetrieve :: Entity -> System c (SRuntime c)
   sStore    :: Entity -> SRuntime c -> System c ()
+  sMember   :: Entity -> System c Bool
+  sDestroy  :: Entity -> System c ()
 
 newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)
 deriving instance MonadState s (System s)
@@ -37,13 +39,11 @@ instance ( SStorage a, SStorage b
 
   type SRuntime (a, b) = (SRuntime a, SRuntime b)
 
-  {-# INLINE sEmpty #-}
   sEmpty =
     do sta <- sEmpty
        stb <- sEmpty
        return (sta, stb)
 
-  {-# INLINE sSlice #-}
   sSlice =
     do (sta, stb) <- get
        (sla, sta') <- runSystem sSlice sta
@@ -51,7 +51,6 @@ instance ( SStorage a, SStorage b
        put (sta', stb')
        return $ S.intersection sla slb
 
-  {-# INLINE sRetrieve #-}
   sRetrieve ety =
     do (sta, stb) <- get
        (ra, sta') <- runSystem (sRetrieve ety) sta
@@ -59,9 +58,22 @@ instance ( SStorage a, SStorage b
        put (sta', stb')
        return (ra, rb)
 
-  {-# INLINE sStore #-}
   sStore ety (wa, wb) =
     do (sta, stb) <- get
        ((),sta') <- runSystem (sStore ety wa) sta
        ((),stb') <- runSystem (sStore ety wb) stb
        put (sta', stb')
+
+  sMember ety =
+    do (sta, stb) <- get
+       (ma,sta') <- runSystem (sMember ety) sta
+       (mb,stb') <- runSystem (sMember ety) stb
+       put (sta', stb')
+       return (ma && mb)
+
+  sDestroy ety =
+    do (sta, stb) <- get
+       ((), sta') <- runSystem (sDestroy ety) sta
+       ((), stb') <- runSystem (sDestroy ety) stb
+       put (sta', stb')
+

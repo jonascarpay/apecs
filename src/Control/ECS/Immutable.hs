@@ -15,13 +15,14 @@ instance SStorage (SimpleMap c) where
 
   type SRuntime (SimpleMap c) = Maybe c
 
-  sEmpty = return mempty
-
-  sSlice = M.keysSet . unSimpleMap <$> get
+  sEmpty               = return mempty
+  sSlice               = M.keysSet . unSimpleMap <$> get
   sRetrieve (Entity e) = M.lookup e . unSimpleMap <$> get
+  sMember (Entity e)   = M.member e . unSimpleMap <$> get
+  sDestroy (Entity e)  = modify $ \(SimpleMap s) -> SimpleMap (M.delete e s)
 
   sStore (Entity e) (Just x) = modify $ \(SimpleMap s) -> SimpleMap (M.insert e x s)
-  sStore (Entity e) Nothing  = modify $ \(SimpleMap s) -> SimpleMap (M.delete e s)
+  sStore e Nothing = sDestroy e
 
 
 newtype SimpleFlag = SimpleFlag {unSimpleFlag :: S.IntSet} deriving (Eq, Show, Monoid)
@@ -30,13 +31,14 @@ instance SStorage SimpleFlag where
 
   type SRuntime SimpleFlag = Bool
 
-  sEmpty = return mempty
-
-  sSlice = unSimpleFlag <$> get
+  sEmpty               = return mempty
+  sSlice               = unSimpleFlag <$> get
   sRetrieve (Entity e) = S.member e . unSimpleFlag <$> get
+  sDestroy  (Entity e) = modify $ \(SimpleFlag s) -> SimpleFlag (S.delete e s)
+  sMember              = sRetrieve
 
   sStore (Entity e) True  = modify $ \(SimpleFlag s) -> SimpleFlag (S.insert e s)
-  sStore (Entity e) False = modify $ \(SimpleFlag s) -> SimpleFlag (S.delete e s)
+  sStore e False = sDestroy e
 
 
 newtype Global c = Global { unGlobal :: c } deriving (Monoid, Eq, Show)
@@ -48,6 +50,8 @@ instance Monoid c => SStorage (Global c) where
   sEmpty      = return mempty
   sSlice      = return . S.singleton $ -1
   sRetrieve _ = unGlobal <$> get
+  sDestroy _  = return ()
+  sMember _   = return False
   sStore _ c  = put (Global c)
 
 newtype EntityCounter = EntityCounter { unEntityCounter :: Int} deriving (Eq, Show)
