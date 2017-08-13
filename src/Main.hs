@@ -1,14 +1,18 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 import Control.ECS
+import Control.Monad.State
 
-data V2 = V2 !Float !Float
+data V2 = V2 !Float !Float deriving (Eq, Show)
 
-newtype Position = Position (SimpleMap V2)
+veczero = V2 0 0
+pzero = Just $ Position veczero
+vzero = Just $ Velocity veczero
+czero = (pzero, vzero)
+
+newtype Position = Position V2 deriving (Eq, Show)
 instance Component Position where
   type Storage Position = SimpleMap Position
 
-newtype Velocity = Velocity (SimpleMap V2)
+newtype Velocity = Velocity V2 deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = SimpleMap Velocity
 
@@ -30,9 +34,16 @@ instance World `Has` EntityCounter where
   getC = entityCounter
   putC c' w = w {entityCounter = c'}
 
-initWorld :: System s World
-initWorld = World <$> empty <*> empty <*> empty
+initWorld :: System World ()
+initWorld = World <$> empty <*> empty <*> empty >>= put
 
 main :: IO ()
-main = do --initWorld
-          print 1
+main = defaultMain $ do initWorld
+                        newEntityWith (Writes pzero :: Writes Position)
+                        newEntityWith (Writes vzero :: Writes Velocity)
+                        e' <- newEntityWith (Writes czero :: Writes (Position, Velocity))
+                        sl1 :: Slice Position <- embed $ slice
+                        sl2 :: Slice Velocity <- embed $ slice
+                        liftIO $ print sl1
+                        liftIO $ print sl2
+

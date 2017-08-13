@@ -35,4 +35,6 @@ executable execs
   default-extensions:
     TypeOperators,
     TypeFamilies,
-    MultiParamTypeClasses
+    MultiParamTypeClasses,
+    FlexibleInstances,
+    ScopedTypeVariables

@@ -5,7 +5,7 @@ module Control.ECS.Core where
 import qualified Data.IntSet as S
 import Control.Monad.State
 
-newtype Entity = Entity Int
+newtype Entity = Entity Int deriving (Eq, Show)
 
 class SStorage (Storage c) => Component c where
   type Storage c :: *

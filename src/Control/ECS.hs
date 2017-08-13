@@ -14,7 +14,7 @@ import Control.Monad.State
 
 type Runtime a = SRuntime (Storage a)
 
-newtype Slice  c = Slice S.IntSet
+newtype Slice  c = Slice S.IntSet deriving (Eq, Show)
 newtype Reads  c = Reads  {unReads  :: Runtime c}
 newtype Writes c = Writes {unWrites :: Runtime c}
 newtype Store  c = Store  {unStore  :: Storage c}
@@ -49,11 +49,11 @@ union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)
 toList :: Slice c -> [Entity]
 toList (Slice s) = fmap Entity (S.toList s)
 
-global :: Has w c => System (Store c) a -> System w a
-global sys = do w <- get
-                (a, c') <- runSystem sys (getC w)
-                put (putC c' w)
-                return a
+embed :: Has w c => System (Store c) a -> System w a
+embed sys = do w <- get
+               (a, c') <- runSystem sys (getC w)
+               put (putC c' w)
+               return a
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   getC w = let Store sa :: Store a = getC w
@@ -65,24 +65,37 @@ instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
 runWith :: s -> System s a -> System w (a, s)
 runWith = flip runSystem
 
+runWithIO :: s -> System s a -> IO (a, s)
+runWithIO = flip runSystemIO
+
+uninitialized = error "Read uninitialized world state"
+
+defaultMain :: System w a -> IO ()
+defaultMain sys = void $ runSystemIO sys uninitialized
+
 getEntityCount :: System (Store EntityCounter) Int
-getEntityCount = do unEntityCounter . unReads <$> retrieve undefined
+getEntityCount = unEntityCounter . unReads <$> retrieve undefined
 
 newEntity :: Has w EntityCounter => System w Entity
-newEntity = global $ do (Reads (EntityCounter c) :: Reads EntityCounter) <- retrieve undefined
-                        store undefined (Writes $ EntityCounter (c+1))
-                        return (Entity c)
+newEntity = embed $ do (Reads (EntityCounter c) :: Reads EntityCounter) <- retrieve undefined
+                       store undefined (Writes $ EntityCounter (c+1))
+                       return (Entity c)
+
+newEntityWith :: (Component c, Has w EntityCounter, Has w c) => Writes c -> System w Entity
+newEntityWith c = do e <- newEntity
+                     embed (store e c)
+                     return e
 
 readGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
-readGlobal = global $ retrieve undefined
+readGlobal = embed $ retrieve undefined
 
 writeGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
-writeGlobal = global $ retrieve undefined
+writeGlobal = embed $ retrieve undefined
 
 appendGlobal :: forall a w. (Monoid a, Has w (Global a)) => a -> System w (Reads (Global a))
-appendGlobal a = global $ do Reads m :: Reads (Global a) <- retrieve undefined
-                             store undefined (Writes (m `mappend` a))
-                             return (Reads m)
+appendGlobal a = embed $ do Reads m :: Reads (Global a) <- retrieve undefined
+                            store undefined (Writes (m `mappend` a))
+                            return (Reads m)
 
 mapReads :: (Has w a, Has w b, Component a, Component b) => (a -> b) -> System w ()
 mapReads = undefined
