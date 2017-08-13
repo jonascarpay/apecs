@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 import Control.ECS
 
 data V2 = V2 !Float !Float

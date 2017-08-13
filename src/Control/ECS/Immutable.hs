@@ -5,6 +5,7 @@ module Control.ECS.Immutable where
 import qualified Data.IntSet as S
 import qualified Data.IntMap as M
 import Control.Monad.State
+import Data.Monoid
 
 import Control.ECS.Core
 
@@ -39,18 +40,20 @@ instance SStorage SimpleFlag where
 
 
 newtype Global c = Global { unGlobal :: c } deriving (Monoid, Eq, Show)
+instance Monoid c => Component (Global c) where
+  type Storage (Global c) = Global c
 
 instance Monoid c => SStorage (Global c) where
-  type SRuntime (Global c) = Global c
+  type SRuntime (Global c) = c
   sEmpty      = return mempty
   sSlice      = return . S.singleton $ -1
-  sRetrieve _ = get
-  sStore _ c  = put c
+  sRetrieve _ = unGlobal <$> get
+  sStore _ c  = put (Global c)
 
-  type SRuntime EntityCounter = Int
+newtype EntityCounter = EntityCounter { unEntityCounter :: Int} deriving (Eq, Show)
+instance Monoid EntityCounter where
+  mempty = EntityCounter 0
+  mappend (EntityCounter a) (EntityCounter b) = EntityCounter (a+b)
 
-  sEmpty = return (EntityCounter 0)
-
-  sSlice = return . S.singleton $ -1
-  sRetrieve _ = getCount <$> get
-  sStore _ count = put (EntityCounter count)
+instance Component EntityCounter where
+  type Storage EntityCounter = Global EntityCounter

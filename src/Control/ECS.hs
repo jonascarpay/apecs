@@ -66,12 +66,23 @@ runWith :: s -> System s a -> System w (a, s)
 runWith = flip runSystem
 
 getEntityCount :: System (Store EntityCounter) Int
-getEntityCount = do unReads <$> retrieve undefined
+getEntityCount = do unEntityCounter . unReads <$> retrieve undefined
 
 newEntity :: Has w EntityCounter => System w Entity
-newEntity = global $ do (Reads c :: Reads EntityCounter) <- retrieve undefined
-                        store undefined (Writes (c+1))
+newEntity = global $ do (Reads (EntityCounter c) :: Reads EntityCounter) <- retrieve undefined
+                        store undefined (Writes $ EntityCounter (c+1))
                         return (Entity c)
 
-withDomain :: (Has w a, Has w b, Component a, Component b) => (a -> b) -> System w ()
-withDomain = undefined
+readGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
+readGlobal = global $ retrieve undefined
+
+writeGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
+writeGlobal = global $ retrieve undefined
+
+appendGlobal :: forall a w. (Monoid a, Has w (Global a)) => a -> System w (Reads (Global a))
+appendGlobal a = global $ do Reads m :: Reads (Global a) <- retrieve undefined
+                             store undefined (Writes (m `mappend` a))
+                             return (Reads m)
+
+mapReads :: (Has w a, Has w b, Component a, Component b) => (a -> b) -> System w ()
+mapReads = undefined
