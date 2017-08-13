@@ -14,7 +14,7 @@ import Control.Monad.State
 
 type Runtime a = SRuntime (Storage a)
 
-newtype Slice  c = Slice S.IntSet deriving (Eq, Show)
+newtype Slice  c = Slice  {toList   :: [Entity]} deriving (Eq, Show)
 newtype Reads  c = Reads  {unReads  :: Runtime c}
 newtype Writes c = Writes {unWrites :: Runtime c}
 newtype Store  c = Store  {unStore  :: Storage c}
@@ -28,13 +28,13 @@ empty = Store <$> sEmpty
 
 slice :: forall w c. (Has w c, Component c) => System w (Slice c)
 slice = embed $ do Store s <- get
-                   (a, s') <- (runSystem sSlice s :: System (Store c) (S.IntSet, Storage c))
+                   (a, s') <- runSystem sSlice s :: System (Store c) ([Entity], Storage c)
                    put (Store s')
                    return $ Slice a
 
 retrieve :: forall w c. (Has w c, Component c) => Entity -> System w (Reads c)
 retrieve e = embed $ do Store s <- get
-                        (r, s') <- (runSystem (sRetrieve e) s :: System (Store c) (Runtime c, Storage c))
+                        (r, s') <- runSystem (sRetrieve e) s :: System (Store c) (Runtime c, Storage c)
                         put (Store s')
                         return $ Reads r
 
@@ -44,10 +44,9 @@ store e (Writes w) = embed $ do Store s <- get
                                 put (Store s' :: Store c)
 
 union :: Slice s1 -> Slice s2 -> Slice ()
-union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)
-
-toList :: Slice c -> [Entity]
-toList (Slice s) = fmap Entity (S.toList s)
+union (Slice s1) (Slice s2) = let set1 = S.fromList . fmap unEntity $ s1
+                                  set2 = S.fromList . fmap unEntity $ s2
+                               in Slice . fmap Entity . S.toList $ S.intersection set1 set2
 
 embed :: Has w c => System (Store c) a -> System w a
 embed sys = do w <- get
@@ -68,6 +67,7 @@ runWith = flip runSystem
 runWithIO :: s -> System s a -> IO (a, s)
 runWithIO = flip runSystemIO
 
+uninitialized :: w
 uninitialized = error "Read uninitialized world state"
 
 defaultMain :: System w a -> IO ()
@@ -86,9 +86,6 @@ newEntityWith c = do e <- newEntity
                      store e c
                      return e
 
-nullEntity :: Entity
-nullEntity = Entity (-1)
-
 readGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
 readGlobal = retrieve nullEntity
 
@@ -102,13 +99,10 @@ appendGlobal a = do Reads m :: Reads (Global a) <- retrieve nullEntity
 
 mapReads :: forall w a b. (Has w a, Has w b, Component a, Component b) => (Reads a -> Writes b) -> System w ()
 mapReads f = do sl :: Slice a <- slice
-                forSlice_ sl $ \e ->
-                  do ra <- retrieve e
-                     store e (f ra)
+                forSlice_ sl $ \e -> retrieve e >>= store e . f
 
 sliceReads :: (Component c, Has w c) => Slice a -> (Reads c -> System w b) -> System w ()
-sliceReads sl sys = forM_ (toList sl) $ \e -> do r <- retrieve e
-                                                 sys r
+sliceReads sl sys = forM_ (toList sl) $ (>>= sys) . retrieve
 
 forSlice_ :: Monad m => Slice c -> (Entity -> m b) -> m ()
 forSlice_ sl = forM_ (toList sl)

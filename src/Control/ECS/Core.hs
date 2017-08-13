@@ -5,7 +5,9 @@ module Control.ECS.Core where
 import qualified Data.IntSet as S
 import Control.Monad.State.Strict
 
-newtype Entity = Entity Int deriving (Eq, Show)
+newtype Entity = Entity {unEntity :: Int} deriving (Eq, Show)
+nullEntity :: Entity
+nullEntity = Entity (-1)
 
 class SStorage (Storage c) => Component c where
   type Storage c :: *
@@ -14,7 +16,7 @@ class SStorage c where
   type SRuntime c :: *
 
   sEmpty    :: System s c
-  sSlice    :: System c S.IntSet
+  sSlice    :: System c [Entity]
   sRetrieve :: Entity -> System c (SRuntime c)
   sStore    :: Entity -> SRuntime c -> System c ()
   sMember   :: Entity -> System c Bool
@@ -47,9 +49,9 @@ instance ( SStorage a, SStorage b
   sSlice =
     do (sta, stb) <- get
        (sla, sta') <- runSystem sSlice sta
-       (slb, stb') <- runSystem sSlice stb
+       (slb, stb') <- runSystem (filterM sMember sla) stb
        put (sta', stb')
-       return $ S.intersection sla slb
+       return slb
 
   sRetrieve ety =
     do (sta, stb) <- get

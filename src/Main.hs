@@ -8,13 +8,6 @@ data V2 = V2 !Float !Float deriving (Eq, Show)
 instance Num V2 where
   V2 x1 y1 + V2 x2 y2 = V2 (x1 + x2) (y1 + y2)
 
-veczero = V2 0 0
-vecone  = V2 1 1
-pzero   = Just $ Position veczero
-pone    = Just $ Position vecone
-vzero   = Just $ Velocity veczero
-vone    = Just $ Velocity vecone
-
 newtype Position = Position V2 deriving (Eq, Show)
 instance Component Position where
   type Storage Position = SimpleMap Position
@@ -22,6 +15,13 @@ instance Component Position where
 newtype Velocity = Velocity V2 deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = SimpleMap Velocity
+
+veczero = V2 0 0
+vecone  = V2 1 1
+pzero   = Just $ Position veczero
+pone    = Just $ Position vecone
+vzero   = Just $ Velocity veczero
+vone    = Just $ Velocity vecone
 
 data World = World
   { positions     :: Store Position

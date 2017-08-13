@@ -16,7 +16,7 @@ instance SStorage (SimpleMap c) where
   type SRuntime (SimpleMap c) = Maybe c
 
   sEmpty               = return mempty
-  sSlice               = M.keysSet . unSimpleMap <$> get
+  sSlice               = fmap Entity . M.keys . unSimpleMap <$> get
   sRetrieve (Entity e) = M.lookup e . unSimpleMap <$> get
   sMember (Entity e)   = M.member e . unSimpleMap <$> get
   sDestroy (Entity e)  = modify $ \(SimpleMap s) -> SimpleMap (M.delete e s)
@@ -32,7 +32,7 @@ instance SStorage SimpleFlag where
   type SRuntime SimpleFlag = Bool
 
   sEmpty               = return mempty
-  sSlice               = unSimpleFlag <$> get
+  sSlice               = fmap Entity . S.toList . unSimpleFlag <$> get
   sRetrieve (Entity e) = S.member e . unSimpleFlag <$> get
   sDestroy  (Entity e) = modify $ \(SimpleFlag s) -> SimpleFlag (S.delete e s)
   sMember              = sRetrieve
@@ -48,7 +48,7 @@ instance Monoid c => Component (Global c) where
 instance Monoid c => SStorage (Global c) where
   type SRuntime (Global c) = c
   sEmpty      = return mempty
-  sSlice      = return . S.singleton $ -1
+  sSlice      = return [nullEntity]
   sRetrieve _ = unGlobal <$> get
   sDestroy _  = return ()
   sMember _   = return False
