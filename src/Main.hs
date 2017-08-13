@@ -29,10 +29,7 @@ instance World `Has` EntityCounter where
   putC c' w = w {entityCounter = c'}
 
 initWorld :: System s World
-initWorld = do p <- empty
-               v <- empty
-               c <- empty
-               return (World p v c)
+initWorld = World <$> empty <*> empty <*> empty
 
 main :: IO ()
 main = do --initWorld

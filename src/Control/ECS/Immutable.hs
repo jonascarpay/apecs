@@ -38,7 +38,7 @@ instance SStorage SimpleFlag where
   sStore (Entity e) False = modify $ \(SimpleFlag s) -> SimpleFlag (S.delete e s)
 
 
-newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Eq, Show)
+newtype EntityCounter = EntityCounter {getCount :: Int} deriving (Num, Eq, Show)
 
 instance Component EntityCounter where
   type Storage EntityCounter = EntityCounter

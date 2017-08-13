@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ScopedTypeVariables, TypeOperators #-}
+{-# LANGUAGE StandaloneDeriving, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, FlexibleInstances #-}
 
 module Control.ECS (
   module Control.ECS.Core,
@@ -12,13 +12,12 @@ import Control.ECS.Core
 import Control.ECS.Immutable
 import Control.Monad.State
 
--- Wrapper
 type Runtime a = SRuntime (Storage a)
 
 newtype Slice  c = Slice S.IntSet
-newtype Reads  c = Reads  (Runtime c)
-newtype Writes c = Writes (Runtime c)
-newtype Store  c = Store  {unStore :: Storage c}
+newtype Reads  c = Reads  {unReads  :: Runtime c}
+newtype Writes c = Writes {unWrites :: Runtime c}
+newtype Store  c = Store  {unStore  :: Storage c}
 
 class w `Has` c where
   getC :: w -> Store c
@@ -33,8 +32,16 @@ slice = do Store s <- get
            put (Store s')
            return $ Slice a
 
-retrieve :: Component c => Entity -> System (Storage c) (Reads c)
-retrieve e = Reads <$> sRetrieve e
+retrieve :: Component c => Entity -> System (Store c) (Reads c)
+retrieve e = do Store s <- get
+                (r, s') <- runSystem (sRetrieve e) s
+                put (Store s')
+                return $ Reads r
+
+store :: Component c => Entity -> Writes c -> System (Store c) ()
+store e (Writes w) = do Store s <- get
+                        ((), s') <- runSystem (sStore e w) s
+                        put (Store s')
 
 union :: Slice s1 -> Slice s2 -> Slice ()
 union (Slice s1) (Slice s2) = Slice (s1 `S.union` s2)
@@ -58,3 +65,13 @@ instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
 runWith :: s -> System s a -> System w (a, s)
 runWith = flip runSystem
 
+getEntityCount :: System (Store EntityCounter) Int
+getEntityCount = do unReads <$> retrieve undefined
+
+newEntity :: Has w EntityCounter => System w Entity
+newEntity = global $ do (Reads c :: Reads EntityCounter) <- retrieve undefined
+                        store undefined (Writes (c+1))
+                        return (Entity c)
+
+withDomain :: (Has w a, Has w b, Component a, Component b) => (a -> b) -> System w ()
+withDomain = undefined
