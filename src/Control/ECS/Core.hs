@@ -2,7 +2,6 @@
 
 module Control.ECS.Core where
 
-import qualified Data.IntSet as S
 import Control.Monad.State.Strict
 
 newtype Entity = Entity {unEntity :: Int} deriving (Eq, Show)

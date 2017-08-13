@@ -1,27 +1,25 @@
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 import Criterion
 import qualified Criterion.Main as C
 
 import Control.ECS
+import Control.ECS.Mutable
 import Control.Monad.State
 
-data V2 = V2 !Float !Float deriving (Eq, Show)
-instance Num V2 where
-  V2 x1 y1 + V2 x2 y2 = V2 (x1 + x2) (y1 + y2)
-
-newtype Position = Position V2 deriving (Eq, Show)
+data Position = Position Int Int deriving (Eq, Show)
 instance Component Position where
-  type Storage Position = SimpleMap Position
+  type Storage Position = MutableMap Position
 
-newtype Velocity = Velocity V2 deriving (Eq, Show)
+data Velocity = Velocity Int Int deriving (Eq, Show)
 instance Component Velocity where
-  type Storage Velocity = SimpleMap Velocity
+  type Storage Velocity = MutableMap Velocity
 
-veczero = V2 0 0
-vecone  = V2 1 1
-pzero   = Just $ Position veczero
-pone    = Just $ Position vecone
-vzero   = Just $ Velocity veczero
-vone    = Just $ Velocity vecone
+pzero, pone :: Maybe Position
+pzero   = Just $ Position 0 0
+pone    = Just $ Position 1 1
+vzero, vone :: Maybe Velocity
+vzero   = Just $ Velocity 0 0
+vone    = Just $ Velocity 1 1
 
 data World = World
   { positions     :: Store Position
@@ -46,16 +44,14 @@ initWorld = do World <$> empty <*> empty <*> empty >>= put
                replicateM_ 9000 $ newEntityWith (Writes pzero :: Writes Position)
                replicateM_ 1000 $ newEntityWith (Writes (pzero, vone) :: Writes (Position, Velocity))
 
-addPosition :: V2 -> Reads Position -> Writes Position
-addPosition v (Reads (Just (Position p))) = Writes (Just (Position (p+v)))
-
 stepVelocity :: Reads (Velocity, Position) -> Writes (Position)
-stepVelocity (Reads (Just (Velocity v), Just (Position p))) =
-             Writes (Just (Position (p + v)))
+stepVelocity (Reads (Just (Velocity vx vy), Just (Position px py))) =
+  Writes . Just $ Position (px+vx) (py+vy)
 
 stepWorld :: System World ()
 stepWorld = mapReads stepVelocity
 
+main :: IO ()
 main =
   do (_,w :: World) <- runSystemIO initWorld uninitialized
      C.defaultMain [ bench "init" $ whnfIO (defaultMain initWorld)
