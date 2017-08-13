@@ -17,8 +17,8 @@ type Runtime a = SRuntime (Storage a)
 newtype Slice  c = Slice  {toList   :: [Entity]} deriving (Eq, Show)
 newtype Reads  c = Reads  {unReads  :: Runtime c}
 newtype Writes c = Writes {unWrites :: Runtime c}
-newtype Store  c = Store  {unStore  :: Storage c}
 
+newtype Store  c = Store  {unStore  :: Storage c}
 class w `Has` c where
   getC :: w -> Store c
   putC :: Store c -> w -> w
@@ -58,8 +58,9 @@ instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   getC w = let Store sa :: Store a = getC w
                Store sb :: Store b = getC w
             in Store (sa, sb)
-
   putC (Store (sa, sb)) = putC (Store sb :: Store b) . putC (Store sa :: Store a)
+  {-# INLINE getC #-}
+  {-# INLINE putC #-}
 
 runWith :: s -> System s a -> System w (a, s)
 runWith = flip runSystem

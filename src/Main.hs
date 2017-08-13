@@ -49,7 +49,10 @@ stepVelocity (Reads (Just (Velocity vx vy), Just (Position px py))) =
   Writes . Just $ Position (px+vx) (py+vy)
 
 stepWorld :: System World ()
-stepWorld = mapReads stepVelocity
+stepWorld = do Store (vs, ps) :: Store (Velocity, Position) <- getC <$> get
+               liftIO . mutForM vs $ \(e, Velocity vx vy) ->
+                 do Just (Position px py) <- mutRetrieve e ps
+                    mutStore e (Just (Position (px+vx) (py+vy))) ps
 
 main :: IO ()
 main =

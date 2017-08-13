@@ -34,6 +34,11 @@ executable execs
   ghc-options:
     -O2
     -Wall
+    -fno-liberate-case
+    -fllvm
+    -optlo-O3
+    -funfolding-use-threshold1000
+    -funfolding-keeness-factor1000
 
   default-extensions:
     TypeOperators,
@@ -41,4 +46,4 @@ executable execs
     MultiParamTypeClasses,
     FlexibleInstances,
     ScopedTypeVariables,
-    Strict
+    StrictData
