@@ -47,4 +47,5 @@ executable execs
     MultiParamTypeClasses,
     FlexibleInstances,
     ScopedTypeVariables,
+    GeneralizedNewtypeDeriving,
     StrictData
