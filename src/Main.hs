@@ -4,6 +4,7 @@ import qualified Criterion.Main as C
 
 import Control.ECS
 import Control.Monad
+import Control.DeepSeq
 
 data Position = Position Int Int deriving (Eq, Show)
 instance Component Position where
@@ -26,38 +27,37 @@ data World = World
   , entityCounter :: Store EntityCounter
   }
 
+instance NFData World where
+  rnf w = seq w ()
+
 instance World `Has` Position where
+  {-# INLINE getStore #-}
   getStore = System $ asks positions
 
 instance World `Has` Velocity where
+  {-# INLINE getStore #-}
   getStore = System $ asks velocities
 
 instance World `Has` EntityCounter where
+  {-# INLINE getStore #-}
   getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
 emptyWorld = World <$> empty <*> empty <*> empty
 
+{-# INLINE stepVelocity #-}
 stepVelocity :: Reads (Velocity, Position) -> Writes Position
 stepVelocity (Reads ( Just (Velocity vx vy)
                     , Just (Position px py))
              ) = Writes (Just $ Position (px+vx) (py+vy))
 
-{-stepWorld :: System World ()-}
-{-stepWorld = do Store (vs, ps) :: Store (Velocity, Position) <- getC <$> get-}
-               {-liftIO . mutForM vs $ \(e, Velocity vx vy) ->-}
-                 {-do Just (Position px py) <- mutRetrieve e ps-}
-                    {-mutStore e (Just (Position (px+vx) (py+vy))) ps-}
-
 initialize :: System World IO ()
 initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writes (Position, Velocity))
                 replicateM_ 9000 . newEntityWith $ (Writes pzero :: Writes Position)
 
-
 main :: IO ()
-main = do w <- emptyWorld
-          runWith w $
-            do initialize
-               e <- nextEntity
-               liftIO (print e)
+main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
+                     , env (do w <- emptyWorld; runSystem initialize w; return w)
+                               (\w -> bench "step" $ whnfIO (runSystem (mapReads stepVelocity) w))
+                     ]
 

@@ -25,6 +25,15 @@ instance Monoid c => SStorage IO (Global c) where
   sOver     (Global ref) = modifyIORef' ref
   sForC     (Global ref) f = void $ readIORef ref >>= f
 
+  {-# INLINE sEmpty #-}
+  {-# INLINE sStore #-}
+  {-# INLINE sOver #-}
+  {-# INLINE sForC #-}
+  {-# INLINE sSlice #-}
+  {-# INLINE sMember #-}
+  {-# INLINE sDestroy #-}
+  {-# INLINE sRetrieve #-}
+
 
 newtype HashTable c = HashTable {getHashTable :: H.BasicHashTable Int c}
 
@@ -42,3 +51,11 @@ instance SStorage IO (HashTable c) where
   sOver     (HashTable h) f = flip H.mapM_ h $ \(k,x) -> H.insert h k (f x)
   sForC     (HashTable h) fm = flip H.mapM_ h $ \(_,x) -> fm x
 
+  {-# INLINE sEmpty #-}
+  {-# INLINE sStore #-}
+  {-# INLINE sOver #-}
+  {-# INLINE sForC #-}
+  {-# INLINE sSlice #-}
+  {-# INLINE sMember #-}
+  {-# INLINE sDestroy #-}
+  {-# INLINE sRetrieve #-}

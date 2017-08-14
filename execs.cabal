@@ -30,16 +30,17 @@ executable execs
     stm,
     hashtables,
     mtl,
+    deepseq,
     criterion
 
   ghc-options:
     -Wall
---    -O2
---    -fno-liberate-case
---    -fllvm
---    -optlo-O3
---    -funfolding-use-threshold1000
---    -funfolding-keeness-factor1000
+    -O2
+    -fno-liberate-case
+    -fllvm
+    -optlo-O3
+    -funfolding-use-threshold1000
+    -funfolding-keeness-factor1000
 
   default-extensions:
     TypeOperators,

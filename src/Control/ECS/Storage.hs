@@ -47,3 +47,12 @@ instance ( Monad m, SStorage m sa, SStorage m sb) => SStorage m (sa, sb) where
                  forM_ sl $ \ety ->
                    do r <- sRetrieve s ety
                       f r
+
+  {-# INLINE sEmpty #-}
+  {-# INLINE sStore #-}
+  {-# INLINE sOver #-}
+  {-# INLINE sForC #-}
+  {-# INLINE sSlice #-}
+  {-# INLINE sMember #-}
+  {-# INLINE sDestroy #-}
+  {-# INLINE sRetrieve #-}
