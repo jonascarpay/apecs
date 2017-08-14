@@ -10,11 +10,11 @@ import Control.DeepSeq
 
 data Position = Position Int Int deriving (Eq, Show)
 instance Component Position where
-  type Storage Position = HashTable Position
+  type Storage Position = Cached (Map Position)
 
 data Velocity = Velocity Int Int deriving (Eq, Show)
 instance Component Velocity where
-  type Storage Velocity = HashTable Velocity
+  type Storage Velocity = Cached (Map Velocity)
 
 pzero, pone :: Maybe Position
 pzero   = Just $ Position 0 0
@@ -45,7 +45,9 @@ instance World `Has` EntityCounter where
   getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
-emptyWorld = World <$> empty <*> empty <*> empty
+emptyWorld = liftM3 World (Store <$> newCacheWith 100 sEmpty)
+                          (Store <$> newCacheWith 100 sEmpty)
+                          empty
 
 {-# INLINE stepVelocity #-}
 stepVelocity :: Reads (Velocity, Position) -> Writes Position
@@ -59,6 +61,7 @@ initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writ
 
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
+                     , bench "both" $ whnfIO (emptyWorld >>= runSystem (initialize >> mapReads stepVelocity))
                      , env (do w <- emptyWorld; runSystem initialize w; return w)
                                (\w -> bench "step" $ whnfIO (runSystem (mapReads stepVelocity) w))
                      ]

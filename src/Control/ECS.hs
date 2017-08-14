@@ -5,7 +5,7 @@ module Control.ECS (
   module Control.ECS.Storage,
 
   -- Mutable
-  HashTable, Global,
+  HashTable, Global, Cached, newCacheWith,
 
   -- Reader
   asks, liftIO,

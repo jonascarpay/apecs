@@ -23,6 +23,7 @@ class Monad m => SStorage m s where
 
 newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num, Show)
 
+
 instance (Component a, Component b) => Component (a, b) where
   type Storage (a, b) = (Storage a, Storage b)
 
