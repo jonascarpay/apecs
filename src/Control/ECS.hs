@@ -20,7 +20,7 @@ import Control.Monad.Reader
 
 import Control.ECS.Core
 import Control.ECS.Storage
-import Control.ECS.Mutable
+import Control.ECS.Storage.Mutable
 
 newtype EntityCounter = ECount Int deriving (Eq, Show, Num)
 instance Component EntityCounter where

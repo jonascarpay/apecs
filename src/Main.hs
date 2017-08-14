@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
+
 import Criterion
 import qualified Criterion.Main as C
 
 import Control.ECS
+import Control.ECS.Storage.Immutable
 import Control.Monad
 import Control.DeepSeq
 

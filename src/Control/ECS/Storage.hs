@@ -2,7 +2,6 @@
 module Control.ECS.Storage where
 
 import Control.Monad
-import Control.Monad.Trans
 
 type ID = Int
 

@@ -21,13 +21,17 @@ executable execs
     Control.ECS,
     Control.ECS.Core,
     Control.ECS.Storage,
-    Control.ECS.Mutable
+    Control.ECS.Storage.Mutable,
+    Control.ECS.Storage.Immutable,
+    Control.ECS.Storage.STM
   default-language:    Haskell2010
 
   build-depends:
     base,
     containers,
     stm,
+    stm-containers,
+    list-t,
     hashtables,
     mtl,
     deepseq,

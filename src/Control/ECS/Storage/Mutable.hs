@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Control.ECS.Mutable where
+module Control.ECS.Storage.Mutable where
 
 import Control.Monad.State
 import qualified Data.HashTable.IO as H
