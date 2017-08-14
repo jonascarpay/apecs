@@ -1,4 +1,7 @@
-{-# LANGUAGE ScopedTypeVariables, FlexibleContexts, GeneralizedNewtypeDeriving, ConstraintKinds #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables, FlexibleContexts, GeneralizedNewtypeDeriving, ConstraintKinds #-}
+
+{-# LANGUAGE Strict #-}
+
 module Control.ECS.Core where
 
 import qualified Data.IntSet as S
@@ -6,6 +9,9 @@ import qualified Data.IntSet as S
 import Control.ECS.Storage
 import Control.Monad.State
 import Control.Monad.Reader
+import Control.Concurrent
+
+import qualified Data.Vector.Unboxed as U
 
 newtype Store  c = Store  {unStore  :: Storage c}
 class w `Has` c where
@@ -15,10 +21,12 @@ type Valid w m c = (Has w c, Component c, SStorage m (Storage c))
 
 newtype System w m a = System {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadIO, MonadTrans)
 
-newtype Slice  c = Slice  {toList   :: [Entity c]} deriving (Eq, Show)
 newtype Reads  c = Reads  {unReads  :: SSafeElem (Storage c)}
 newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
 newtype Elem   c = Elem   {unElem   :: SElem (Storage c)}
+
+newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num, Show)
+newtype Slice  c = Slice {unSlice :: U.Vector ID}
 
 {-# INLINE runSystem #-}
 runSystem :: System w m a -> w -> m a
@@ -39,41 +47,35 @@ slice = do Store s :: Store c <- getStore
 
 {-# INLINE isMember #-}
 isMember :: forall w m c. Valid w m c => Entity c -> System w m Bool
-isMember ety = do Store s :: Store c <- getStore
-                  lift $ sMember s ety
+isMember (Entity ety) = do Store s :: Store c <- getStore
+                           lift $ sMember s ety
 
 {-# INLINE retrieve #-}
 retrieve :: forall w m c a. Valid w m c => Entity a -> System w m (Reads c)
-retrieve ety = do Store s :: Store c <- getStore
-                  fmap Reads . lift $ sRetrieve s ety
+retrieve (Entity ety) = do Store s :: Store c <- getStore
+                           fmap Reads . lift $ sRetrieve s ety
 
 {-# INLINE store #-}
 store :: forall w m c a. Valid w m c => Writes c -> Entity a -> System w m ()
-store (Writes w) ety = do Store s :: Store c <- getStore
-                          lift $ sStore s w ety
+store (Writes w) (Entity ety) = do Store s :: Store c <- getStore
+                                   lift $ sStore s w ety
 
 {-# INLINE destroy #-}
 destroy :: forall w m c. Valid w m c => Entity c -> System w m ()
-destroy ety = do Store s :: Store c <- getStore
-                 lift $ sDestroy s ety
+destroy (Entity ety) = do Store s :: Store c <- getStore
+                          lift $ sDestroy s ety
 
 {-# INLINE mapRW #-}
 mapRW :: forall w m c. Valid w m c => (Elem c -> Elem c) -> System w m ()
 mapRW f = do Store s :: Store c <- getStore
-             lift $ sSlice s >>= mapM_ (\e -> do r <- sRUnsafe s e; sWUnsafe s (unElem . f $ Elem r) e)
+             lift $ sSlice s >>= U.mapM_ (\e -> do r <- sRUnsafe s e; sWUnsafe s (unElem . f $ Elem r) e)
 
 {-# INLINE mapR #-}
 mapR :: forall w m r wr. (Valid w m r, Valid w m wr) => (Elem r -> Writes wr) -> System w m ()
-mapR f = do Store sr :: Store r  <- getStore
-            Store sw :: Store wr <- getStore
-            lift $ sSlice sr >>= mapM_
-              (\e -> do r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
-
-{-# INLINE union #-}
-union :: Slice s1 -> Slice s2 -> Slice ()
-union (Slice s1) (Slice s2) = let set1 = S.fromList . fmap unEntity $ s1
-                                  set2 = S.fromList . fmap unEntity $ s2
-                               in Slice . fmap Entity . S.toList $ S.intersection set1 set2
+mapR !f = do Store !sr :: Store r  <- getStore
+             Store !sw :: Store wr <- getStore
+             lift $ do !sl <- sSlice sr
+                       U.forM_ sl $ \ !e -> (do !r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   {-# INLINE getStore #-}

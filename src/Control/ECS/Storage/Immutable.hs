@@ -1,9 +1,11 @@
+
 module Control.ECS.Storage.Immutable where
 
 import qualified Data.IntSet as S
 import qualified Data.IntMap as M
 import Data.IORef
 import Control.Monad
+import Data.Vector.Unboxed as U
 
 import Control.ECS.Storage
 
@@ -14,18 +16,18 @@ instance SStorage IO (Map c) where
   type SElem     (Map c) = c
 
   sEmpty = Map <$> newIORef mempty
-  sSlice    (Map m) = fmap Entity . M.keys <$> readIORef m
-  sMember   (Map m) (Entity ety) = M.member ety <$> readIORef m
-  sDestroy  (Map m) (Entity ety) = modifyIORef' m (M.delete ety)
-  sRetrieve (Map m) (Entity ety) = M.lookup ety <$> readIORef m
+  sSlice    (Map m) = U.fromList . M.keys <$> readIORef m
+  sMember   (Map m) ety = M.member ety <$> readIORef m
+  sDestroy  (Map m) ety = modifyIORef' m (M.delete ety)
+  sRetrieve (Map m) ety = M.lookup ety <$> readIORef m
   sStore    m Nothing ety = sDestroy m ety
-  sStore    (Map m) (Just x) (Entity ety) = modifyIORef' m (M.insert ety x)
+  sStore    (Map m) (Just x) ety = modifyIORef' m (M.insert ety x)
 
-  sWUnsafe (Map m) x (Entity ety) = modifyIORef' m (M.insert ety x)
-  sRUnsafe (Map m) (Entity ety) = do mx <- M.lookup ety <$> readIORef m
-                                     case mx of
-                                       Nothing -> error "Unsafe read miss"
-                                       Just x -> return x
+  sWUnsafe (Map m) x ety = modifyIORef' m (M.insert ety x)
+  sRUnsafe (Map m) ety = do mx <- M.lookup ety <$> readIORef m
+                            case mx of
+                              Nothing -> error "Unsafe read miss"
+                              Just x -> return x
 
 newtype FlagSet c = FlagSet {unFlagSet :: IORef S.IntSet}
 
@@ -34,12 +36,12 @@ instance SStorage IO (FlagSet c) where
   type SElem     (FlagSet c) = Bool
 
   sEmpty = FlagSet <$> newIORef mempty
-  sSlice (FlagSet s) = fmap Entity . S.toList <$> readIORef s
-  sMember (FlagSet s) (Entity ety) = S.member ety <$> readIORef s
-  sDestroy (FlagSet s) (Entity ety) = modifyIORef' s (S.delete ety)
+  sSlice (FlagSet s) = U.fromList . S.toList <$> readIORef s
+  sMember (FlagSet s) ety = S.member ety <$> readIORef s
+  sDestroy (FlagSet s) ety = modifyIORef' s (S.delete ety)
   sRetrieve = sMember
   sStore s False ety = sDestroy s ety
-  sStore (FlagSet s) True (Entity ety) = modifyIORef' s (S.insert ety)
+  sStore (FlagSet s) True ety = modifyIORef' s (S.insert ety)
 
   sWUnsafe = sStore
   sRUnsafe = sRetrieve

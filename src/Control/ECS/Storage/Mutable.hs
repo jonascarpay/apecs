@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
 module Control.ECS.Storage.Mutable where
 
@@ -20,7 +20,7 @@ instance Monoid c => SStorage IO (Global c) where
   type SSafeElem (Global c) = c
 
   sEmpty = Global <$> newIORef mempty
-  sSlice    _   = return []
+  sSlice    _   = return UV.empty
   sMember   _ _ = return False
   sDestroy  _ _ = return ()
   sRetrieve (Global ref) _ = readIORef ref
@@ -35,15 +35,15 @@ instance SStorage IO (HashTable c) where
   type SElem     (HashTable c) = c
 
   sEmpty = HashTable <$> H.new
-  sSlice    (HashTable h) = fmap (Entity . fst) <$> H.toList h
-  sMember   (HashTable h) (Entity ety) = isJust <$> H.lookup h ety
-  sDestroy  (HashTable h) (Entity ety) = H.delete h ety
-  sRetrieve (HashTable h) (Entity ety) = H.lookup h ety
+  sSlice    (HashTable h) = UV.fromList . fmap fst <$> H.toList h
+  sMember   (HashTable h) ety = isJust <$> H.lookup h ety
+  sDestroy  (HashTable h) ety = H.delete h ety
+  sRetrieve (HashTable h) ety = H.lookup h ety
   sStore    h Nothing ety = sDestroy h ety
-  sStore    (HashTable h) (Just x) (Entity ety) = H.insert h ety x
+  sStore    (HashTable h) (Just x) ety = H.insert h ety x
 
-  sWUnsafe (HashTable h) x (Entity ety) = H.insert h ety x
-  sRUnsafe (HashTable h) (Entity ety) = fromJust <$> H.lookup h ety
+  sWUnsafe (HashTable h) x ety = H.insert h ety x
+  sRUnsafe (HashTable h) ety = fromJust <$> H.lookup h ety
 
 
 data Cached s = Cached { size  :: Int
@@ -64,48 +64,48 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage IO c) => SStorage IO (Cached c
   type SElem     (Cached c) = SElem     c
 
   sEmpty = newCacheWith 100 sEmpty
-  sSlice (Cached s t _ m) =
-    do ts <- filter (-1/=) <$> traverse (U.unsafeRead t) [0..s-1]
+  sSlice (Cached _ t _ m) =
+    do ts <- UV.filter (/= -1) <$> UV.freeze t
        ms <- sSlice m
-       return (fmap Entity ts ++ ms)
+       return $! ts UV.++ ms
 
-  sMember (Cached s t _ m) (Entity ety) =
-    do r <- U.unsafeRead t (ety `mod` s)
+  sMember (Cached s t _ m) !ety =
+    do !r <- U.unsafeRead t (ety `mod` s)
        if r == ety
           then return True
-          else sMember m (Entity ety)
+          else sMember m ety
 
-  sDestroy (Cached s t _ m) (Entity ety) =
-    do r <- U.unsafeRead t (ety `mod` s)
+  sDestroy (Cached s t _ m) !ety =
+    do !r <- U.unsafeRead t (ety `mod` s)
        if r == ety
-          then U.write t (ety `mod` s) (-1)
-          else sDestroy m (Entity ety)
+          then U.unsafeWrite t (ety `mod` s) (-1)
+          else sDestroy m ety
 
-  sRetrieve (Cached s t c m) (Entity ety) =
-    do let index = mod ety s
-       r <- U.unsafeRead t index
+  sRetrieve (Cached s t c m) !ety =
+    do let !index = mod ety s
+       !r <- U.unsafeRead t index
        if r == ety
           then Just <$> V.unsafeRead c index
-          else sRetrieve m (Entity ety)
+          else sRetrieve m ety
 
   sStore c Nothing  ety = sDestroy c ety
   sStore c (Just w) ety = sWUnsafe c w ety
 
-  sWUnsafe (Cached s t c m) w (Entity ety) =
-    do let index = mod ety s
-       r <- U.unsafeRead t index
+  sWUnsafe (Cached s t c m) !w !ety =
+    do let !index = mod ety s
+       !r <- U.unsafeRead t index
        when (r /= -1 && r /= ety) $
-         do cached <- V.unsafeRead c index
-            sStore m (Just cached) (Entity ety)
-       U.write t index ety
-       V.write c index w
+         do !cached <- V.read c index
+            sStore m (Just cached) ety
+       U.unsafeWrite t index ety
+       V.unsafeWrite c index w
 
-  sRUnsafe (Cached s t c m) (Entity ety) =
-    do let index = mod ety s
-       r <- U.unsafeRead t index
+  sRUnsafe (Cached s t c m) !ety =
+    do let !index = mod ety s
+       !r <- U.read t index
        if r == ety
           then V.unsafeRead c index
-          else sRUnsafe m (Entity ety)
+          else sRUnsafe m ety
 
   {-# INLINE sEmpty #-}
   {-# INLINE sStore #-}

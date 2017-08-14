@@ -61,7 +61,5 @@ initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writ
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
                      , bench "both" $ whnfIO (emptyWorld >>= runSystem (initialize >> mapR stepVelocity))
-                     , env (do w <- emptyWorld; runSystem initialize w; performMajorGC; return w)
-                               (bench "step" . whnfIO . runSystem (mapR stepVelocity))
                      ]
 

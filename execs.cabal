@@ -35,8 +35,8 @@ library
   ghc-options:
     -Wall
     -O2
-    -fno-liberate-case
     -fllvm
+    -threaded
     -optlo-O3
     -funfolding-use-threshold1000
     -funfolding-keeness-factor1000
@@ -75,10 +75,9 @@ benchmark execs-bench
     Haskell2010
   ghc-options:
     -Wall
-    -O2
     -Odph
-    -fno-liberate-case
     -fllvm
     -optlo-O3
     -funfolding-use-threshold1000
     -funfolding-keeness-factor1000
+    -threaded
