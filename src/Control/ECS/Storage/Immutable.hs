@@ -20,25 +20,27 @@ instance SStorage IO (Map c) where
   sRetrieve (Map m) (Entity ety) = M.lookup ety <$> readIORef m
   sStore    m Nothing ety = sDestroy m ety
   sStore    (Map m) (Just x) (Entity ety) = modifyIORef' m (M.insert ety x)
-  sOver     (Map m) f = modifyIORef' m (fmap f)
-  sForC     (Map m) fm = do e <- readIORef m
-                            mapM_ fm e
 
+  sWUnsafe (Map m) x (Entity ety) = modifyIORef' m (M.insert ety x)
+  sRUnsafe (Map m) (Entity ety) = do mx <- M.lookup ety <$> readIORef m
+                                     case mx of
+                                       Nothing -> error "Unsafe read miss"
+                                       Just x -> return x
 
 newtype FlagSet c = FlagSet {unFlagSet :: IORef S.IntSet}
 
 instance SStorage IO (FlagSet c) where
   type SSafeElem (FlagSet c) = Bool
-  type SElem     (FlagSet c) = ()
+  type SElem     (FlagSet c) = Bool
 
   sEmpty = FlagSet <$> newIORef mempty
-  sSlice (FlagSet m) = fmap Entity . S.toList <$> readIORef m
-  sMember (FlagSet m) (Entity ety) = S.member ety <$> readIORef m
-  sDestroy (FlagSet m) (Entity ety) = modifyIORef' m (S.delete ety)
+  sSlice (FlagSet s) = fmap Entity . S.toList <$> readIORef s
+  sMember (FlagSet s) (Entity ety) = S.member ety <$> readIORef s
+  sDestroy (FlagSet s) (Entity ety) = modifyIORef' s (S.delete ety)
   sRetrieve = sMember
-  sStore m False ety = sDestroy m ety
-  sStore (FlagSet m) True (Entity ety) = modifyIORef' m (S.insert ety)
-  sOver _ _ = return ()
-  sForC (FlagSet m) fm = do s <- S.size <$> readIORef m
-                            replicateM_ s (fm ())
+  sStore s False ety = sDestroy s ety
+  sStore (FlagSet s) True (Entity ety) = modifyIORef' s (S.insert ety)
+
+  sWUnsafe = sStore
+  sRUnsafe = sRetrieve
 

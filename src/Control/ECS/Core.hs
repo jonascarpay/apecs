@@ -60,12 +60,14 @@ destroy ety = do Store s :: Store c <- getStore
 {-# INLINE mapRW #-}
 mapRW :: forall w m c. Valid w m c => (Elem c -> Elem c) -> System w m ()
 mapRW f = do Store s :: Store c <- getStore
-             lift $ sOver s (unElem . f . Elem)
+             lift $ sSlice s >>= mapM_ (\e -> do r <- sRUnsafe s e; sWUnsafe s (unElem . f $ Elem r) e)
 
-{-# INLINE forC #-}
-forC :: forall w m c a. Valid w m c => (Elem c -> m a) -> System w m ()
-forC fm = do Store s :: Store c <- getStore
-             lift $ sForC s (fm . Elem)
+{-# INLINE mapR #-}
+mapR :: forall w m r wr. (Valid w m r, Valid w m wr) => (Elem r -> Writes wr) -> System w m ()
+mapR f = do Store sr :: Store r  <- getStore
+            Store sw :: Store wr <- getStore
+            lift $ sSlice sr >>= mapM_
+              (\e -> do r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
 
 {-# INLINE union #-}
 union :: Slice s1 -> Slice s2 -> Slice ()

@@ -1,12 +1,12 @@
-{-# OPTIONS_GHC -fno-warn-unused-binds #-}
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Criterion
 import qualified Criterion.Main as C
 
 import Control.ECS
-import Control.ECS.Storage.Immutable
 import Control.Monad
 import Control.DeepSeq
+import System.Mem (performMajorGC)
 
 data Position = Position Int Int deriving (Eq, Show)
 instance Component Position where
@@ -45,14 +45,13 @@ instance World `Has` EntityCounter where
   getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
-emptyWorld = liftM3 World (Store <$> newCacheWith 100 sEmpty)
-                          (Store <$> newCacheWith 100 sEmpty)
+emptyWorld = liftM3 World (Store <$> newCacheWith 10000 sEmpty)
+                          (Store <$> newCacheWith 1000 sEmpty)
                           empty
 
 {-# INLINE stepVelocity #-}
-stepVelocity :: Reads (Velocity, Position) -> Writes Position
-stepVelocity (Reads ( Just (Velocity vx vy)
-                    , Just (Position px py))
+stepVelocity :: Elem (Velocity, Position) -> Writes Position
+stepVelocity (Elem (Velocity vx vy, Position px py)
              ) = Writes (Just $ Position (px+vx) (py+vy))
 
 initialize :: System World IO ()
@@ -61,8 +60,8 @@ initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writ
 
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
-                     , bench "both" $ whnfIO (emptyWorld >>= runSystem (initialize >> mapReads stepVelocity))
-                     , env (do w <- emptyWorld; runSystem initialize w; return w)
-                               (\w -> bench "step" $ whnfIO (runSystem (mapReads stepVelocity) w))
+                     , bench "both" $ whnfIO (emptyWorld >>= runSystem (initialize >> mapR stepVelocity))
+                     , env (do w <- emptyWorld; runSystem initialize w; performMajorGC; return w)
+                               (bench "step" . whnfIO . runSystem (mapR stepVelocity))
                      ]
 

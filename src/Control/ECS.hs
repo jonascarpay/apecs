@@ -7,11 +7,13 @@ module Control.ECS (
   -- Mutable
   HashTable, Global, Cached, newCacheWith,
 
+  -- Immutable
+  Map, FlagSet,
+
   -- Reader
-  asks, liftIO,
+  asks, ask, liftIO,
 
   -- Self
-  mapReads,
   newEntityWith,
   EntityCounter, nextEntity,
 ) where
@@ -21,6 +23,7 @@ import Control.Monad.Reader
 import Control.ECS.Core
 import Control.ECS.Storage
 import Control.ECS.Storage.Mutable
+import Control.ECS.Storage.Immutable
 
 newtype EntityCounter = ECount Int deriving (Eq, Show, Num)
 instance Component EntityCounter where
@@ -42,11 +45,4 @@ newEntityWith :: (Valid w m c, Valid w m EntityCounter) => Writes c -> System w 
 newEntityWith c = do e <- nextEntity
                      store c e
                      return e
-
-{-# INLINE mapReads #-}
-mapReads :: forall w m a b. (Valid w m a, Valid w m b) => (Reads a -> Writes b) -> System w m ()
-mapReads f = do Slice sl :: Slice a <- slice
-                forM_ sl $ \e -> do r <- retrieve e
-                                    store (f r) e
-
 
