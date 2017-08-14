@@ -14,13 +14,15 @@ class Monad m => SStorage m s where
   type SSafeElem s :: *
 
   sEmpty    :: m s
-  sSlice    :: s -> m [ID]
-  sMember   :: s -> ID -> m Bool
-  sDestroy  :: s -> ID -> m ()
-  sRetrieve :: s -> ID -> m (SSafeElem s)
-  sStore    :: s -> SSafeElem s -> ID -> m ()
+  sSlice    :: s -> m [Entity a]
+  sMember   :: s -> Entity a -> m Bool
+  sDestroy  :: s -> Entity a -> m ()
+  sRetrieve :: s -> Entity a -> m (SSafeElem s)
+  sStore    :: s -> SSafeElem s -> Entity a -> m ()
   sOver     :: s -> (SElem s -> SElem s) -> m ()
   sForC     :: s -> (SElem s -> m a) -> m ()
+
+newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num, Show)
 
 instance (Component a, Component b) => Component (a, b) where
   type Storage (a, b) = (Storage a, Storage b)

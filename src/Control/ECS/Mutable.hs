@@ -33,12 +33,12 @@ instance SStorage IO (HashTable c) where
   type SElem     (HashTable c) = c
 
   sEmpty = HashTable <$> H.new
-  sSlice    (HashTable h) = fmap fst <$> H.toList h
-  sMember   (HashTable h) ety = isJust <$> H.lookup h ety
-  sDestroy  (HashTable h) ety = H.delete h ety
-  sRetrieve (HashTable h) ety = H.lookup h ety
+  sSlice    (HashTable h) = fmap (Entity . fst) <$> H.toList h
+  sMember   (HashTable h) (Entity ety) = isJust <$> H.lookup h ety
+  sDestroy  (HashTable h) (Entity ety) = H.delete h ety
+  sRetrieve (HashTable h) (Entity ety) = H.lookup h ety
   sStore    h Nothing ety = sDestroy h ety
-  sStore    (HashTable h) (Just x) ety = H.insert h ety x
+  sStore    (HashTable h) (Just x) (Entity ety) = H.insert h ety x
   sOver     (HashTable h) f = flip H.mapM_ h $ \(k,x) -> H.insert h k (f x)
   sForC     (HashTable h) fm = flip H.mapM_ h $ \(_,x) -> fm x
 

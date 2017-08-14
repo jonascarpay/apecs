@@ -2,9 +2,7 @@
 
 module Control.ECS (
   module Control.ECS.Core,
-
-  -- Storage
-  Component, Storage,
+  module Control.ECS.Storage,
 
   -- Mutable
   HashTable, Global,
