@@ -27,20 +27,21 @@ data World = World
   }
 
 instance World `Has` Position where
-  getC = System $ asks positions
+  getStore = System $ asks positions
 
 instance World `Has` Velocity where
-  getC = System $ asks velocities
+  getStore = System $ asks velocities
 
 instance World `Has` EntityCounter where
-  getC = System $ asks entityCounter
+  getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
 emptyWorld = World <$> empty <*> empty <*> empty
 
-stepVelocity :: Reads (Velocity, Position) -> Writes (Position)
-stepVelocity (Rd (Just (Velocity vx vy), Just (Position px py))) =
-              Wr (Just $ Position (px+vx) (py+vy))
+stepVelocity :: Reads (Velocity, Position) -> Writes Position
+stepVelocity (Reads ( Just (Velocity vx vy)
+                    , Just (Position px py))
+             ) = Writes (Just $ Position (px+vx) (py+vy))
 
 {-stepWorld :: System World ()-}
 {-stepWorld = do Store (vs, ps) :: Store (Velocity, Position) <- getC <$> get-}
@@ -49,8 +50,8 @@ stepVelocity (Rd (Just (Velocity vx vy), Just (Position px py))) =
                     {-mutStore e (Just (Position (px+vx) (py+vy))) ps-}
 
 initialize :: System World IO ()
-initialize = do replicateM_ 1000 . newEntityWith $ (Wr (pzero, vone) :: Writes (Position, Velocity))
-                replicateM_ 9000 . newEntityWith $ (Wr pzero :: Writes Position)
+initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writes (Position, Velocity))
+                replicateM_ 9000 . newEntityWith $ (Writes pzero :: Writes Position)
 
 
 main :: IO ()

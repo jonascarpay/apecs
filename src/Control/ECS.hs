@@ -32,8 +32,8 @@ instance Monoid EntityCounter where
   mappend = (+)
 
 nextEntity :: Valid w m EntityCounter => System w m (Entity a)
-nextEntity = do Rd (ECount c) :: Reads EntityCounter <- retrieve (-1)
-                let w :: Writes EntityCounter = Wr (ECount (c+1))
+nextEntity = do Reads (ECount c) :: Reads EntityCounter <- retrieve (-1)
+                let w :: Writes EntityCounter = Writes (ECount (c+1))
                 store w (-1)
                 return (Entity c)
 
