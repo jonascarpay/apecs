@@ -1,80 +1,110 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving, ConstraintKinds, FlexibleContexts, TypeFamilies, MultiParamTypeClasses, ScopedTypeVariables, TypeOperators, FlexibleInstances #-}
-
+{-# LANGUAGE ScopedTypeVariables, FlexibleContexts, GeneralizedNewtypeDeriving, ConstraintKinds #-}
 module Control.ECS.Core where
 
-import Control.Monad.State.Strict
+import qualified Data.IntSet as S
 
-newtype Entity = Entity {unEntity :: Int} deriving (Eq, Show)
-nullEntity :: Entity
-nullEntity = Entity (-1)
+import Control.ECS.Storage
+import Control.Monad.State
+import Control.Monad.Reader
 
-class SStorage (Storage c) => Component c where
-  type Storage c :: *
+type Safe a = SSafeElem (Storage a)
 
-class SStorage c where
-  type SRuntime c :: *
+newtype Slice  c = Slice  {toList   :: [Entity c]} deriving (Eq, Show)
+newtype Reads  c = Reads  {unReads  :: Safe c}
+newtype Writes c = Writes {unWrites :: Safe c}
+newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Show)
 
-  sEmpty    :: System s c
-  sSlice    :: System c [Entity]
-  sRetrieve :: Entity -> System c (SRuntime c)
-  sStore    :: Entity -> SRuntime c -> System c ()
-  sMember   :: Entity -> System c Bool
-  sDestroy  :: Entity -> System c ()
+newtype Store  c = Store  {unStore  :: Storage c}
+class w `Has` c where
+  getC :: Monad m => System w m (Store c)
 
-newtype System s a = System ( StateT s IO a ) deriving (Functor, Applicative, Monad, MonadIO)
-deriving instance MonadState s (System s)
+type Valid w m c = (Has w c, Component c, SStorage m (Storage c))
 
-{-# INLINE runSystemIO #-}
-runSystemIO :: System s a -> s -> IO (a, s)
-runSystemIO (System st) = runStateT st
+newtype System w m a = System {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadIO, MonadTrans)
 
-{-# INLINE runSystem #-}
-runSystem :: System s a -> s -> System w (a, s)
-runSystem sys = System . lift . runSystemIO sys
+runSystem :: System w m a -> w -> m a
+runSystem sys = runReaderT (unSystem sys)
 
-instance (Component a, Component b) => Component (a, b) where
-  type Storage (a, b) = (Storage a, Storage b)
+empty :: Valid w m c => System w m (Store c)
+empty = System . lift $ Store <$> sEmpty
 
-instance ( SStorage a, SStorage b
-         ) => SStorage (a, b) where
+slice :: forall w m c. Valid w m c => System w m (Slice c)
+slice = do Store s :: Store c <- getC
+           fmap (Slice . fmap Entity) . lift $ sSlice s
 
-  type SRuntime (a, b) = (SRuntime a, SRuntime b)
+isMember :: forall w m c. Valid w m c => Entity c -> System w m Bool
+isMember (Entity e) = do Store s :: Store c <- getC
+                         lift $ sMember s e
 
-  sEmpty =
-    do sta <- sEmpty
-       stb <- sEmpty
-       return (sta, stb)
+retrieve :: forall w m c a. Valid w m c => Entity a -> System w m (Reads c)
+retrieve (Entity e) = do Store s :: Store c <- getC
+                         fmap Reads . lift $ sRetrieve s e
 
-  sSlice =
-    do (sta, stb) <- get
-       (sla, sta') <- runSystem sSlice sta
-       (slb, stb') <- runSystem (filterM sMember sla) stb
-       put (sta', stb')
-       return slb
+store :: forall w m c a. Valid w m c => Entity a -> Writes c -> System w m ()
+store (Entity e) (Writes w) = do Store s :: Store c <- getC
+                                 lift $ sStore s w e
 
-  sRetrieve ety =
-    do (sta, stb) <- get
-       (ra, sta') <- runSystem (sRetrieve ety) sta
-       (rb, stb') <- runSystem (sRetrieve ety) stb
-       put (sta', stb')
-       return (ra, rb)
+{--
+union :: Slice s1 -> Slice s2 -> Slice ()
+union (Slice s1) (Slice s2) = let set1 = S.fromList . fmap unEntity $ s1
+                                  set2 = S.fromList . fmap unEntity $ s2
+                               in Slice . fmap Entity . S.toList $ S.intersection set1 set2
 
-  sStore ety (wa, wb) =
-    do (sta, stb) <- get
-       ((),sta') <- runSystem (sStore ety wa) sta
-       ((),stb') <- runSystem (sStore ety wb) stb
-       put (sta', stb')
+embed :: Has w c => System (Store c) a -> System w a
+embed sys = do w <- get
+               (a, c') <- runSystem sys (getC w)
+               put (putC c' w)
+               return a
 
-  sMember ety =
-    do (sta, stb) <- get
-       (ma,sta') <- runSystem (sMember ety) sta
-       (mb,stb') <- runSystem (sMember ety) stb
-       put (sta', stb')
-       return (ma && mb)
+instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
+  getC w = let Store sa :: Store a = getC w
+               Store sb :: Store b = getC w
+            in Store (sa, sb)
 
-  sDestroy ety =
-    do (sta, stb) <- get
-       ((), sta') <- runSystem (sDestroy ety) sta
-       ((), stb') <- runSystem (sDestroy ety) stb
-       put (sta', stb')
+runWith :: s -> System s a -> System w (a, s)
+runWith = flip runSystem
 
+runWithIO :: s -> System s a -> IO (a, s)
+runWithIO = flip runSystemIO
+
+uninitialized :: w
+uninitialized = error "Read uninitialized world state"
+
+defaultMain :: System w a -> IO ()
+defaultMain sys = void $ runSystemIO sys uninitialized
+
+getEntityCount :: forall w. Has w EntityCounter => System w Int
+getEntityCount = unEntityCounter . unReads <$> (retrieve undefined :: System w (Reads EntityCounter))
+
+newEntity :: forall w. Has w EntityCounter => System w Entity
+newEntity = do (Reads (EntityCounter c) :: Reads EntityCounter) <- retrieve nullEntity
+               store nullEntity (Writes $ EntityCounter (c+1) :: Writes EntityCounter)
+               return (Entity c)
+
+newEntityWith :: (Component c, Has w EntityCounter, Has w c) => Writes c -> System w Entity
+newEntityWith c = do e <- newEntity
+                     store e c
+                     return e
+
+readGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
+readGlobal = retrieve nullEntity
+
+writeGlobal :: (Monoid a, Has w (Global a)) => System w (Reads (Global a))
+writeGlobal = retrieve nullEntity
+
+appendGlobal :: forall a w. (Monoid a, Has w (Global a)) => a -> System w (Reads (Global a))
+appendGlobal a = do Reads m :: Reads (Global a) <- retrieve nullEntity
+                    store nullEntity (Writes (m `mappend` a) :: Writes (Global a))
+                    return (Reads m :: Reads (Global a))
+
+mapReads :: forall w a b. (Has w a, Has w b, Component a, Component b) => (Reads a -> Writes b) -> System w ()
+mapReads f = do sl :: Slice a <- slice
+                forSlice_ sl $ \e -> retrieve e >>= store e . f
+
+sliceReads :: (Component c, Has w c) => Slice a -> (Reads c -> System w b) -> System w ()
+sliceReads sl sys = forM_ (toList sl) $ (>>= sys) . retrieve
+
+forSlice_ :: Monad m => Slice c -> (Entity -> m b) -> m ()
+forSlice_ sl = forM_ (toList sl)
+
+--}

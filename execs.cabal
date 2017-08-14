@@ -20,25 +20,26 @@ executable execs
   other-modules:
     Control.ECS,
     Control.ECS.Core,
-    Control.ECS.Immutable,
+    Control.ECS.Storage,
     Control.ECS.Mutable
   default-language:    Haskell2010
 
   build-depends:
     base,
     containers,
+    stm,
+    hashtables,
     mtl,
-    criterion,
-    hashtables
+    criterion
 
   ghc-options:
-    -O2
     -Wall
-    -fno-liberate-case
-    -fllvm
-    -optlo-O3
-    -funfolding-use-threshold1000
-    -funfolding-keeness-factor1000
+--    -O2
+--    -fno-liberate-case
+--    -fllvm
+--    -optlo-O3
+--    -funfolding-use-threshold1000
+--    -funfolding-keeness-factor1000
 
   default-extensions:
     TypeOperators,

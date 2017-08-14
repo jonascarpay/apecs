@@ -8,11 +8,11 @@ import Control.Monad.State
 
 data Position = Position Int Int deriving (Eq, Show)
 instance Component Position where
-  type Storage Position = MutableMap Position
+  type Storage Position = HashTable Position
 
 data Velocity = Velocity Int Int deriving (Eq, Show)
 instance Component Velocity where
-  type Storage Velocity = MutableMap Velocity
+  type Storage Velocity = HashTable Velocity
 
 pzero, pone :: Maybe Position
 pzero   = Just $ Position 0 0
@@ -28,36 +28,28 @@ data World = World
   }
 
 instance World `Has` Position where
-  getC = positions
-  putC p' w = w {positions = p'}
+  getC = System $ asks positions
 
 instance World `Has` Velocity where
-  getC = velocities
-  putC v' w = w {velocities = v'}
+  getC = System $ asks velocities
 
 instance World `Has` EntityCounter where
-  getC = entityCounter
-  putC c' w = w {entityCounter = c'}
+  getC = System $ asks entityCounter
 
-initWorld :: System World ()
-initWorld = do World <$> empty <*> empty <*> empty >>= put
-               replicateM_ 9000 $ newEntityWith (Writes pzero :: Writes Position)
-               replicateM_ 1000 $ newEntityWith (Writes (pzero, vone) :: Writes (Position, Velocity))
+{-initWorld :: System World ()-}
+{-initWorld = do World <$> empty <*> empty <*> empty >>= put-}
+               {-replicateM_ 9000 $ newEntityWith (Writes pzero :: Writes Position)-}
+               {-replicateM_ 1000 $ newEntityWith (Writes (pzero, vone) :: Writes (Position, Velocity))-}
 
-stepVelocity :: Reads (Velocity, Position) -> Writes (Position)
-stepVelocity (Reads (Just (Velocity vx vy), Just (Position px py))) =
-  Writes . Just $ Position (px+vx) (py+vy)
+{-stepVelocity :: Reads (Velocity, Position) -> Writes (Position)-}
+{-stepVelocity (Reads (Just (Velocity vx vy), Just (Position px py))) =-}
+  {-Writes . Just $ Position (px+vx) (py+vy)-}
 
-stepWorld :: System World ()
-stepWorld = do Store (vs, ps) :: Store (Velocity, Position) <- getC <$> get
-               liftIO . mutForM vs $ \(e, Velocity vx vy) ->
-                 do Just (Position px py) <- mutRetrieve e ps
-                    mutStore e (Just (Position (px+vx) (py+vy))) ps
+{-stepWorld :: System World ()-}
+{-stepWorld = do Store (vs, ps) :: Store (Velocity, Position) <- getC <$> get-}
+               {-liftIO . mutForM vs $ \(e, Velocity vx vy) ->-}
+                 {-do Just (Position px py) <- mutRetrieve e ps-}
+                    {-mutStore e (Just (Position (px+vx) (py+vy))) ps-}
 
 main :: IO ()
-main =
-  do (_,w :: World) <- runSystemIO initWorld uninitialized
-     C.defaultMain [ bench "init" $ whnfIO (defaultMain initWorld)
-                   , bench "step" $ whnfIO (runWithIO w stepWorld)
-                   , bench "both" $ whnfIO (defaultMain (initWorld >> stepWorld))
-                   ]
+main = undefined
