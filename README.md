@@ -25,7 +25,8 @@ Using the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark
 
 The main reason apecs can even keep up with specs, which was written in _Rust_ mind you, is caching.
 Wrapping a `SStorage` in a `Cached` adds a layer of caching to the store.
-Because every component is addressed by an `Entity`, we can keep the most recent reads and writes in a fixed-length vector.
+Because every component is addressed by an `Entity`, which is essentially an int, we can make a buffer cache.
+By choosing a sufficiently large cache we can add O(1) lookup/insertion/deletion to any data structure, and store most components in fixed-size vectors.
 
 Consider this a proof of concept.
 The API is still under heavy development, and there is little documentation outside this write-up.
