@@ -11,7 +11,7 @@ The library mostly provides an interface to the `SStorage m s` type class, which
   * We define a Component by associating it with some instance of `SStorage IO`
   * A System is a ReaderT; your game is a `System w IO a` where `w` is your world. Your world is immutable and after initialization only holds references to mutable data structures.
   * By defining instances for tuples we can compose components, allowing us to work with e.g. `(Position, Velocity)` as if it were a single component.
-  * Defining instances for `SStorage STM` allows you to run atomically run systems in parallel*
+  * Defining instances for `SStorage STM` allows you to atomically run systems in parallel*
   * Different storages can define different read/write types e.g. set a flag by writing a Bool, or delete a Velocity component with `Writes Nothing :: Writes Velocity`.
   * Most systems can be defined by a pure operation e.g. turning `stepVelocity :: (Position, Velocity) -> Position` into an STM transaction that is applied to all entities with both a Position and a Velocity.
 
