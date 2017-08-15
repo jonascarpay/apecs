@@ -5,6 +5,7 @@ apecs is an Entity Component System inspired by [specs](https://github.com/slide
 It aims to provide Haskell's expressivity and safety, without sacrificing performance or extensibility.
 Apecs distinguishes itself from other Haskell ECS by focusing on mutable data structures.
 
+For a general introduction to ECS, see [this talk](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [Wikipedia](https://en.wikipedia.org/wiki/Entity–component–system).
 
 ### Design
 The library mostly provides an interface to the `SStorage m s` type class, which defines a mutable component store `s`, that lives in some monad `m`.
