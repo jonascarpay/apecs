@@ -3,7 +3,6 @@
 import Control.ECS as E
 import Control.Monad
 
-
 newtype Velocity = Velocity Float deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = Cached (Map Velocity)
