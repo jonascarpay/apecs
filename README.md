@@ -1,4 +1,5 @@
-# apecs - a fast, type driven, extensible ECS in pure Haskell
+# apecs
+#### a fast, type driven, extensible ECS in pure Haskell
 
 apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 It aims to provide Haskell's expressivity and safety, without sacrificing performance or extensibility.
@@ -16,8 +17,9 @@ The library mostly provides an interface to the `SStorage m s` type class, which
 
 ### Performance
 Using the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark to compare apecs to specs gives me the following results on my machine:
-|   | specs | apecs |
-| --- | --- | --- |
+
+|     | specs | apecs |
+| --- | ----- | --- |
 | build | 688 us | 332 us | 
 | update | 31 us | 56 us |
 
