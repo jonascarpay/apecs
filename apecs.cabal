@@ -1,8 +1,8 @@
-name:                execs
+name:                apecs
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/jonascarpay/execs#readme
+homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Jonas Carpay
@@ -56,11 +56,11 @@ executable example
   main-is:
     Main.hs
   build-depends:
-    base, execs
+    base, apecs
   default-language:
     Haskell2010
 
-benchmark execs-bench
+benchmark apecs-bench
   type:
     exitcode-stdio-1.0
   hs-source-dirs:
@@ -68,7 +68,7 @@ benchmark execs-bench
   main-is:
     Main.hs
   build-depends:
-    base, execs, criterion, deepseq
+    base, apecs, criterion, deepseq
   default-language:
     Haskell2010
   ghc-options:
