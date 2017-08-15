@@ -1,11 +1,35 @@
-# apecs 
-### a fast, type driven, extensible ECS in pure Haskell
+# apecs - a fast, type driven, extensible ECS in pure Haskell
 
-Apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-It aims to provide Haskell's expressivity and safety, without sacrificing performance.
+apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
+It aims to provide Haskell's expressivity and safety, without sacrificing performance or extensibility.
+Apecs distinguishes itself from other Haskell ECS by focusing on mutable data structures.
 
 
-## Example
+### Design
+The library mostly provides an interface to the `SStorage m s` type class, which defines a mutable component store `s`, that lives in some monad `m`.
+  * We define a Component by associating it with some instance of `SStorage IO`
+  * A System is a ReaderT; your game is a `System w IO a` where `w` is your world. Your world is immutable and after initialization only holds references to mutable data structures.
+  * By defining instances for tuples we can compose components, allowing us to work with e.g. `(Position, Velocity)` as if it were a single component.
+  * Defining instances for `SStorage STM` allows you to run atomically run systems in parallel*
+  * Different storages can define different read/write types e.g. set a flag by writing a Bool, or delete a Velocity component with `Writes Nothing :: Writes Velocity`.
+  * Most systems can be defined by a pure operation e.g. turning `stepVelocity :: (Position, Velocity) -> Position` into an STM transaction that is applied to all entities with both a Position and a Velocity.
+
+### Performance
+Using the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark to compare apecs to specs gives me the following results on my machine:
+|   | specs | apecs |
+| --- | --- | --- |
+| build | 688 us | 332 us | 
+| update | 31 us | 56 us |
+
+The main reason apecs can even keep up with specs, which was written in _Rust_ mind you, is caching.
+Wrapping a `SStorage` in a `Cached` adds a layer of caching to the store.
+Because every component is addressed by an `Entity`, we can keep the most recent reads and writes in a fixed-length vector.
+
+Consider this a proof of concept.
+The API is still under heavy development, and there is little documentation outside this write-up.
+Still, contributions are very welcome!
+
+### Example
 ```haskell
 import Control.ECS as E
 import Control.Monad

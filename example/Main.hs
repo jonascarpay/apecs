@@ -30,7 +30,7 @@ instance World `Has` EntityCounter where getStore = System $ asks entityCounter
 
 game :: System World IO ()
 game = do
-  -- Create new entities
+  -- Create four new entities
   newEntityWith (Writes (Just (Position 0),   Just (Velocity 3)) :: Writes (Position, Velocity))
   newEntityWith (Writes (Just (Position 1.5), Just (Velocity 9)) :: Writes (Position, Velocity))
 
