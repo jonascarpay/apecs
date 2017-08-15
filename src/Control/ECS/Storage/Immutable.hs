@@ -29,11 +29,11 @@ instance SStorage IO (Map c) where
                               Nothing -> error "Unsafe read miss"
                               Just x -> return x
 
-newtype FlagSet c = FlagSet {unFlagSet :: IORef S.IntSet}
+newtype FlagSet = FlagSet {unFlagSet :: IORef S.IntSet}
 
-instance SStorage IO (FlagSet c) where
-  type SSafeElem (FlagSet c) = Bool
-  type SElem     (FlagSet c) = Bool
+instance SStorage IO FlagSet where
+  type SSafeElem FlagSet = Bool
+  type SElem     FlagSet = Bool
 
   sEmpty = FlagSet <$> newIORef mempty
   sSlice (FlagSet s) = U.fromList . S.toList <$> readIORef s

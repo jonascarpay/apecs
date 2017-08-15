@@ -11,7 +11,7 @@ module Control.ECS (
   Map, FlagSet,
 
   -- Reader
-  asks, ask, liftIO,
+  asks, ask, liftIO, lift,
 
   -- Self
   newEntityWith,

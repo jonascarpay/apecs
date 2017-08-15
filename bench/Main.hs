@@ -8,11 +8,11 @@ import Control.Monad
 import Control.DeepSeq
 import System.Mem (performMajorGC)
 
-data Position = Position Int Int deriving (Eq, Show)
+data Position = Position Float Float deriving (Eq, Show)
 instance Component Position where
   type Storage Position = Cached (Map Position)
 
-data Velocity = Velocity Int Int deriving (Eq, Show)
+data Velocity = Velocity Float Float deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = Cached (Map Velocity)
 

@@ -25,7 +25,10 @@ newtype Reads  c = Reads  {unReads  :: SSafeElem (Storage c)}
 newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
 newtype Elem   c = Elem   {unElem   :: SElem (Storage c)}
 
-newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num, Show)
+newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
+instance Show (Entity c) where
+  show (Entity e) = "Entity " ++ show e
+
 newtype Slice  c = Slice {unSlice :: U.Vector ID}
 
 {-# INLINE runSystem #-}
@@ -76,6 +79,11 @@ mapR !f = do Store !sr :: Store r  <- getStore
              Store !sw :: Store wr <- getStore
              lift $ do !sl <- sSlice sr
                        U.forM_ sl $ \ !e -> (do !r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
+
+{-# INLINE mapM_ #-}
+mapM_ :: forall w m c a b. Valid w m c => ((Entity a, Elem c) -> m b) -> System w m ()
+mapM_ fm = do Store s :: Store c <- getStore
+              lift $ sSlice s >>= U.mapM_ (\e -> do r <- sRUnsafe s e; fm (Entity e, Elem r))
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   {-# INLINE getStore #-}

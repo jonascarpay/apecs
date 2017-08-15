@@ -50,15 +50,13 @@ library
     GeneralizedNewtypeDeriving,
     StrictData
 
-test-suite execs-test
-  type:
-    exitcode-stdio-1.0
+executable example
   hs-source-dirs:
-    spec
+    example
   main-is:
-    Spec.hs
+    Main.hs
   build-depends:
-    base, execs, QuickCheck
+    base, execs
   default-language:
     Haskell2010
 
