@@ -4,12 +4,9 @@
 
 module Control.ECS.Core where
 
-import qualified Data.IntSet as S
-
 import Control.ECS.Storage
 import Control.Monad.State
 import Control.Monad.Reader
-import Control.Concurrent
 
 import qualified Data.Vector.Unboxed as U
 

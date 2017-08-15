@@ -34,7 +34,7 @@ library
 
   ghc-options:
     -Wall
-    -O2
+    -Odph
     -fllvm
     -threaded
     -optlo-O3
