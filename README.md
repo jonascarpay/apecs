@@ -2,7 +2,7 @@
 
 apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 It aims to provide Haskell's expressivity and safety, without sacrificing performance or extensibility.
-Apecs distinguishes itself from other Haskell ECS by focusing on mutable data structures.
+It distinguishes itself from other Haskell ECS by focusing on mutable data structures.
 
 For a general introduction to ECS, see [this talk](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [Wikipedia](https://en.wikipedia.org/wiki/Entity–component–system).
 
