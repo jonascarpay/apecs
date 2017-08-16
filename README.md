@@ -1,5 +1,4 @@
 # apecs
-#### a fast, type driven, extensible ECS in pure Haskell
 
 apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 It aims to provide Haskell's expressivity and safety, without sacrificing performance or extensibility.
