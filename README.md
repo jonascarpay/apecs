@@ -35,13 +35,16 @@ Still, contributions are very welcome!
 ### Example
 ```haskell
 import Control.ECS as E
+import Control.ECS.Vector -- There is a default lightweight vector module
 import Control.Monad
 
-newtype Velocity = Velocity Float deriving (Eq, Show)
+type Vec = V2 Double
+
+newtype Velocity = Velocity Vec deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = Cached (Map Velocity)
 
-newtype Position = Position Float deriving (Eq, Show)
+newtype Position = Position Vec deriving (Eq, Show)
 instance Component Position where
   type Storage Position = Cached (Map Position)
 
@@ -64,12 +67,12 @@ instance World `Has` EntityCounter where getStore = System $ asks entityCounter
 
 game :: System World IO ()
 game = do
-  -- Create new entities
-  newEntityWith (Writes (Just (Position 0),   Just (Velocity 3)) :: Writes (Position, Velocity))
-  newEntityWith (Writes (Just (Position 1.5), Just (Velocity 9)) :: Writes (Position, Velocity))
+  -- Create four new entities
+  newEntityWith (Writes (Just (Position zero),       Just (Velocity (V2 3 3))) :: Writes (Position, Velocity))
+  newEntityWith (Writes (Just (Position (V2 1.5 0)), Just (Velocity (V2 0 9))) :: Writes (Position, Velocity))
 
-  newEntityWith (Writes (Just (Velocity 0)) :: Writes Velocity)
-  newEntityWith (Writes (Just (Position 0)) :: Writes Position)
+  newEntityWith (Writes (Just (Velocity zero)) :: Writes Velocity)
+  newEntityWith (Writes (Just (Position zero)) :: Writes Position)
 
   -- This next line does not type-check, because World does not have the component Enemy
   -- newEntityWith (Writes (Just (Position 3), True) :: Writes (Position, Enemy))
@@ -82,12 +85,10 @@ game = do
   mapR stepVelocity
 
   E.mapM_ printPositions
-
-  -- Explicitly invoke GC
   runGC
 
 stepVelocity :: Elem (Velocity, Position) -> Writes Position
-stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
+stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v .+ p))
 
 printPositions :: (Entity a, Elem Position) -> IO ()
 printPositions (Entity e, Elem p) = putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
