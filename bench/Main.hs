@@ -6,7 +6,6 @@ import qualified Criterion.Main as C
 import Control.ECS
 import Control.Monad
 import Control.DeepSeq
-import System.Mem (performMajorGC)
 
 data Position = Position Float Float deriving (Eq, Show)
 instance Component Position where

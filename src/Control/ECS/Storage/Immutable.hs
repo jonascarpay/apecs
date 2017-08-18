@@ -1,10 +1,8 @@
-
 module Control.ECS.Storage.Immutable where
 
 import qualified Data.IntSet as S
 import qualified Data.IntMap as M
 import Data.IORef
-import Control.Monad
 import Data.Vector.Unboxed as U
 
 import Control.ECS.Storage

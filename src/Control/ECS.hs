@@ -14,8 +14,8 @@ module Control.ECS (
   asks, ask, liftIO, lift,
 
   -- Self
-  newEntityWith,
-  EntityCounter, nextEntity,
+  newEntityWith, EntityCounter, nextEntity,
+  runGC,
 ) where
 
 import Control.Monad.Reader
@@ -24,6 +24,7 @@ import Control.ECS.Core
 import Control.ECS.Storage
 import Control.ECS.Storage.Mutable
 import Control.ECS.Storage.Immutable
+import System.Mem (performMajorGC)
 
 newtype EntityCounter = ECount Int deriving (Eq, Show, Num)
 instance Component EntityCounter where
@@ -46,3 +47,5 @@ newEntityWith c = do e <- nextEntity
                      store c e
                      return e
 
+runGC :: System w IO ()
+runGC = lift performMajorGC

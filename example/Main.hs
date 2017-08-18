@@ -48,6 +48,7 @@ game = do
   mapR stepVelocity
 
   E.mapM_ printPositions
+  runGC
 
 stepVelocity :: Elem (Velocity, Position) -> Writes Position
 stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
