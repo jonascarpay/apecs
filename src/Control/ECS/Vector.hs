@@ -1,31 +1,101 @@
--- | A default vector module since I suspect most ECS will end up using vectors. If you want more elaborate vectors, try the linear package.
+-- | A lightweight version of Edward Kmett's linear, included for convenience' sake
+
+{-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
+
 module Control.ECS.Vector where
 
-data V2 a = V2 {-# UNPACK #-} a {-# UNPACK #-} a
-  deriving (Eq, Show)
-data V3 a = V3 {-# UNPACK #-} a {-# UNPACK #-} a {-# UNPACK #-} a
-  deriving (Eq, Show)
+import Control.Applicative
 
-class SimpleVec a where
-  type VElem a :: *
-  (.+) :: a -> a -> a
-  (.-) :: a -> a -> a
-  (.*) :: VElem a -> a -> a
-  dot :: a -> a -> VElem a
-  zero :: a
+class VecSimple a where
+  type VecElem a
+  dot :: a -> a -> VecElem a
+  vlength :: a -> VecElem a
+  normalize :: a -> a
 
-instance Num a => SimpleVec (V2 a) where
-  type VElem (V2 a) = a
-  V2 x1 y1 .+ V2 x2 y2 = V2 (x1 + x2) (y1+y2)
-  V2 x1 y1 .- V2 x2 y2 = V2 (x1 - x2) (y1-y2)
-  c .* V2 x y = V2 (c*x) (c*y)
-  V2 x1 y1 `dot` V2 x2 y2 = x1 * x2 + y1 * y2
-  zero = V2 0 0
+-- V2
+data V2 a = V2 !a !a deriving (Eq, Show)
 
-instance Num a => SimpleVec (V3 a) where
-  type VElem (V3 a) = a
-  V3 x1 y1 z1 .+ V3 x2 y2 z2 = V3 (x1 + x2) (y1+y2) (z1+z2)
-  V3 x1 y1 z1 .- V3 x2 y2 z2 = V3 (x1 - x2) (y1-y2) (z1-z2)
-  c .* V3 x y z = V3 (c*x) (c*y) (c*z)
-  V3 x1 y1 z1 `dot` V3 x2 y2 z2 = x1*x2 + y1*y2 + z1*z2
-  zero = V3 0 0 0
+instance Functor V2 where
+  {-# INLINE fmap #-}
+  fmap f (V2 a b) = V2 (f a) (f b)
+
+instance Applicative V2 where
+  {-# INLINE (<*>) #-}
+  V2 fx fy <*> V2 x y = V2 (fx x) (fy y)
+  {-# INLINE pure #-}
+  pure x = V2 x x
+
+instance Num a => Num (V2 a) where
+  (+) = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-) = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*) = liftA2 (*)
+  {-# INLINE (*) #-}
+  negate = fmap negate
+  {-# INLINE negate #-}
+  abs = fmap abs
+  {-# INLINE abs #-}
+  signum = fmap signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+instance Fractional a => Fractional (V2 a) where
+  (/) = liftA2 (/)
+  {-# INLINE (/) #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+instance Floating a => VecSimple (V2 a) where
+  type VecElem (V2 a) = a
+  {-# INLINE dot #-}
+  V2 a b `dot` V2 c d = a*c + b*d
+  vlength (V2 a b) = sqrt (a*a + b*b)
+  normalize vec = vec / pure (vlength vec)
+
+-- V3
+data V3 a = V3 !a !a !a deriving (Eq, Show)
+
+instance Functor V3 where
+  {-# INLINE fmap #-}
+  fmap f (V3 a b c) = V3 (f a) (f b) (f c)
+
+instance Applicative V3 where
+  {-# INLINE (<*>) #-}
+  V3 fx fy fz <*> V3 x y z = V3 (fx x) (fy y) (fz z)
+  {-# INLINE pure #-}
+  pure x = V3 x x x
+
+instance Num a => Num (V3 a) where
+  (+) = liftA2 (+)
+  {-# INLINE (+) #-}
+  (-) = liftA2 (-)
+  {-# INLINE (-) #-}
+  (*) = liftA2 (*)
+  {-# INLINE (*) #-}
+  negate = fmap negate
+  {-# INLINE negate #-}
+  abs = fmap abs
+  {-# INLINE abs #-}
+  signum = fmap signum
+  {-# INLINE signum #-}
+  fromInteger = pure . fromInteger
+  {-# INLINE fromInteger #-}
+
+instance Fractional a => Fractional (V3 a) where
+  (/) = liftA2 (/)
+  {-# INLINE (/) #-}
+  fromRational = pure . fromRational
+  {-# INLINE fromRational #-}
+
+instance Floating a => VecSimple (V3 a) where
+  type VecElem (V3 a) = a
+  {-# INLINE dot #-}
+  V3 a b c `dot` V3 d e f = a*d + b*e + c*f
+  vlength (V3 a b c) = sqrt (a*a + b*b + c*c)
+  normalize vec = vec / pure (vlength vec)
+
+{-# INLINE outer #-}
+outer :: Num a => V3 a -> V3 a -> V3 a
+V3 a b c `outer` V3 d e f = V3 (b*f - e*c) (c*d - a*f) (a*e - b*d)

@@ -78,9 +78,11 @@ mapR !f = do Store !sr :: Store r  <- getStore
                        U.forM_ sl $ \ !e -> (do !r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
 
 {-# INLINE mapM_ #-}
-mapM_ :: forall w m c a b. Valid w m c => ((Entity a, Elem c) -> m b) -> System w m ()
-mapM_ fm = do Store s :: Store c <- getStore
-              lift $ sSlice s >>= U.mapM_ (\e -> do r <- sRUnsafe s e; fm (Entity e, Elem r))
+mapM_ :: forall w m c a b. Valid w m c => ((Entity a, Elem c) -> System w m b) -> System w m ()
+mapM_ fm = do Store s  :: Store c <- getStore
+              Slice sl :: Slice c <- slice
+              U.forM_ sl (\e -> do r <- lift$ sRUnsafe s e
+                                   fm (Entity e, Elem r))
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   {-# INLINE getStore #-}

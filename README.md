@@ -35,16 +35,14 @@ Still, contributions are very welcome!
 ### Example
 ```haskell
 import Control.ECS as E
-import Control.ECS.Vector -- There is a default lightweight vector module
+import Control.ECS.Vector -- Optional module for basic 2D and 3D vectos
 import Control.Monad
 
-type Vec = V2 Double
-
-newtype Velocity = Velocity Vec deriving (Eq, Show)
+newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = Cached (Map Velocity)
 
-newtype Position = Position Vec deriving (Eq, Show)
+newtype Position = Position (V2 Double) deriving (Eq, Show)
 instance Component Position where
   type Storage Position = Cached (Map Position)
 
@@ -65,34 +63,40 @@ instance World `Has` EntityCounter where getStore = System $ asks entityCounter
 -- Boilerplate ends here
 
 
-game :: System World IO ()
+type System' a = System World IO a
+
+game :: System' ()
 game = do
   -- Create four new entities
-  newEntityWith (Writes (Just (Position zero),       Just (Velocity (V2 3 3))) :: Writes (Position, Velocity))
-  newEntityWith (Writes (Just (Position (V2 1.5 0)), Just (Velocity (V2 0 9))) :: Writes (Position, Velocity))
+  newEntityWith (Writes (Just (Position 0), Just (Velocity 1)) :: Writes (Position, Velocity))
+  newEntityWith (Writes (Just (Position 1), Just (Velocity 1)) :: Writes (Position, Velocity))
 
-  newEntityWith (Writes (Just (Velocity zero)) :: Writes Velocity)
-  newEntityWith (Writes (Just (Position zero)) :: Writes Position)
+  newEntityWith (Writes (Just (Velocity 0)) :: Writes Velocity)
+  newEntityWith (Writes (Just (Position 0)) :: Writes Position)
 
   -- This next line does not type-check, because World does not have the component Enemy
   -- newEntityWith (Writes (Just (Position 3), True) :: Writes (Position, Enemy))
 
-  -- Print the positions of all objects
-  E.mapM_ printPositions
+  printPositions
+  stepVelocity
+  printPositions
 
-  -- Add velocities to positions. The type signature of stepVelocity is sufficient for mapR
-  -- to only focus on entities that have both
-  mapR stepVelocity
-
-  E.mapM_ printPositions
+  -- We can explicitly invoke the garbage collector to keep performance predictable
   runGC
 
-stepVelocity :: Elem (Velocity, Position) -> Writes Position
-stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v .+ p))
+-- mapR is used to apply a pure function to all entities that have the required components.
+stepVelocity :: System' ()
+stepVelocity = mapR f
+  where
+    f :: Elem (Velocity, Position) -> Writes Position
+    f (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
 
-printPositions :: (Entity a, Elem Position) -> IO ()
-printPositions (Entity e, Elem p) = putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
-
+-- We can similarly iterate over all valid entities with some system
+printPositions :: System' ()
+printPositions = E.mapM_ f
+  where
+    f :: (Entity a, Elem Position) -> System' ()
+    f (Entity e, Elem p) = lift$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
 
 
 main = do w <- liftM3 World empty empty empty

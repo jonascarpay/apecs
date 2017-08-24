@@ -15,12 +15,10 @@ data Velocity = Velocity Float Float deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = Cached (Map Velocity)
 
-pzero, pone :: Maybe Position
-pzero   = Just $ Position 0 0
-pone    = Just $ Position 1 1
-vzero, vone :: Maybe Velocity
-vzero   = Just $ Velocity 0 0
-vone    = Just $ Velocity 1 1
+pzero :: Maybe Position
+pzero = Just $ Position 0 0
+vone :: Maybe Velocity
+vone = Just $ Velocity 1 1
 
 data World = World
   { positions     :: Store Position
@@ -61,4 +59,3 @@ main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
                      , bench "both" $ whnfIO (emptyWorld >>= runSystem (initialize >> mapR stepVelocity))
                      ]
-
