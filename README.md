@@ -8,6 +8,7 @@ For a general introduction to ECS, see [this talk](https://www.youtube.com/watch
 
 ### Design
 The library mostly provides an interface to the `SStorage m s` type class, which defines a mutable component store `s`, that lives in some monad `m`.
+  * In most cases, `m` will be `IO` and your code will look like the example below.
   * We define a Component by associating it with some instance of `SStorage IO`
   * A System is a ReaderT; your game is a `System w IO a` where `w` is your world. Your world is immutable and after initialization only holds references to mutable data structures.
   * By defining instances for tuples we can compose components, allowing us to work with e.g. `(Position, Velocity)` as if it were a single component.
