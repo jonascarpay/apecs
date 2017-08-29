@@ -9,11 +9,11 @@ import Control.DeepSeq
 
 data Position = Position Float Float deriving (Eq, Show)
 instance Component Position where
-  type Storage Position = Cached (Map Position)
+  type Storage Position = Cache (Map Position)
 
 data Velocity = Velocity Float Float deriving (Eq, Show)
 instance Component Velocity where
-  type Storage Velocity = Cached (Map Velocity)
+  type Storage Velocity = Cache (Map Velocity)
 
 pzero :: Maybe Position
 pzero = Just $ Position 0 0

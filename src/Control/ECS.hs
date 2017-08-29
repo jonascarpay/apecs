@@ -4,7 +4,7 @@ module Control.ECS (
   module Control.ECS.Core,
 
   -- Mutable
-  HashTable, Global, Cached, newCacheWith,
+  HashTable, Global, Cache, newCacheWith,
 
   -- Immutable
   Map, FlagSet,

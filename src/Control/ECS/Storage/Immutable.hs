@@ -31,7 +31,7 @@ newtype FlagSet = FlagSet {unFlagSet :: IORef S.IntSet}
 
 instance SStorage FlagSet where
   type SSafeElem FlagSet = Bool
-  type SElem     FlagSet = Bool
+  type SElem     FlagSet = ()
 
   sEmpty = FlagSet <$> newIORef mempty
   sAll (FlagSet s) = U.fromList . S.toList <$> readIORef s
@@ -41,6 +41,5 @@ instance SStorage FlagSet where
   sWrite s False ety = sDestroy s ety
   sWrite (FlagSet s) True ety = modifyIORef' s (S.insert ety)
 
-  sWriteUnsafe = sWrite
-  sReadUnsafe = sRead
-
+  sWriteUnsafe s _ e = sWrite s True e
+  sReadUnsafe  _ _   = return ()

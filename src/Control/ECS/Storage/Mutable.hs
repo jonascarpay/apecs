@@ -46,42 +46,42 @@ instance SStorage (HashTable c) where
   sReadUnsafe (HashTable h) ety = fromJust <$> H.lookup h ety
 
 
-data Cached s = Cached { size  :: Int
-                       , tags  :: U.IOVector Int
-                       , cache :: V.IOVector (SElem s)
-                       , main  :: s
-                       }
+data Cache s = Cache { size  :: Int
+                     , tags  :: U.IOVector Int
+                     , cache :: V.IOVector (SElem s)
+                     , main  :: s
+                     }
 
-newCacheWith :: (SSafeElem s) ~ Maybe (SElem s) => Int -> IO s -> IO (Cached s)
+newCacheWith :: (SSafeElem s) ~ Maybe (SElem s) => Int -> IO s -> IO (Cache s)
 newCacheWith cacheSize sub =
   do t <- U.replicate cacheSize (-1)
      c <- V.new cacheSize
      m <- sub
-     return (Cached cacheSize t c m)
+     return (Cache cacheSize t c m)
 
-instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cached c) where
-  type SSafeElem (Cached c) = SSafeElem c
-  type SElem     (Cached c) = SElem     c
+instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cache c) where
+  type SSafeElem (Cache c) = SSafeElem c
+  type SElem     (Cache c) = SElem     c
 
   sEmpty = newCacheWith 100 sEmpty
-  sAll (Cached _ t _ m) =
+  sAll (Cache _ t _ m) =
     do ts <- UV.filter (/= -1) <$> UV.freeze t
        ms <- sAll m
        return $! ts UV.++ ms
 
-  sMember (Cached s t _ m) !ety =
+  sMember (Cache s t _ m) !ety =
     do !r <- U.unsafeRead t (ety `mod` s)
        if r == ety
           then return True
           else sMember m ety
 
-  sDestroy (Cached s t _ m) !ety =
+  sDestroy (Cache s t _ m) !ety =
     do !r <- U.unsafeRead t (ety `mod` s)
        if r == ety
           then U.unsafeWrite t (ety `mod` s) (-1)
           else sDestroy m ety
 
-  sRead (Cached s t c m) !ety =
+  sRead (Cache s t c m) !ety =
     do let !index = mod ety s
        !r <- U.unsafeRead t index
        if r == ety
@@ -91,7 +91,7 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cached c) wher
   sWrite c Nothing  ety = sDestroy c ety
   sWrite c (Just w) ety = sWriteUnsafe c w ety
 
-  sWriteUnsafe (Cached s t c m) !w !ety =
+  sWriteUnsafe (Cache s t c m) !w !ety =
     do let !index = mod ety s
        !r <- U.unsafeRead t index
        when (r /= -1 && r /= ety) $
@@ -100,7 +100,7 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cached c) wher
        U.unsafeWrite t index ety
        V.unsafeWrite c index w
 
-  sReadUnsafe (Cached s t c m) !ety =
+  sReadUnsafe (Cache s t c m) !ety =
     do let !index = mod ety s
        !r <- U.read t index
        if r == ety
