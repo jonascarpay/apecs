@@ -18,12 +18,12 @@ library
     src
   exposed-modules:
     Control.ECS,
-    Control.ECS.Vector
-  other-modules:
-    Control.ECS.Core,
-    Control.ECS.Storage.Tuples,
+    Control.ECS.Vector,
     Control.ECS.Storage.Mutable,
     Control.ECS.Storage.Immutable
+  other-modules:
+    Control.ECS.Core,
+    Control.ECS.Storage.Tuples
   default-language:
     Haskell2010
   build-depends:

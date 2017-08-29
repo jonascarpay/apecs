@@ -2,23 +2,21 @@
 
 import Criterion
 import qualified Criterion.Main as C
+import Control.DeepSeq
+import Control.Monad
 
 import Control.ECS
-import Control.Monad
-import Control.DeepSeq
+import Control.ECS.Vector
+import Control.ECS.Storage.Mutable
+import Control.ECS.Storage.Immutable
 
-data Position = Position Float Float deriving (Eq, Show)
+data Position = Position (V2 Float) deriving (Eq, Show)
 instance Component Position where
   type Storage Position = Cache (Map Position)
 
-data Velocity = Velocity Float Float deriving (Eq, Show)
+data Velocity = Velocity (V2 Float) deriving (Eq, Show)
 instance Component Velocity where
   type Storage Velocity = Cache (Map Velocity)
-
-pzero :: Maybe Position
-pzero = Just $ Position 0 0
-vone :: Maybe Velocity
-vone = Just $ Velocity 1 1
 
 data World = World
   { positions     :: Store Position
@@ -48,12 +46,12 @@ emptyWorld = liftM3 World (Store <$> newCacheWith 10000 sEmpty)
 
 {-# INLINE stepVelocity #-}
 stepVelocity :: Elem (Velocity, Position) -> Writes Position
-stepVelocity (Elem (Velocity vx vy, Position px py)
-             ) = Writes (Just $ Position (px+vx) (py+vy))
+stepVelocity (Elem (Velocity v, Position p)
+             ) = Writes (Just $ Position (p+v))
 
 initialize :: System World ()
-initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writes (Position, Velocity))
-                replicateM_ 9000 . newEntityWith $ (Writes pzero :: Writes Position)
+initialize = do replicateM_ 1000 . newEntityWith $ (Elem (Position 0, Velocity 1) :: Elem (Position, Velocity))
+                replicateM_ 9000 . newEntityWith $ (Elem (Position 0) :: Elem Position)
 
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)

@@ -3,12 +3,6 @@
 module Control.ECS (
   module Control.ECS.Core,
 
-  -- Mutable
-  HashTable, Global, Cache, newCacheWith,
-
-  -- Immutable
-  Map, FlagSet,
-
   -- Reader
   asks, ask, liftIO, lift,
 
@@ -42,9 +36,9 @@ nextEntity = do Reads (ECount c) :: Reads EntityCounter <- read (-1)
                 return (Entity c)
 
 {-# INLINE newEntityWith #-}
-newEntityWith :: (Has w c, Has w EntityCounter) => Writes c -> System w (Entity a)
+newEntityWith :: (Has w c, Has w EntityCounter) => Elem c -> System w (Entity a)
 newEntityWith c = do e <- nextEntity
-                     write c e
+                     writeRaw c e
                      return e
 
 runGC :: System w ()

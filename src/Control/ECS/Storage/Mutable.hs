@@ -1,8 +1,11 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
-module Control.ECS.Storage.Mutable where
+module Control.ECS.Storage.Mutable
+  ( Global, Cache, newCacheWith, BoundedEnumSets, enumSlice
+  ) where
 
 import Control.Monad
+import Control.Monad.Reader
 import qualified Data.HashTable.IO as H
 import Data.IORef
 import Data.Maybe
@@ -132,7 +135,8 @@ instance (Bounded c, Enum c) => SStorage (BoundedEnumSets c) where
               case () of
                 _ | lo /= 0 -> error "Non zero-indexed Enum"
                   | hi < 0  -> error "Non-ascending Enum"
-                  | hi > 1024 -> putStrLn "Warning: Large Enum, you probably want a non-bounded EnumSets"
+                  -- | hi > 1024 -> putStrLn "Warning: Large Enum, you probably want a non-bounded EnumSets"
+                  | otherwise -> return ()
 
               BoundedEnumSets <$> V.replicate s mempty
 
@@ -182,3 +186,9 @@ instance (Bounded c, Enum c) => SStorage (BoundedEnumSets c) where
   sWriteUnsafe bes@(BoundedEnumSets v) x e =
     do sDestroy bes e
        V.modify v (S.insert e) (fromEnum x)
+
+enumSlice :: forall w c. (Enum c, Storage c ~ BoundedEnumSets c, Has w c) => c -> System w (Slice c)
+enumSlice c =
+  do Store (BoundedEnumSets v) :: Store c <- getStore
+     set <- liftIO$ V.read v (fromEnum c)
+     return . Slice . UV.fromList . S.toList $ set

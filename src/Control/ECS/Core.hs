@@ -4,7 +4,6 @@
 
 module Control.ECS.Core where
 
-import Control.Monad.State
 import Control.Monad.Reader
 
 import qualified Data.Vector.Unboxed as U
@@ -76,6 +75,13 @@ read (Entity ety) = do Store s :: Store c <- getStore
 write :: forall w c a. Has w c => Writes c -> Entity a -> System w ()
 write (Writes w) (Entity ety) = do Store s :: Store c <- getStore
                                    liftIO $ sWrite s w ety
+
+{-# INLINE writeRaw #-}
+writeRaw :: forall w c a. Has w c => Elem c -> Entity a -> System w ()
+writeRaw (Elem w) (Entity ety) =
+  do Store s :: Store c <- getStore
+     liftIO $ sWriteUnsafe s w ety
+
 
 {-# INLINE destroy #-}
 destroy :: forall w c. Has w c => Entity c -> System w ()
