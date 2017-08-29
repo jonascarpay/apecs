@@ -5,7 +5,7 @@ import qualified Data.IntMap as M
 import Data.IORef
 import Data.Vector.Unboxed as U
 
-import Control.ECS.Storage
+import Control.ECS.Core
 
 newtype Map c = Map {unMap :: IORef (M.IntMap c)}
 

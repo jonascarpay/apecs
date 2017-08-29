@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed.Mutable as U
 import qualified Data.Vector.Unboxed         as UV
 import qualified Data.Vector.Mutable as V
 
-import Control.ECS.Storage
+import Control.ECS.Core
 
 newtype Global c = Global {getGlobal :: IORef c}
 

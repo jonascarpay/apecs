@@ -2,7 +2,6 @@
 
 module Control.ECS (
   module Control.ECS.Core,
-  module Control.ECS.Storage,
 
   -- Mutable
   HashTable, Global, Cached, newCacheWith,
@@ -21,8 +20,8 @@ module Control.ECS (
 import Control.Monad.Reader
 
 import Control.ECS.Core
-import Control.ECS.Storage
 import Control.ECS.Storage.Mutable
+import Control.ECS.Storage.Tuples ()
 import Control.ECS.Storage.Immutable
 import System.Mem (performMajorGC)
 

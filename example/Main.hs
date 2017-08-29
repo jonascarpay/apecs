@@ -1,8 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
+import Control.Monad
+
 import Control.ECS as E
 import Control.ECS.Vector -- Optional module for basic 2D and 3D vectos
-import Control.Monad
 
 newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
 instance Component Velocity where

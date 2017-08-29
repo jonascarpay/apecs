@@ -4,11 +4,30 @@
 
 module Control.ECS.Core where
 
-import Control.ECS.Storage
 import Control.Monad.State
 import Control.Monad.Reader
 
 import qualified Data.Vector.Unboxed as U
+
+type ID = Int
+type IDVec = U.Vector ID
+
+class Monad m => SStorage m s where
+  type SElem s :: *
+  type SSafeElem s :: *
+
+  sEmpty    :: m s
+  sSlice    :: s -> m IDVec
+  sMember   :: s -> ID -> m Bool
+  sDestroy  :: s -> ID -> m ()
+  sRetrieve :: s -> ID -> m (SSafeElem s)
+  sStore    :: s -> SSafeElem s -> ID -> m ()
+
+  sWUnsafe  :: s -> SElem s -> ID -> m ()
+  sRUnsafe  :: s -> ID -> m (SElem s)
+
+class SStorage IO (Storage c) => Component c where
+  type Storage c :: *
 
 newtype Store  c = Store  {unStore  :: Storage c}
 class w `Has` c where
@@ -83,9 +102,3 @@ mapM_ fm = do Store s  :: Store c <- getStore
               Slice sl :: Slice c <- slice
               U.forM_ sl (\e -> do r <- lift$ sRUnsafe s e
                                    fm (Entity e, Elem r))
-
-instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
-  {-# INLINE getStore #-}
-  getStore = do Store sa :: Store a <- getStore
-                Store sb :: Store b <- getStore
-                return $ Store (sa, sb)

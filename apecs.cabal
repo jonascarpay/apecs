@@ -21,7 +21,7 @@ library
     Control.ECS.Vector
   other-modules:
     Control.ECS.Core,
-    Control.ECS.Storage,
+    Control.ECS.Storage.Tuples,
     Control.ECS.Storage.Mutable,
     Control.ECS.Storage.Immutable
   default-language:

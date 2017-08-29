@@ -1,29 +1,12 @@
-{-# LANGUAGE StandaloneDeriving, FlexibleContexts, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
-module Control.ECS.Storage where
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Control.Monad
+module Control.ECS.Storage.Tuples where
+
 import qualified Data.Vector.Unboxed as U
+import Control.Monad
 
-type ID = Int
-type IDVec = U.Vector ID
-
-class SStorage IO (Storage c) => Component c where
-  type Storage c :: *
-
-class Monad m => SStorage m s where
-  type SElem s :: *
-  type SSafeElem s :: *
-
-  sEmpty    :: m s
-  sSlice    :: s -> m IDVec
-  sMember   :: s -> ID -> m Bool
-  sDestroy  :: s -> ID -> m ()
-  sRetrieve :: s -> ID -> m (SSafeElem s)
-  sStore    :: s -> SSafeElem s -> ID -> m ()
-
-  sWUnsafe  :: s -> SElem s -> ID -> m ()
-  sRUnsafe  :: s -> ID -> m (SElem s)
+import Control.ECS.Core
 
 instance (Component a, Component b) => Component (a, b) where
   type Storage (a, b) = (Storage a, Storage b)
@@ -50,3 +33,9 @@ instance ( Monad m, SStorage m sa, SStorage m sb) => SStorage m (sa, sb) where
   {-# INLINE sMember #-}
   {-# INLINE sDestroy #-}
   {-# INLINE sRetrieve #-}
+
+instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
+  {-# INLINE getStore #-}
+  getStore = do Store sa :: Store a <- getStore
+                Store sb :: Store b <- getStore
+                return $ Store (sa, sb)
