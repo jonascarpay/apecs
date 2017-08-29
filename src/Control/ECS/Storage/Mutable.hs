@@ -20,13 +20,13 @@ instance Monoid c => SStorage (Global c) where
   type SSafeElem (Global c) = c
 
   sEmpty = Global <$> newIORef mempty
-  sSlice    _   = return UV.empty
+  sAll    _   = return UV.empty
   sMember   _ _ = return False
   sDestroy  _ _ = return ()
-  sRetrieve (Global ref) _ = readIORef ref
-  sStore    (Global ref) x _ = writeIORef ref x
-  sWUnsafe = sStore
-  sRUnsafe = sRetrieve
+  sRead (Global ref) _ = readIORef ref
+  sWrite    (Global ref) x _ = writeIORef ref x
+  sWriteUnsafe = sWrite
+  sReadUnsafe = sRead
 
 newtype HashTable c = HashTable {getHashTable :: H.BasicHashTable Int c}
 
@@ -35,15 +35,15 @@ instance SStorage (HashTable c) where
   type SElem     (HashTable c) = c
 
   sEmpty = HashTable <$> H.new
-  sSlice    (HashTable h) = UV.fromList . fmap fst <$> H.toList h
+  sAll    (HashTable h) = UV.fromList . fmap fst <$> H.toList h
   sMember   (HashTable h) ety = isJust <$> H.lookup h ety
   sDestroy  (HashTable h) ety = H.delete h ety
-  sRetrieve (HashTable h) ety = H.lookup h ety
-  sStore    h Nothing ety = sDestroy h ety
-  sStore    (HashTable h) (Just x) ety = H.insert h ety x
+  sRead (HashTable h) ety = H.lookup h ety
+  sWrite    h Nothing ety = sDestroy h ety
+  sWrite    (HashTable h) (Just x) ety = H.insert h ety x
 
-  sWUnsafe (HashTable h) x ety = H.insert h ety x
-  sRUnsafe (HashTable h) ety = fromJust <$> H.lookup h ety
+  sWriteUnsafe (HashTable h) x ety = H.insert h ety x
+  sReadUnsafe (HashTable h) ety = fromJust <$> H.lookup h ety
 
 
 data Cached s = Cached { size  :: Int
@@ -64,9 +64,9 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cached c) wher
   type SElem     (Cached c) = SElem     c
 
   sEmpty = newCacheWith 100 sEmpty
-  sSlice (Cached _ t _ m) =
+  sAll (Cached _ t _ m) =
     do ts <- UV.filter (/= -1) <$> UV.freeze t
-       ms <- sSlice m
+       ms <- sAll m
        return $! ts UV.++ ms
 
   sMember (Cached s t _ m) !ety =
@@ -81,37 +81,37 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cached c) wher
           then U.unsafeWrite t (ety `mod` s) (-1)
           else sDestroy m ety
 
-  sRetrieve (Cached s t c m) !ety =
+  sRead (Cached s t c m) !ety =
     do let !index = mod ety s
        !r <- U.unsafeRead t index
        if r == ety
           then Just <$> V.unsafeRead c index
-          else sRetrieve m ety
+          else sRead m ety
 
-  sStore c Nothing  ety = sDestroy c ety
-  sStore c (Just w) ety = sWUnsafe c w ety
+  sWrite c Nothing  ety = sDestroy c ety
+  sWrite c (Just w) ety = sWriteUnsafe c w ety
 
-  sWUnsafe (Cached s t c m) !w !ety =
+  sWriteUnsafe (Cached s t c m) !w !ety =
     do let !index = mod ety s
        !r <- U.unsafeRead t index
        when (r /= -1 && r /= ety) $
          do !cached <- V.read c index
-            sStore m (Just cached) ety
+            sWrite m (Just cached) ety
        U.unsafeWrite t index ety
        V.unsafeWrite c index w
 
-  sRUnsafe (Cached s t c m) !ety =
+  sReadUnsafe (Cached s t c m) !ety =
     do let !index = mod ety s
        !r <- U.read t index
        if r == ety
           then V.unsafeRead c index
-          else sRUnsafe m ety
+          else sReadUnsafe m ety
 
   {-# INLINE sEmpty #-}
-  {-# INLINE sStore #-}
-  {-# INLINE sRUnsafe #-}
-  {-# INLINE sWUnsafe #-}
-  {-# INLINE sSlice #-}
+  {-# INLINE sWrite #-}
+  {-# INLINE sReadUnsafe #-}
+  {-# INLINE sWriteUnsafe #-}
+  {-# INLINE sAll #-}
   {-# INLINE sMember #-}
   {-# INLINE sDestroy #-}
-  {-# INLINE sRetrieve #-}
+  {-# INLINE sRead #-}

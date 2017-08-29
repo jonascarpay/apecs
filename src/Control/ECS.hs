@@ -17,6 +17,7 @@ module Control.ECS (
   runGC,
 ) where
 
+import Prelude hiding (read, all)
 import Control.Monad.Reader
 
 import Control.ECS.Core
@@ -35,15 +36,15 @@ instance Monoid EntityCounter where
 
 {-# INLINE nextEntity #-}
 nextEntity :: Valid w EntityCounter => System w (Entity a)
-nextEntity = do Reads (ECount c) :: Reads EntityCounter <- retrieve (-1)
+nextEntity = do Reads (ECount c) :: Reads EntityCounter <- read (-1)
                 let w :: Writes EntityCounter = Writes (ECount (c+1))
-                store w (-1)
+                write w (-1)
                 return (Entity c)
 
 {-# INLINE newEntityWith #-}
 newEntityWith :: (Valid w c, Valid w EntityCounter) => Writes c -> System w (Entity a)
 newEntityWith c = do e <- nextEntity
-                     store c e
+                     write c e
                      return e
 
 runGC :: System w ()

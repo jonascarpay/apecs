@@ -16,23 +16,23 @@ instance (SStorage sa, SStorage sb) => SStorage (sa, sb) where
   type SElem     (sa, sb) = (SElem     sa, SElem     sb)
 
   sEmpty = liftM2 (,) sEmpty sEmpty
-  sSlice    (!sa,!sb) = sSlice sa >>= U.filterM (sMember sb)
+  sAll    (!sa,!sb) = sAll sa >>= U.filterM (sMember sb)
   sMember   (!sa,!sb) ety = liftM2 (&&) (sMember sa ety) (sMember sb ety)
   sDestroy  (!sa,!sb) ety = sDestroy sa ety >> sDestroy sb ety
-  sRetrieve (!sa,!sb) ety = liftM2 (,) (sRetrieve sa ety) (sRetrieve sb ety)
-  sStore    (!sa,!sb) (wa,wb) ety = sStore sa wa ety >> sStore sb wb ety
+  sRead (!sa,!sb) ety = liftM2 (,) (sRead sa ety) (sRead sb ety)
+  sWrite    (!sa,!sb) (wa,wb) ety = sWrite sa wa ety >> sWrite sb wb ety
 
-  sWUnsafe  (!sa,!sb) (wa,wb) ety = sWUnsafe sa wa ety >> sWUnsafe sb wb ety
-  sRUnsafe  (!sa,!sb) ety = liftM2 (,) (sRUnsafe sa ety) (sRUnsafe sb ety)
+  sWriteUnsafe  (!sa,!sb) (wa,wb) ety = sWriteUnsafe sa wa ety >> sWriteUnsafe sb wb ety
+  sReadUnsafe  (!sa,!sb) ety = liftM2 (,) (sReadUnsafe sa ety) (sReadUnsafe sb ety)
 
   {-# INLINE sEmpty #-}
-  {-# INLINE sStore #-}
-  {-# INLINE sWUnsafe #-}
-  {-# INLINE sRUnsafe #-}
-  {-# INLINE sSlice #-}
+  {-# INLINE sWrite #-}
+  {-# INLINE sWriteUnsafe #-}
+  {-# INLINE sReadUnsafe #-}
+  {-# INLINE sAll #-}
   {-# INLINE sMember #-}
   {-# INLINE sDestroy #-}
-  {-# INLINE sRetrieve #-}
+  {-# INLINE sRead #-}
 
 instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
   {-# INLINE getStore #-}

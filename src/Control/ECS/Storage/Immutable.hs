@@ -14,18 +14,18 @@ instance SStorage (Map c) where
   type SElem     (Map c) = c
 
   sEmpty = Map <$> newIORef mempty
-  sSlice    (Map m) = U.fromList . M.keys <$> readIORef m
+  sAll      (Map m) = U.fromList . M.keys <$> readIORef m
   sMember   (Map m) ety = M.member ety <$> readIORef m
   sDestroy  (Map m) ety = modifyIORef' m (M.delete ety)
-  sRetrieve (Map m) ety = M.lookup ety <$> readIORef m
-  sStore    m Nothing ety = sDestroy m ety
-  sStore    (Map m) (Just x) ety = modifyIORef' m (M.insert ety x)
+  sRead (Map m) ety = M.lookup ety <$> readIORef m
+  sWrite    m Nothing ety = sDestroy m ety
+  sWrite    (Map m) (Just x) ety = modifyIORef' m (M.insert ety x)
 
-  sWUnsafe (Map m) x ety = modifyIORef' m (M.insert ety x)
-  sRUnsafe (Map m) ety = do mx <- M.lookup ety <$> readIORef m
-                            case mx of
-                              Nothing -> error "Unsafe read miss"
-                              Just x -> return x
+  sWriteUnsafe (Map m) x ety = modifyIORef' m (M.insert ety x)
+  sReadUnsafe (Map m) ety = do mx <- M.lookup ety <$> readIORef m
+                               case mx of
+                                 Nothing -> error "Unsafe read miss"
+                                 Just x -> return x
 
 newtype FlagSet = FlagSet {unFlagSet :: IORef S.IntSet}
 
@@ -34,13 +34,13 @@ instance SStorage FlagSet where
   type SElem     FlagSet = Bool
 
   sEmpty = FlagSet <$> newIORef mempty
-  sSlice (FlagSet s) = U.fromList . S.toList <$> readIORef s
+  sAll (FlagSet s) = U.fromList . S.toList <$> readIORef s
   sMember (FlagSet s) ety = S.member ety <$> readIORef s
   sDestroy (FlagSet s) ety = modifyIORef' s (S.delete ety)
-  sRetrieve = sMember
-  sStore s False ety = sDestroy s ety
-  sStore (FlagSet s) True ety = modifyIORef' s (S.insert ety)
+  sRead = sMember
+  sWrite s False ety = sDestroy s ety
+  sWrite (FlagSet s) True ety = modifyIORef' s (S.insert ety)
 
-  sWUnsafe = sStore
-  sRUnsafe = sRetrieve
+  sWriteUnsafe = sWrite
+  sReadUnsafe = sRead
 

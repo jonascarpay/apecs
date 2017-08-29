@@ -9,7 +9,7 @@ import Control.Monad.Reader
 
 import qualified Data.Vector.Unboxed as U
 
-type ID = Int
+type ID    = Int
 type IDVec = U.Vector ID
 
 class SStorage s where
@@ -17,35 +17,36 @@ class SStorage s where
   type SSafeElem s :: *
 
   sEmpty    :: IO s
-  sSlice    :: s -> IO IDVec
+  sAll      :: s -> IO IDVec
   sMember   :: s -> ID -> IO Bool
   sDestroy  :: s -> ID -> IO ()
-  sRetrieve :: s -> ID -> IO (SSafeElem s)
-  sStore    :: s -> SSafeElem s -> ID -> IO ()
 
-  sWUnsafe  :: s -> SElem s -> ID -> IO ()
-  sRUnsafe  :: s -> ID -> IO (SElem s)
+  sRead       :: s -> ID -> IO (SSafeElem s)
+  sReadUnsafe :: s -> ID -> IO (SElem s)
+
+  sWrite       :: s -> SSafeElem s -> ID -> IO ()
+  sWriteUnsafe :: s -> SElem s     -> ID -> IO ()
 
 class SStorage (Storage c) => Component c where
   type Storage c :: *
 
-newtype Store  c = Store  {unStore  :: Storage c}
-class w `Has` c where
-  getStore :: System w (Store c)
-
+-- Moet dit allemaal?
 type Valid w c = (Has w c, Component c, SStorage (Storage c))
 
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
+newtype Store  c = Store  {unStore  :: Storage c}
+newtype Slice  c = Slice  {unSlice  :: U.Vector ID}
 newtype Reads  c = Reads  {unReads  :: SSafeElem (Storage c)}
 newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
-newtype Elem   c = Elem   {unElem   :: SElem (Storage c)}
-
+newtype Elem   c = Elem   {unElem   :: SElem     (Storage c)}
 newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
+
+class w `Has` c where
+  getStore :: System w (Store c)
+
 instance Show (Entity c) where
   show (Entity e) = "Entity " ++ show e
-
-newtype Slice  c = Slice {unSlice :: U.Vector ID}
 
 {-# INLINE runSystem #-}
 runSystem :: System w a -> w -> IO a
@@ -59,31 +60,33 @@ runWith = flip runSystem
 empty :: SStorage (Storage c) => IO (Store c)
 empty = Store <$> sEmpty
 
-{-# INLINE slice #-}
-slice :: forall w c. Valid w c => System w (Slice c)
-slice = do Store s :: Store c <- getStore
-           fmap Slice . liftIO $ sSlice s
+{-# INLINE all #-}
+all :: forall w c. Valid w c => System w (Slice c)
+all = do Store s :: Store c <- getStore
+         fmap Slice . liftIO $ sAll s
 
 {-# INLINE isMember #-}
 isMember :: forall w c. Valid w c => Entity c -> System w Bool
 isMember (Entity ety) = do Store s :: Store c <- getStore
                            liftIO $ sMember s ety
 
-{-# INLINE retrieve #-}
-retrieve :: forall w c a. Valid w c => Entity a -> System w (Reads c)
-retrieve (Entity ety) = do Store s :: Store c <- getStore
-                           fmap Reads . liftIO $ sRetrieve s ety
+{-# INLINE read #-}
+read :: forall w c a. Valid w c => Entity a -> System w (Reads c)
+read (Entity ety) = do Store s :: Store c <- getStore
+                       fmap Reads . liftIO $ sRead s ety
 
-{-# INLINE store #-}
-store :: forall w c a. Valid w c => Writes c -> Entity a -> System w ()
-store (Writes w) (Entity ety) = do Store s :: Store c <- getStore
-                                   liftIO $ sStore s w ety
+{-# INLINE write #-}
+write :: forall w c a. Valid w c => Writes c -> Entity a -> System w ()
+write (Writes w) (Entity ety) = do Store s :: Store c <- getStore
+                                   liftIO $ sWrite s w ety
 
 {-# INLINE destroy #-}
 destroy :: forall w c. Valid w c => Entity c -> System w ()
 destroy (Entity ety) = do Store s :: Store c <- getStore
                           liftIO $ sDestroy s ety
 
+{--
+   Apply type class
 {-# INLINE mapRW #-}
 mapRW :: forall w c. Valid w c => (Elem c -> Elem c) -> System w ()
 mapRW f = do Store s :: Store c <- getStore
@@ -102,3 +105,5 @@ mapM_ fm = do Store s  :: Store c <- getStore
               Slice sl :: Slice c <- slice
               U.forM_ sl (\e -> do r <- liftIO$ sRUnsafe s e
                                    fm (Entity e, Elem r))
+
+--}
