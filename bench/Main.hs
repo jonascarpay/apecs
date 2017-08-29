@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Criterion
 import qualified Criterion.Main as C
@@ -46,7 +46,7 @@ emptyWorld = liftM3 World (Store <$> newCacheWith 10000 sEmpty)
 
 {-# INLINE stepVelocity #-}
 stepVelocity :: Elem (Velocity, Position) -> Writes Position
-stepVelocity (Elem (Velocity v, Position p)
+stepVelocity (Elem (Velocity !v, Position !p)
              ) = Writes (Just $ Position (p+v))
 
 initialize :: System World ()

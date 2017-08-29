@@ -3,6 +3,8 @@
 import Control.Monad
 
 import Control.ECS as E
+import Control.ECS.Storage.Mutable
+import Control.ECS.Storage.Immutable
 import Control.ECS.Vector -- Optional module for basic 2D and 3D vectos
 
 newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
@@ -34,11 +36,11 @@ type System' a = System World a
 game :: System' ()
 game = do
   -- Create four new entities
-  newEntityWith (Writes (Just (Position 0), Just (Velocity 1)) :: Writes (Position, Velocity))
-  newEntityWith (Writes (Just (Position 1), Just (Velocity 1)) :: Writes (Position, Velocity))
+  newEntityWith (Elem (Position 0, Velocity 1) :: Elem (Position, Velocity))
+  newEntityWith (Elem (Position 1, Velocity 1) :: Elem (Position, Velocity))
 
-  newEntityWith (Writes (Just (Velocity 0)) :: Writes Velocity)
-  newEntityWith (Writes (Just (Position 0)) :: Writes Position)
+  newEntityWith (Elem (Velocity 0) :: Elem Velocity)
+  newEntityWith (Elem (Position 0) :: Elem Position)
 
   -- This next line does not type-check, because World does not have the component Enemy
   -- newEntityWith (Writes (Just (Position 3), True) :: Writes (Position, Enemy))

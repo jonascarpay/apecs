@@ -99,7 +99,7 @@ instance Has w c => PureFunction (Elem c -> Elem c) w where
                liftIO $
                  do !vec <- sAll s
                     U.forM_ vec $ \e ->
-                      do r <- sReadUnsafe s e
+                      do !r <- sReadUnsafe s e
                          let Elem w = f (Elem r)
                          sWriteUnsafe s w e
 
@@ -110,7 +110,7 @@ instance (Has wld r, Has wld w) => PureFunction (Elem r -> Writes w) wld where
                liftIO $
                  do !vec <- sAll sr
                     U.forM_ vec $ \e ->
-                      do r <- sReadUnsafe sr e
+                      do !r <- sReadUnsafe sr e
                          let Writes w = f (Elem r)
                          sWrite sw w e
 
@@ -121,7 +121,7 @@ instance (Has wld r, Has wld w) => PureFunction (Reads r -> Elem w) wld where
                liftIO $
                  do !vec <- sAll sw
                     U.forM_ vec $ \e ->
-                      do r <- sRead sr e
+                      do !r <- sRead sr e
                          let Elem w = f (Reads r)
                          sWriteUnsafe sw w e
 
@@ -131,7 +131,7 @@ instance (Has wld r, Has wld w) => PureFunction (Entity a, Reads r -> Writes w) 
     do Store !sr :: Store r <- getStore
        Store !sw :: Store w <- getStore
        liftIO $
-         do r <- sRead sr e
+         do !r <- sRead sr e
             let Writes w = f (Reads r)
             sWrite sw w e
 
@@ -141,7 +141,7 @@ instance (Has wld r, Has wld w) => PureFunction (Slice a, Reads r -> Writes w) w
     do Store !sr :: Store r <- getStore
        Store !sw :: Store w <- getStore
        liftIO $ U.forM_ vec $ \e ->
-              do r <- sRead sr e
+              do !r <- sRead sr e
                  let Writes w = f (Reads r)
                  sWrite sw w e
 
@@ -149,7 +149,7 @@ instance (Has wld r, Has wld w) => PureFunction (Slice a, Reads r -> Writes w) w
 forM_ :: forall w s e r a. Has w r => Slice s -> ((Entity e, Reads r) -> System w a) -> System w ()
 forM_ (Slice vec) fm =
   do Store s :: Store r <- getStore
-     U.forM_ vec (\e -> do r <- liftIO$ sRead s e
+     U.forM_ vec (\e -> do !r <- liftIO$ sRead s e
                            fm (Entity e, Reads r))
 
 mapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
