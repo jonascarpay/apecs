@@ -51,7 +51,7 @@ stepVelocity :: Elem (Velocity, Position) -> Writes Position
 stepVelocity (Elem (Velocity vx vy, Position px py)
              ) = Writes (Just $ Position (px+vx) (py+vy))
 
-initialize :: System World IO ()
+initialize :: System World ()
 initialize = do replicateM_ 1000 . newEntityWith $ (Writes (pzero, vone) :: Writes (Position, Velocity))
                 replicateM_ 9000 . newEntityWith $ (Writes pzero :: Writes Position)
 

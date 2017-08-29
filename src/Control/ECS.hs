@@ -34,17 +34,17 @@ instance Monoid EntityCounter where
   mappend = (+)
 
 {-# INLINE nextEntity #-}
-nextEntity :: Valid w m EntityCounter => System w m (Entity a)
+nextEntity :: Valid w EntityCounter => System w (Entity a)
 nextEntity = do Reads (ECount c) :: Reads EntityCounter <- retrieve (-1)
                 let w :: Writes EntityCounter = Writes (ECount (c+1))
                 store w (-1)
                 return (Entity c)
 
 {-# INLINE newEntityWith #-}
-newEntityWith :: (Valid w m c, Valid w m EntityCounter) => Writes c -> System w m (Entity a)
+newEntityWith :: (Valid w c, Valid w EntityCounter) => Writes c -> System w (Entity a)
 newEntityWith c = do e <- nextEntity
                      store c e
                      return e
 
-runGC :: System w IO ()
-runGC = lift performMajorGC
+runGC :: System w ()
+runGC = liftIO performMajorGC

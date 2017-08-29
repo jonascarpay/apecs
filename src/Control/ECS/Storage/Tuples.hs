@@ -11,7 +11,7 @@ import Control.ECS.Core
 instance (Component a, Component b) => Component (a, b) where
   type Storage (a, b) = (Storage a, Storage b)
 
-instance ( Monad m, SStorage m sa, SStorage m sb) => SStorage m (sa, sb) where
+instance (SStorage sa, SStorage sb) => SStorage (sa, sb) where
   type SSafeElem (sa, sb) = (SSafeElem sa, SSafeElem sb)
   type SElem     (sa, sb) = (SElem     sa, SElem     sb)
 

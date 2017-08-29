@@ -12,30 +12,30 @@ import qualified Data.Vector.Unboxed as U
 type ID = Int
 type IDVec = U.Vector ID
 
-class Monad m => SStorage m s where
+class SStorage s where
   type SElem s :: *
   type SSafeElem s :: *
 
-  sEmpty    :: m s
-  sSlice    :: s -> m IDVec
-  sMember   :: s -> ID -> m Bool
-  sDestroy  :: s -> ID -> m ()
-  sRetrieve :: s -> ID -> m (SSafeElem s)
-  sStore    :: s -> SSafeElem s -> ID -> m ()
+  sEmpty    :: IO s
+  sSlice    :: s -> IO IDVec
+  sMember   :: s -> ID -> IO Bool
+  sDestroy  :: s -> ID -> IO ()
+  sRetrieve :: s -> ID -> IO (SSafeElem s)
+  sStore    :: s -> SSafeElem s -> ID -> IO ()
 
-  sWUnsafe  :: s -> SElem s -> ID -> m ()
-  sRUnsafe  :: s -> ID -> m (SElem s)
+  sWUnsafe  :: s -> SElem s -> ID -> IO ()
+  sRUnsafe  :: s -> ID -> IO (SElem s)
 
-class SStorage IO (Storage c) => Component c where
+class SStorage (Storage c) => Component c where
   type Storage c :: *
 
 newtype Store  c = Store  {unStore  :: Storage c}
 class w `Has` c where
-  getStore :: Monad m => System w m (Store c)
+  getStore :: System w (Store c)
 
-type Valid w m c = (Has w c, Component c, SStorage m (Storage c))
+type Valid w c = (Has w c, Component c, SStorage (Storage c))
 
-newtype System w m a = System {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadIO, MonadTrans)
+newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
 newtype Reads  c = Reads  {unReads  :: SSafeElem (Storage c)}
 newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
@@ -48,57 +48,57 @@ instance Show (Entity c) where
 newtype Slice  c = Slice {unSlice :: U.Vector ID}
 
 {-# INLINE runSystem #-}
-runSystem :: System w m a -> w -> m a
+runSystem :: System w a -> w -> IO a
 runSystem sys = runReaderT (unSystem sys)
 
 {-# INLINE runWith #-}
-runWith :: w -> System w m a -> m a
+runWith :: w -> System w a -> IO a
 runWith = flip runSystem
 
 {-# INLINE empty #-}
-empty :: SStorage m (Storage c) => m (Store c)
+empty :: SStorage (Storage c) => IO (Store c)
 empty = Store <$> sEmpty
 
 {-# INLINE slice #-}
-slice :: forall w m c. Valid w m c => System w m (Slice c)
+slice :: forall w c. Valid w c => System w (Slice c)
 slice = do Store s :: Store c <- getStore
-           fmap Slice . lift $ sSlice s
+           fmap Slice . liftIO $ sSlice s
 
 {-# INLINE isMember #-}
-isMember :: forall w m c. Valid w m c => Entity c -> System w m Bool
+isMember :: forall w c. Valid w c => Entity c -> System w Bool
 isMember (Entity ety) = do Store s :: Store c <- getStore
-                           lift $ sMember s ety
+                           liftIO $ sMember s ety
 
 {-# INLINE retrieve #-}
-retrieve :: forall w m c a. Valid w m c => Entity a -> System w m (Reads c)
+retrieve :: forall w c a. Valid w c => Entity a -> System w (Reads c)
 retrieve (Entity ety) = do Store s :: Store c <- getStore
-                           fmap Reads . lift $ sRetrieve s ety
+                           fmap Reads . liftIO $ sRetrieve s ety
 
 {-# INLINE store #-}
-store :: forall w m c a. Valid w m c => Writes c -> Entity a -> System w m ()
+store :: forall w c a. Valid w c => Writes c -> Entity a -> System w ()
 store (Writes w) (Entity ety) = do Store s :: Store c <- getStore
-                                   lift $ sStore s w ety
+                                   liftIO $ sStore s w ety
 
 {-# INLINE destroy #-}
-destroy :: forall w m c. Valid w m c => Entity c -> System w m ()
+destroy :: forall w c. Valid w c => Entity c -> System w ()
 destroy (Entity ety) = do Store s :: Store c <- getStore
-                          lift $ sDestroy s ety
+                          liftIO $ sDestroy s ety
 
 {-# INLINE mapRW #-}
-mapRW :: forall w m c. Valid w m c => (Elem c -> Elem c) -> System w m ()
+mapRW :: forall w c. Valid w c => (Elem c -> Elem c) -> System w ()
 mapRW f = do Store s :: Store c <- getStore
-             lift $ sSlice s >>= U.mapM_ (\e -> do r <- sRUnsafe s e; sWUnsafe s (unElem . f $ Elem r) e)
+             liftIO $ sSlice s >>= U.mapM_ (\e -> do r <- sRUnsafe s e; sWUnsafe s (unElem . f $ Elem r) e)
 
 {-# INLINE mapR #-}
-mapR :: forall w m r wr. (Valid w m r, Valid w m wr) => (Elem r -> Writes wr) -> System w m ()
+mapR :: forall w r wr. (Valid w r, Valid w wr) => (Elem r -> Writes wr) -> System w ()
 mapR !f = do Store !sr :: Store r  <- getStore
              Store !sw :: Store wr <- getStore
-             lift $ do !sl <- sSlice sr
-                       U.forM_ sl $ \ !e -> (do !r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
+             liftIO $ do !sl <- sSlice sr
+                         U.forM_ sl $ \ !e -> (do !r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
 
 {-# INLINE mapM_ #-}
-mapM_ :: forall w m c a b. Valid w m c => ((Entity a, Elem c) -> System w m b) -> System w m ()
+mapM_ :: forall w c a b. Valid w c => ((Entity a, Elem c) -> System w b) -> System w ()
 mapM_ fm = do Store s  :: Store c <- getStore
               Slice sl :: Slice c <- slice
-              U.forM_ sl (\e -> do r <- lift$ sRUnsafe s e
+              U.forM_ sl (\e -> do r <- liftIO$ sRUnsafe s e
                                    fm (Entity e, Elem r))

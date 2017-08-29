@@ -15,7 +15,7 @@ import Control.ECS.Core
 
 newtype Global c = Global {getGlobal :: IORef c}
 
-instance Monoid c => SStorage IO (Global c) where
+instance Monoid c => SStorage (Global c) where
   type SElem     (Global c) = c
   type SSafeElem (Global c) = c
 
@@ -30,7 +30,7 @@ instance Monoid c => SStorage IO (Global c) where
 
 newtype HashTable c = HashTable {getHashTable :: H.BasicHashTable Int c}
 
-instance SStorage IO (HashTable c) where
+instance SStorage (HashTable c) where
   type SSafeElem (HashTable c) = Maybe c
   type SElem     (HashTable c) = c
 
@@ -59,7 +59,7 @@ newCacheWith cacheSize sub =
      m <- sub
      return (Cached cacheSize t c m)
 
-instance (SSafeElem c ~ Maybe (SElem c), SStorage IO c) => SStorage IO (Cached c) where
+instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cached c) where
   type SSafeElem (Cached c) = SSafeElem c
   type SElem     (Cached c) = SElem     c
 

@@ -29,7 +29,7 @@ instance World `Has` Velocity      where getStore = System $ asks velocities
 instance World `Has` EntityCounter where getStore = System $ asks entityCounter
 -- Boilerplate ends here
 
-type System' a = System World IO a
+type System' a = System World a
 
 game :: System' ()
 game = do
@@ -62,7 +62,7 @@ printPositions :: System' ()
 printPositions = E.mapM_ f
   where
     f :: (Entity a, Elem Position) -> System' ()
-    f (Entity e, Elem p) = lift$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
+    f (Entity e, Elem p) = liftIO$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
 
 
 main = do w <- liftM3 World empty empty empty

@@ -9,7 +9,7 @@ import Control.ECS.Core
 
 newtype Map c = Map {unMap :: IORef (M.IntMap c)}
 
-instance SStorage IO (Map c) where
+instance SStorage (Map c) where
   type SSafeElem (Map c) = Maybe c
   type SElem     (Map c) = c
 
@@ -29,7 +29,7 @@ instance SStorage IO (Map c) where
 
 newtype FlagSet = FlagSet {unFlagSet :: IORef S.IntSet}
 
-instance SStorage IO FlagSet where
+instance SStorage FlagSet where
   type SSafeElem FlagSet = Bool
   type SElem     FlagSet = Bool
 
