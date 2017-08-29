@@ -30,9 +30,6 @@ class SStorage s where
 class SStorage (Storage c) => Component c where
   type Storage c :: *
 
--- Moet dit allemaal?
-type Valid w c = (Has w c, Component c, SStorage (Storage c))
-
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
 newtype Store  c = Store  {unStore  :: Storage c}
@@ -42,7 +39,7 @@ newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
 newtype Elem   c = Elem   {unElem   :: SElem     (Storage c)}
 newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
 
-class w `Has` c where
+class Component c => w `Has` c where
   getStore :: System w (Store c)
 
 instance Show (Entity c) where
@@ -61,49 +58,93 @@ empty :: SStorage (Storage c) => IO (Store c)
 empty = Store <$> sEmpty
 
 {-# INLINE all #-}
-all :: forall w c. Valid w c => System w (Slice c)
+all :: forall w c. Has w c => System w (Slice c)
 all = do Store s :: Store c <- getStore
          fmap Slice . liftIO $ sAll s
 
 {-# INLINE isMember #-}
-isMember :: forall w c. Valid w c => Entity c -> System w Bool
+isMember :: forall w c. Has w c => Entity c -> System w Bool
 isMember (Entity ety) = do Store s :: Store c <- getStore
                            liftIO $ sMember s ety
 
 {-# INLINE read #-}
-read :: forall w c a. Valid w c => Entity a -> System w (Reads c)
+read :: forall w c a. Has w c => Entity a -> System w (Reads c)
 read (Entity ety) = do Store s :: Store c <- getStore
                        fmap Reads . liftIO $ sRead s ety
 
 {-# INLINE write #-}
-write :: forall w c a. Valid w c => Writes c -> Entity a -> System w ()
+write :: forall w c a. Has w c => Writes c -> Entity a -> System w ()
 write (Writes w) (Entity ety) = do Store s :: Store c <- getStore
                                    liftIO $ sWrite s w ety
 
 {-# INLINE destroy #-}
-destroy :: forall w c. Valid w c => Entity c -> System w ()
+destroy :: forall w c. Has w c => Entity c -> System w ()
 destroy (Entity ety) = do Store s :: Store c <- getStore
                           liftIO $ sDestroy s ety
 
-{--
-   Apply type class
-{-# INLINE mapRW #-}
-mapRW :: forall w c. Valid w c => (Elem c -> Elem c) -> System w ()
-mapRW f = do Store s :: Store c <- getStore
-             liftIO $ sSlice s >>= U.mapM_ (\e -> do r <- sRUnsafe s e; sWUnsafe s (unElem . f $ Elem r) e)
+{--}
 
-{-# INLINE mapR #-}
-mapR :: forall w r wr. (Valid w r, Valid w wr) => (Elem r -> Writes wr) -> System w ()
-mapR !f = do Store !sr :: Store r  <- getStore
-             Store !sw :: Store wr <- getStore
-             liftIO $ do !sl <- sSlice sr
-                         U.forM_ sl $ \ !e -> (do !r <- sRUnsafe sr e; sStore sw (unWrites . f . Elem $ r) e)
+class PureFunction f w where
+  apply :: f -> System w ()
 
-{-# INLINE mapM_ #-}
-mapM_ :: forall w c a b. Valid w c => ((Entity a, Elem c) -> System w b) -> System w ()
-mapM_ fm = do Store s  :: Store c <- getStore
-              Slice sl :: Slice c <- slice
-              U.forM_ sl (\e -> do r <- liftIO$ sRUnsafe s e
-                                   fm (Entity e, Elem r))
+instance Has w c => PureFunction (Elem c -> Elem c) w where
+  {-# INLINE apply #-}
+  apply f = do Store !s :: Store c <- getStore
+               liftIO $
+                 do !vec <- sAll s
+                    U.forM_ vec $ \e ->
+                      do r <- sReadUnsafe s e
+                         let Elem w = f (Elem r)
+                         sWriteUnsafe s w e
 
---}
+instance (Has wld r, Has wld w) => PureFunction (Elem r -> Writes w) wld where
+  {-# INLINE apply #-}
+  apply f = do Store !sr :: Store r <- getStore
+               Store !sw :: Store w <- getStore
+               liftIO $
+                 do !vec <- sAll sr
+                    U.forM_ vec $ \e ->
+                      do r <- sReadUnsafe sr e
+                         let Writes w = f (Elem r)
+                         sWrite sw w e
+
+instance (Has wld r, Has wld w) => PureFunction (Reads r -> Elem w) wld where
+  {-# INLINE apply #-}
+  apply f = do Store !sr :: Store r <- getStore
+               Store !sw :: Store w <- getStore
+               liftIO $
+                 do !vec <- sAll sw
+                    U.forM_ vec $ \e ->
+                      do r <- sRead sr e
+                         let Elem w = f (Reads r)
+                         sWriteUnsafe sw w e
+
+instance (Has wld r, Has wld w) => PureFunction (Entity a, Reads r -> Writes w) wld where
+  {-# INLINE apply #-}
+  apply (Entity e, f) =
+    do Store !sr :: Store r <- getStore
+       Store !sw :: Store w <- getStore
+       liftIO $
+         do r <- sRead sr e
+            let Writes w = f (Reads r)
+            sWrite sw w e
+
+instance (Has wld r, Has wld w) => PureFunction (Slice a, Reads r -> Writes w) wld where
+  {-# INLINE apply #-}
+  apply (Slice vec, f) =
+    do Store !sr :: Store r <- getStore
+       Store !sw :: Store w <- getStore
+       liftIO $ U.forM_ vec $ \e ->
+              do r <- sRead sr e
+                 let Writes w = f (Reads r)
+                 sWrite sw w e
+
+{-# INLINE forM_ #-}
+forM_ :: forall w s e r a. Has w r => Slice s -> ((Entity e, Reads r) -> System w a) -> System w ()
+forM_ (Slice vec) fm =
+  do Store s :: Store r <- getStore
+     U.forM_ vec (\e -> do r <- liftIO$ sRead s e
+                           fm (Entity e, Reads r))
+
+mapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
+mapM_ = flip Control.ECS.Core.forM_

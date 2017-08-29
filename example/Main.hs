@@ -44,25 +44,24 @@ game = do
   -- newEntityWith (Writes (Just (Position 3), True) :: Writes (Position, Enemy))
 
   printPositions
-  stepVelocity
+  apply stepVelocity
+  liftIO$ putStrLn ""
   printPositions
 
   -- We can explicitly invoke the garbage collector to keep performance predictable
   runGC
 
 -- mapR is used to apply a pure function to all entities that have the required components.
-stepVelocity :: System' ()
-stepVelocity = mapR f
-  where
-    f :: Elem (Velocity, Position) -> Writes Position
-    f (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
+stepVelocity :: Elem (Velocity, Position) -> Writes Position
+stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
 
 -- We can similarly iterate over all valid entities with some system
 printPositions :: System' ()
-printPositions = E.mapM_ f
+printPositions = do es :: Slice Position <- E.all
+                    E.forM_ es f
   where
-    f :: (Entity a, Elem Position) -> System' ()
-    f (Entity e, Elem p) = liftIO$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
+    f :: (Entity a, Reads Position) -> System' ()
+    f (Entity e, Reads p) = liftIO$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
 
 
 main = do w <- liftM3 World empty empty empty
