@@ -148,3 +148,6 @@ forM_ (Slice vec) fm =
 
 mapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
 mapM_ = flip Control.ECS.Core.forM_
+
+size :: Slice a -> Int
+size (Slice vec) = U.length vec

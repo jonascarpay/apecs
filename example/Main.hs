@@ -44,8 +44,8 @@ game = do
   -- newEntityWith (Writes (Just (Position 3), True) :: Writes (Position, Enemy))
 
   printPositions
+  liftIO$ putStrLn "Stepping velocities"
   apply stepVelocity
-  liftIO$ putStrLn ""
   printPositions
 
   -- We can explicitly invoke the garbage collector to keep performance predictable
@@ -57,8 +57,9 @@ stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
 
 -- We can similarly iterate over all valid entities with some system
 printPositions :: System' ()
-printPositions = do es :: Slice Position <- E.all
-                    E.forM_ es f
+printPositions = do slice :: Slice Position <- E.all
+                    E.mapM_ f slice
+                    liftIO.putStrLn$ show (size slice) ++ " total positions"
   where
     f :: (Entity a, Reads Position) -> System' ()
     f (Entity e, Reads p) = liftIO$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)

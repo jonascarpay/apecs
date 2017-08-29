@@ -6,10 +6,12 @@ import Control.Monad
 import qualified Data.HashTable.IO as H
 import Data.IORef
 import Data.Maybe
+import Data.Foldable (fold)
+import qualified Data.IntSet as S
 
-import qualified Data.Vector.Unboxed.Mutable as U
 import qualified Data.Vector.Unboxed         as UV
-import qualified Data.Vector.Mutable as V
+import qualified Data.Vector.Unboxed.Mutable as U
+import qualified Data.Vector.Mutable         as V
 
 import Control.ECS.Core
 
@@ -44,6 +46,7 @@ instance SStorage (HashTable c) where
 
   sWriteUnsafe (HashTable h) x ety = H.insert h ety x
   sReadUnsafe (HashTable h) ety = fromJust <$> H.lookup h ety
+  --TODO: Inline decls? (Can be copied from Cache)
 
 
 data Cache s = Cache { size  :: Int
@@ -115,3 +118,67 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cache c) where
   {-# INLINE sMember #-}
   {-# INLINE sDestroy #-}
   {-# INLINE sRead #-}
+
+newtype BoundedEnumSets c = BoundedEnumSets {getEnumSetVec :: V.IOVector S.IntSet}
+
+instance (Bounded c, Enum c) => SStorage (BoundedEnumSets c) where
+  type SSafeElem (BoundedEnumSets c) = Maybe c
+  type SElem (BoundedEnumSets c)= c
+
+  sEmpty = do let hi = fromEnum (maxBound :: c)
+                  lo = fromEnum (minBound :: c)
+                  s = hi - lo + 1
+
+              case () of
+                _ | lo /= 0 -> error "Non zero-indexed Enum"
+                  | hi < 0  -> error "Non-ascending Enum"
+                  | hi > 1024 -> putStrLn "Warning: Large Enum, you probably want a non-bounded EnumSets"
+
+              BoundedEnumSets <$> V.replicate s mempty
+
+  sAll (BoundedEnumSets v) =
+    do sets <- sequence [ V.read v i | i <-[0..(fromEnum (maxBound :: c))]]
+       return (UV.fromList . S.toList . fold $ sets)
+
+  sMember (BoundedEnumSets v) e = loop 0
+    where
+      loop i = do set <- V.read v i
+                  case (S.member e set) of
+                    True -> return True
+                    False | i == fromEnum (maxBound :: c) -> return False
+                    _ -> loop (i+1)
+
+  sDestroy (BoundedEnumSets v) e = loop 0
+    where
+      loop i = do set <- V.read v i
+                  case (S.member e set) of
+                    True -> V.modify v (S.delete e) i
+                    False | i == fromEnum (maxBound :: c) -> return ()
+                    _ -> loop (i+1)
+
+
+  sRead (BoundedEnumSets v) e = loop 0
+    where
+      loop i = do set <- V.read v i
+                  case (S.member e set) of
+                    True -> return (Just . toEnum $ i)
+                    False | i == fromEnum (maxBound :: c) -> return Nothing
+                    _ -> loop (i+1)
+
+  sReadUnsafe (BoundedEnumSets v) e = loop 0
+    where
+      loop i = do set <- V.read v i
+                  case (S.member e set) of
+                    True -> return (toEnum i)
+                    False | i == fromEnum (maxBound :: c) -> error "Unsafe read miss"
+                    _ -> loop (i+1)
+
+
+  sWrite bes Nothing e = sDestroy bes e
+  sWrite bes@(BoundedEnumSets v) (Just x) e =
+    do sDestroy bes e
+       V.modify v (S.insert e) (fromEnum x)
+
+  sWriteUnsafe bes@(BoundedEnumSets v) x e =
+    do sDestroy bes e
+       V.modify v (S.insert e) (fromEnum x)
