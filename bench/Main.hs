@@ -1,8 +1,7 @@
-{-# LANGUAGE BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE DataKinds, BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Criterion
 import qualified Criterion.Main as C
-import Control.DeepSeq
 import Control.Monad
 
 import Control.ECS
@@ -12,20 +11,17 @@ import Control.ECS.Storage.Immutable
 
 data Position = Position (V2 Float) deriving (Eq, Show)
 instance Component Position where
-  type Storage Position = Cache (Map Position)
+  type Storage Position = Cache 10000 (Map Position)
 
 data Velocity = Velocity (V2 Float) deriving (Eq, Show)
 instance Component Velocity where
-  type Storage Velocity = Cache (Map Velocity)
+  type Storage Velocity = Cache 1000 (Map Velocity)
 
 data World = World
   { positions     :: Store Position
   , velocities    :: Store Velocity
   , entityCounter :: Store EntityCounter
   }
-
-instance NFData World where
-  rnf w = seq w ()
 
 instance World `Has` Position where
   {-# INLINE getStore #-}
@@ -40,9 +36,7 @@ instance World `Has` EntityCounter where
   getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
-emptyWorld = liftM3 World (Store <$> newCacheWith 10000 sEmpty)
-                          (Store <$> newCacheWith 1000 sEmpty)
-                          empty
+emptyWorld = liftM3 World empty empty empty
 
 {-# INLINE stepVelocity #-}
 stepVelocity :: Elem (Velocity, Position) -> Writes Position

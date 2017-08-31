@@ -17,7 +17,6 @@ import Control.Monad.Reader
 import Control.ECS.Core
 import Control.ECS.Storage.Mutable
 import Control.ECS.Storage.Tuples ()
-import Control.ECS.Storage.Immutable
 import System.Mem (performMajorGC)
 
 newtype EntityCounter = ECount Int deriving (Eq, Show, Num)

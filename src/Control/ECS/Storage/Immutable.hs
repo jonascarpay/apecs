@@ -26,7 +26,6 @@ instance SStorage (Map c) where
                                case mx of
                                  Nothing -> error "Unsafe read miss"
                                  Just x -> return x
-  --TODO: Inline decls? (Can be copied from Cache)
 
 newtype FlagSet = FlagSet {unFlagSet :: IORef S.IntSet}
 
@@ -44,5 +43,3 @@ instance SStorage FlagSet where
 
   sWriteUnsafe s _ e = sWrite s True e
   sReadUnsafe  _ _   = return ()
-
-  --TODO: Inline decls? (Can be copied from Cache)

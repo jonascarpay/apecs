@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE DataKinds, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Control.Monad
 
@@ -9,11 +9,11 @@ import Control.ECS.Vector -- Optional module for basic 2D and 3D vectos
 
 newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
 instance Component Velocity where
-  type Storage Velocity = Cache (Map Velocity)
+  type Storage Velocity = Cache 100 (Map Velocity)
 
 newtype Position = Position (V2 Double) deriving (Eq, Show)
 instance Component Position where
-  type Storage Position = Cache (Map Position)
+  type Storage Position = Cache 100 (Map Position)
 
 data Enemy -- Flags enemies
 instance Component Enemy where
@@ -67,5 +67,6 @@ printPositions = do slice :: Slice Position <- E.all
     f (Entity e, Reads p) = liftIO$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)
 
 
+main :: IO ()
 main = do w <- liftM3 World empty empty empty
           runSystem game w

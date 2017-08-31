@@ -155,5 +155,13 @@ forM_ (Slice vec) fm =
 mapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
 mapM_ = flip Control.ECS.Core.forM_
 
+-- | Gets the size of a slice (O(n))
 size :: Slice a -> Int
 size (Slice vec) = U.length vec
+
+-- | Tests whether a slice is empty (O(1))
+sliceNull :: Slice a -> Bool
+sliceNull (Slice vec) = U.null vec
+
+fromList :: [ID] -> Slice a
+fromList = Slice . U.fromList

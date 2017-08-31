@@ -1,16 +1,14 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE DataKinds, BangPatterns, FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Control.ECS.Storage.Mutable
-  ( Global, Cache, newCacheWith, BoundedEnumSets, enumSlice
+  ( Global, Cache,
   ) where
 
 import Control.Monad
-import Control.Monad.Reader
-import qualified Data.HashTable.IO as H
+import GHC.TypeLits
+import Data.Proxy
 import Data.IORef
-import Data.Maybe
-import Data.Foldable (fold)
-import qualified Data.IntSet as S
 
 import qualified Data.Vector.Unboxed         as UV
 import qualified Data.Vector.Unboxed.Mutable as U
@@ -33,43 +31,24 @@ instance Monoid c => SStorage (Global c) where
   sWriteUnsafe = sWrite
   sReadUnsafe = sRead
 
-newtype HashTable c = HashTable {getHashTable :: H.BasicHashTable Int c}
+data Cache (n :: Nat) s = Cache
+  { size  :: Int
+  , tags  :: U.IOVector Int
+  , cache :: V.IOVector (SElem s)
+  , main  :: s
+  }
 
-instance SStorage (HashTable c) where
-  type SSafeElem (HashTable c) = Maybe c
-  type SElem     (HashTable c) = c
+instance (KnownNat n, SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cache n c) where
+  type SSafeElem (Cache n c) = SSafeElem c
+  type SElem     (Cache n c) = SElem     c
 
-  sEmpty = HashTable <$> H.new
-  sAll    (HashTable h) = UV.fromList . fmap fst <$> H.toList h
-  sMember   (HashTable h) ety = isJust <$> H.lookup h ety
-  sDestroy  (HashTable h) ety = H.delete h ety
-  sRead (HashTable h) ety = H.lookup h ety
-  sWrite    h Nothing ety = sDestroy h ety
-  sWrite    (HashTable h) (Just x) ety = H.insert h ety x
+  sEmpty =
+    do let size = fromInteger$ natVal (Proxy :: Proxy n)
+       tags  <- U.replicate size (-1)
+       cache <- V.new size
+       main  <- sEmpty
+       return (Cache size tags cache main)
 
-  sWriteUnsafe (HashTable h) x ety = H.insert h ety x
-  sReadUnsafe (HashTable h) ety = fromJust <$> H.lookup h ety
-  --TODO: Inline decls? (Can be copied from Cache)
-
-
-data Cache s = Cache { size  :: Int
-                     , tags  :: U.IOVector Int
-                     , cache :: V.IOVector (SElem s)
-                     , main  :: s
-                     }
-
-newCacheWith :: (SSafeElem s) ~ Maybe (SElem s) => Int -> IO s -> IO (Cache s)
-newCacheWith cacheSize sub =
-  do t <- U.replicate cacheSize (-1)
-     c <- V.new cacheSize
-     m <- sub
-     return (Cache cacheSize t c m)
-
-instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cache c) where
-  type SSafeElem (Cache c) = SSafeElem c
-  type SElem     (Cache c) = SElem     c
-
-  sEmpty = newCacheWith 100 sEmpty
   sAll (Cache _ t _ m) =
     do ts <- UV.filter (/= -1) <$> UV.freeze t
        ms <- sAll m
@@ -121,74 +100,3 @@ instance (SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Cache c) where
   {-# INLINE sMember #-}
   {-# INLINE sDestroy #-}
   {-# INLINE sRead #-}
-
-newtype BoundedEnumSets c = BoundedEnumSets {getEnumSetVec :: V.IOVector S.IntSet}
-
-instance (Bounded c, Enum c) => SStorage (BoundedEnumSets c) where
-  type SSafeElem (BoundedEnumSets c) = Maybe c
-  type SElem (BoundedEnumSets c)= c
-
-  sEmpty = do let hi = fromEnum (maxBound :: c)
-                  lo = fromEnum (minBound :: c)
-                  s = hi - lo + 1
-
-              case () of
-                _ | lo /= 0 -> error "Non zero-indexed Enum"
-                  | hi < 0  -> error "Non-ascending Enum"
-                  -- | hi > 1024 -> putStrLn "Warning: Large Enum, you probably want a non-bounded EnumSets"
-                  | otherwise -> return ()
-
-              BoundedEnumSets <$> V.replicate s mempty
-
-  sAll (BoundedEnumSets v) =
-    do sets <- sequence [ V.read v i | i <-[0..(fromEnum (maxBound :: c))]]
-       return (UV.fromList . S.toList . fold $ sets)
-
-  sMember (BoundedEnumSets v) e = loop 0
-    where
-      loop i = do set <- V.read v i
-                  case (S.member e set) of
-                    True -> return True
-                    False | i == fromEnum (maxBound :: c) -> return False
-                    _ -> loop (i+1)
-
-  sDestroy (BoundedEnumSets v) e = loop 0
-    where
-      loop i = do set <- V.read v i
-                  case (S.member e set) of
-                    True -> V.modify v (S.delete e) i
-                    False | i == fromEnum (maxBound :: c) -> return ()
-                    _ -> loop (i+1)
-
-
-  sRead (BoundedEnumSets v) e = loop 0
-    where
-      loop i = do set <- V.read v i
-                  case (S.member e set) of
-                    True -> return (Just . toEnum $ i)
-                    False | i == fromEnum (maxBound :: c) -> return Nothing
-                    _ -> loop (i+1)
-
-  sReadUnsafe (BoundedEnumSets v) e = loop 0
-    where
-      loop i = do set <- V.read v i
-                  case (S.member e set) of
-                    True -> return (toEnum i)
-                    False | i == fromEnum (maxBound :: c) -> error "Unsafe read miss"
-                    _ -> loop (i+1)
-
-
-  sWrite bes Nothing e = sDestroy bes e
-  sWrite bes@(BoundedEnumSets v) (Just x) e =
-    do sDestroy bes e
-       V.modify v (S.insert e) (fromEnum x)
-
-  sWriteUnsafe bes@(BoundedEnumSets v) x e =
-    do sDestroy bes e
-       V.modify v (S.insert e) (fromEnum x)
-
-enumSlice :: forall w c. (Enum c, Storage c ~ BoundedEnumSets c, Has w c) => c -> System w (Slice c)
-enumSlice c =
-  do Store (BoundedEnumSets v) :: Store c <- getStore
-     set <- liftIO$ V.read v (fromEnum c)
-     return . Slice . UV.fromList . S.toList $ set
