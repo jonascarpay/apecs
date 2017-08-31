@@ -59,9 +59,9 @@ stepVelocity (Elem (Velocity v, Position p)) = Writes $ Just (Position (v+p))
 
 -- We can similarly iterate over all valid entities with some system
 printPositions :: System' ()
-printPositions = do slice :: Slice Position <- E.all
-                    E.mapM_ f slice
-                    liftIO.putStrLn$ show (size slice) ++ " total positions"
+printPositions = do slice :: Slice Position <- sliceAll
+                    sliceMapM_ f slice
+                    liftIO.putStrLn$ show (sliceSize slice) ++ " total positions"
   where
     f :: (Entity a, Reads Position) -> System' ()
     f (Entity e, Reads p) = liftIO$ putStrLn ("Entity " ++ show e ++ " has position " ++ show p)

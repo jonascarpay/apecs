@@ -20,8 +20,7 @@ library
     Control.ECS,
     Control.ECS.Vector,
     Control.ECS.Storage.Mutable,
-    Control.ECS.Storage.Immutable,
-    Control.ECS.Storage.SpatialHash
+    Control.ECS.Storage.Immutable
   other-modules:
     Control.ECS.Core,
     Control.ECS.Storage.Tuples

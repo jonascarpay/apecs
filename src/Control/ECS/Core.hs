@@ -5,7 +5,6 @@
 module Control.ECS.Core where
 
 import Control.Monad.Reader
-
 import qualified Data.Vector.Unboxed as U
 
 type ID    = Int
@@ -32,7 +31,7 @@ class SStorage (Storage c) => Component c where
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
 newtype Store  c = Store  {unStore  :: Storage c}
-newtype Slice  c = Slice  {unSlice  :: U.Vector ID}
+newtype Slice  c = Slice  {unSlice  :: U.Vector ID} deriving Show
 newtype Reads  c = Reads  {unReads  :: SSafeElem (Storage c)}
 newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
 newtype Elem   c = Elem   {unElem   :: SElem     (Storage c)}
@@ -56,10 +55,10 @@ runWith = flip runSystem
 empty :: SStorage (Storage c) => IO (Store c)
 empty = Store <$> sEmpty
 
-{-# INLINE all #-}
-all :: forall w c. Has w c => System w (Slice c)
-all = do Store s :: Store c <- getStore
-         fmap Slice . liftIO $ sAll s
+{-# INLINE sliceAll #-}
+sliceAll :: forall w c. Has w c => System w (Slice c)
+sliceAll = do Store s :: Store c <- getStore
+              fmap Slice . liftIO $ sAll s
 
 {-# INLINE isMember #-}
 isMember :: forall w c. Has w c => Entity c -> System w Bool
@@ -145,23 +144,31 @@ instance (Has wld r, Has wld w) => PureFunction (Slice a, Reads r -> Writes w) w
                  let Writes w = f (Reads r)
                  sWrite sw w e
 
-{-# INLINE forM_ #-}
-forM_ :: forall w s e r a. Has w r => Slice s -> ((Entity e, Reads r) -> System w a) -> System w ()
-forM_ (Slice vec) fm =
+{-# INLINE sliceForM_ #-}
+sliceForM_ :: forall w s e r a. Has w r => Slice s -> ((Entity e, Reads r) -> System w a) -> System w ()
+sliceForM_ (Slice vec) fm =
   do Store s :: Store r <- getStore
      U.forM_ vec (\e -> do !r <- liftIO$ sRead s e
                            fm (Entity e, Reads r))
 
-mapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
-mapM_ = flip Control.ECS.Core.forM_
+sliceMapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
+sliceMapM_ = flip Control.ECS.Core.sliceForM_
 
 -- | Gets the size of a slice (O(n))
-size :: Slice a -> Int
-size (Slice vec) = U.length vec
+sliceSize :: Slice a -> Int
+sliceSize (Slice vec) = U.length vec
 
 -- | Tests whether a slice is empty (O(1))
 sliceNull :: Slice a -> Bool
 sliceNull (Slice vec) = U.null vec
 
-fromList :: [ID] -> Slice a
-fromList = Slice . U.fromList
+-- | Construct a slice from a list of IDs
+sliceFromList :: [ID] -> Slice a
+sliceFromList = Slice . U.fromList
+
+-- | Monadically filter a slice
+sliceFilterM :: (Entity c -> System w Bool) -> Slice c -> System w (Slice c)
+sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
+
+sliceConcat :: Slice a -> Slice b -> Slice c
+sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
