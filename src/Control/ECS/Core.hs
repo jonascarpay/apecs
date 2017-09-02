@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ScopedTypeVariables, FlexibleContexts, GeneralizedNewtypeDeriving, ConstraintKinds #-}
+{-# LANGUAGE UndecidableInstances, BangPatterns, ScopedTypeVariables, FlexibleContexts, GeneralizedNewtypeDeriving, ConstraintKinds #-}
 
 {-# LANGUAGE Strict #-}
 
@@ -10,6 +10,11 @@ import qualified Data.Vector.Unboxed as U
 type ID    = Int
 type IDVec = U.Vector ID
 
+{-
+  TODO: Can this be expressed in streaming libraries in a more elegant way?
+  TODO: Is it useful to further split this into more compositional elements?
+-}
+-- | A SStorage instance is a mutable component container.
 class SStorage s where
   type SElem s :: *
   type SSafeElem s :: *
@@ -25,17 +30,23 @@ class SStorage s where
   sWrite       :: s -> SSafeElem s -> ID -> IO ()
   sWriteUnsafe :: s -> SElem s     -> ID -> IO ()
 
+-- | A component is defined by the type of its storage
+--   The storage in turn supplies runtime types for the component.
 class SStorage (Storage c) => Component c where
   type Storage c :: *
 
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
+-- | These following hj
 newtype Store  c = Store  {unStore  :: Storage c}
 newtype Slice  c = Slice  {unSlice  :: U.Vector ID} deriving Show
 newtype Reads  c = Reads  {unReads  :: SSafeElem (Storage c)}
 newtype Writes c = Writes {unWrites :: SSafeElem (Storage c)}
 newtype Elem   c = Elem   {unElem   :: SElem     (Storage c)}
 newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
+
+instance Eq (SSafeElem (Storage c)) => Eq (Reads c) where
+  Reads a == Reads b = a == b
 
 class Component c => w `Has` c where
   getStore :: System w (Store c)
@@ -60,23 +71,23 @@ sliceAll :: forall w c. Has w c => System w (Slice c)
 sliceAll = do Store s :: Store c <- getStore
               fmap Slice . liftIO $ sAll s
 
-{-# INLINE isMember #-}
-isMember :: forall w c. Has w c => Entity c -> System w Bool
-isMember (Entity ety) = do Store s :: Store c <- getStore
-                           liftIO $ sMember s ety
+{-# INLINE exists #-}
+exists :: forall w c. Has w c => Entity c -> System w Bool
+exists (Entity ety) = do Store s :: Store c <- getStore
+                         liftIO $ sMember s ety
 
 {-# INLINE read #-}
-read :: forall w c a. Has w c => Entity a -> System w (Reads c)
+read :: forall w c. Has w c => Entity c -> System w (Reads c)
 read (Entity ety) = do Store s :: Store c <- getStore
                        fmap Reads . liftIO $ sRead s ety
 
 {-# INLINE write #-}
-write :: forall w c a. Has w c => Writes c -> Entity a -> System w ()
+write :: forall w c. Has w c => Writes c -> Entity c -> System w ()
 write (Writes w) (Entity ety) = do Store s :: Store c <- getStore
                                    liftIO $ sWrite s w ety
 
 {-# INLINE writeRaw #-}
-writeRaw :: forall w c a. Has w c => Elem c -> Entity a -> System w ()
+writeRaw :: forall w c. Has w c => Elem c -> Entity c -> System w ()
 writeRaw (Elem w) (Entity ety) =
   do Store s :: Store c <- getStore
      liftIO $ sWriteUnsafe s w ety
@@ -154,6 +165,9 @@ sliceForM_ (Slice vec) fm =
 sliceMapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
 sliceMapM_ = flip Control.ECS.Core.sliceForM_
 
+sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
+sliceFoldM_ f seed (Slice sl) = U.foldM'_ ((.Entity) . f) seed sl
+
 -- | Gets the size of a slice (O(n))
 sliceSize :: Slice a -> Int
 sliceSize (Slice vec) = U.length vec
@@ -172,3 +186,9 @@ sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
 
 sliceConcat :: Slice a -> Slice b -> Slice c
 sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
+
+class Cast a b where
+  cast :: a -> b
+
+instance Cast (Entity a) (Entity b) where cast (Entity e) = Entity e
+instance Cast (Slice a) (Slice b) where cast (Slice e) = Slice e

@@ -7,7 +7,7 @@ module Control.ECS (
   asks, ask, liftIO, lift,
 
   -- Self
-  newEntityWith, EntityCounter, nextEntity,
+  newEntity, newEntityFast, EntityCounter, nextEntity,
   runGC,
 ) where
 
@@ -29,14 +29,20 @@ instance Monoid EntityCounter where
 
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity a)
-nextEntity = do Reads (ECount c) :: Reads EntityCounter <- read (-1)
+nextEntity = do Reads (ECount c) :: Reads EntityCounter <- readGlobal
                 let w :: Writes EntityCounter = Writes (ECount (c+1))
-                write w (-1)
+                writeGlobal w
                 return (Entity c)
 
-{-# INLINE newEntityWith #-}
-newEntityWith :: (Has w c, Has w EntityCounter) => Elem c -> System w (Entity a)
-newEntityWith c = do e <- nextEntity
+{-# INLINE newEntity #-}
+newEntity :: (Has w c, Has w EntityCounter) => Writes c -> System w (Entity c)
+newEntity c = do e <- nextEntity
+                 write c e
+                 return e
+
+{-# INLINE newEntityFast #-}
+newEntityFast :: (Has w c, Has w EntityCounter) => Elem c -> System w (Entity c)
+newEntityFast c = do e <- nextEntity
                      writeRaw c e
                      return e
 

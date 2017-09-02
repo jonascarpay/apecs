@@ -36,14 +36,14 @@ type System' a = System World a
 game :: System' ()
 game = do
   -- Create four new entities
-  newEntityWith (Elem (Position 0, Velocity 1) :: Elem (Position, Velocity))
-  newEntityWith (Elem (Position 1, Velocity 1) :: Elem (Position, Velocity))
+  newEntityFast (Elem (Position 0, Velocity 1) :: Elem (Position, Velocity))
+  newEntityFast (Elem (Position 1, Velocity 1) :: Elem (Position, Velocity))
 
-  newEntityWith (Elem (Velocity 0) :: Elem Velocity)
-  newEntityWith (Elem (Position 0) :: Elem Position)
+  newEntityFast (Elem (Velocity 0) :: Elem Velocity)
+  newEntityFast (Elem (Position 0) :: Elem Position)
 
   -- This next line does not type-check, because World does not have the component Enemy
-  -- newEntityWith (Writes (Just (Position 3), True) :: Writes (Position, Enemy))
+  -- newEntity (Writes (Just (Position 3), True) :: Writes (Position, Enemy))
 
   printPositions
   liftIO$ putStrLn "Stepping velocities"

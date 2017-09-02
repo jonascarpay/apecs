@@ -2,8 +2,10 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Control.ECS.Storage.Mutable
-  ( Global, Cache,
-    Indexable, IndexTable, indexSlice,
+  ( Global, readGlobal, writeGlobal,
+    Cache,
+    EnumTable, indexSlice,
+
   ) where
 
 import Control.Monad
@@ -16,7 +18,7 @@ import qualified Data.Vector.Unboxed         as UV
 import qualified Data.Vector.Unboxed.Mutable as U
 import qualified Data.Vector.Mutable         as V
 
-import Control.ECS.Core
+import Control.ECS.Core as ECS
 
 newtype Global c = Global {getGlobal :: IORef c}
 
@@ -32,6 +34,14 @@ instance Monoid c => SStorage (Global c) where
   sWrite    (Global ref) x _ = writeIORef ref x
   sWriteUnsafe = sWrite
   sReadUnsafe = sRead
+
+{-# INLINE readGlobal #-}
+readGlobal :: Has w c => System w (Reads c)
+readGlobal = ECS.read 0
+
+{-# INLINE writeGlobal #-}
+writeGlobal :: Has w c => Writes c -> System w ()
+writeGlobal c = write c 0
 
 data Cache (n :: Nat) s = Cache
   { size  :: Int
@@ -103,65 +113,60 @@ instance (KnownNat n, SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Ca
   {-# INLINE sDestroy #-}
   {-# INLINE sRead #-}
 
-class Indexable c where
-  index :: c -> Int
+data EnumTable c = EnumTable (V.IOVector S.IntSet) c
 
-instance Enum c => Indexable c where index = fromEnum
-
-data IndexTable c = IndexTable (V.IOVector S.IntSet) c
-
-indexSlice :: forall w c a. (Indexable c, Storage c ~ IndexTable a, Has w c) => c -> System w (Slice c)
+indexSlice :: forall w c a. (Enum c, Storage c ~ EnumTable a, Has w c) => c -> System w (Slice c)
 indexSlice c =
-  do Store (IndexTable tab _) :: Store c <- getStore
-     indexSet <- liftIO $ V.read tab (index c)
+  do Store (EnumTable tab _) :: Store c <- getStore
+     indexSet <- liftIO $ V.read tab (fromEnum c)
      return . sliceFromList . S.toList $ indexSet
 
 instance ( SStorage sc
          , Bounded  (SElem sc)
-         , Indexable (SElem sc)
+         , Enum (SElem sc)
          , SSafeElem sc ~ Maybe (SElem sc)
-         ) => SStorage (IndexTable sc) where
-  type SSafeElem (IndexTable sc) = SSafeElem sc
-  type SElem (IndexTable sc) = SElem sc
+         ) => SStorage (EnumTable sc) where
+  type SSafeElem (EnumTable sc) = SSafeElem sc
+  type SElem (EnumTable sc) = SElem sc
 
   sEmpty = do
-    let lo = index (minBound :: SElem sc)
-        hi = index (maxBound :: SElem sc)
+    let lo = fromEnum (minBound :: SElem sc)
+        hi = fromEnum (maxBound :: SElem sc)
         s  = hi - lo + 1
     tab <- V.replicate s mempty
     sc <- sEmpty
-    return $ IndexTable tab sc
+    return $ EnumTable tab sc
 
-  sAll (IndexTable _ sc) = sAll sc
-  sMember (IndexTable _ sc) = sMember sc
+  sAll (EnumTable _ sc) = sAll sc
+  sMember (EnumTable _ sc) = sMember sc
 
-  sDestroy (IndexTable tab sc) e =
+  sDestroy (EnumTable tab sc) e =
     do mx <- sRead sc e
        case mx of
          Nothing -> return ()
          Just !x -> do sDestroy sc e
-                       V.modify tab (S.delete e) (index x)
+                       V.modify tab (S.delete e) (fromEnum x)
 
-  sRead (IndexTable _ sc) e = sRead sc e
-  sReadUnsafe (IndexTable _ sc) e = sReadUnsafe sc e
+  sRead (EnumTable _ sc) e = sRead sc e
+  sReadUnsafe (EnumTable _ sc) e = sReadUnsafe sc e
 
   sWrite itab Nothing e = sDestroy itab e
-  sWrite (IndexTable tab sc) (Just x) e =
+  sWrite (EnumTable tab sc) (Just x) e =
     do mx <- sRead sc e
        case mx of
          Nothing -> return ()
-         Just !xOld -> V.modify tab (S.delete e) (index xOld)
+         Just !xOld -> V.modify tab (S.delete e) (fromEnum xOld)
 
-       V.modify tab (S.insert e) (index x)
+       V.modify tab (S.insert e) (fromEnum x)
        sWrite sc (Just x) e
 
-  sWriteUnsafe (IndexTable tab sc) x e =
+  sWriteUnsafe (EnumTable tab sc) x e =
     do mx <- sRead sc e
        case mx of
          Nothing -> return ()
-         Just !xOld -> V.modify tab (S.delete e) (index xOld)
+         Just !xOld -> V.modify tab (S.delete e) (fromEnum xOld)
 
-       V.modify tab (S.insert e) (index x)
+       V.modify tab (S.insert e) (fromEnum x)
        sWriteUnsafe sc x e
 
   {-# INLINE sEmpty #-}

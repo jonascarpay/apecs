@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables, DataKinds, BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Criterion
 import qualified Criterion.Main as C
@@ -43,11 +43,20 @@ stepVelocity :: Elem (Velocity, Position) -> Writes Position
 stepVelocity (Elem (Velocity !v, Position !p)
              ) = Writes (Just $ Position (p+v))
 
+explicit :: System World ()
+explicit = do sl :: Slice (Position, Velocity) <- sliceAll
+              apply (sl, f)
+                where f :: Reads (Position, Velocity) -> Writes Position
+                      f (Reads (Just (Position p), Just (Velocity v))) = Writes (Just (Position (p+v)))
+
 initialize :: System World ()
-initialize = do replicateM_ 1000 . newEntityWith $ (Elem (Position 0, Velocity 1) :: Elem (Position, Velocity))
-                replicateM_ 9000 . newEntityWith $ (Elem (Position 0) :: Elem Position)
+initialize = do replicateM_ 1000 . newEntityFast $ (Elem (Position 0, Velocity 1) :: Elem (Position, Velocity))
+                replicateM_ 9000 . newEntityFast $ (Elem (Position 0) :: Elem Position)
 
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
-                     , bench "both" $ whnfIO (emptyWorld >>= runSystem (initialize >> apply stepVelocity))
+                     , bgroup "init >> stepVelocity"
+                       [ bench "explicit stepVelocity" $ whnfIO (emptyWorld >>= runSystem (initialize >> explicit))
+                       , bench "apply stepVelocity"    $ whnfIO (emptyWorld >>= runSystem (initialize >> apply stepVelocity))
+                       ]
                      ]
