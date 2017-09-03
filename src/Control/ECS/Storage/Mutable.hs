@@ -4,7 +4,7 @@
 module Control.ECS.Storage.Mutable
   ( Global, readGlobal, writeGlobal,
     Cache,
-    EnumTable, indexSlice,
+    IndexTable, indexSlice,
 
   ) where
 
@@ -113,60 +113,63 @@ instance (KnownNat n, SSafeElem c ~ Maybe (SElem c), SStorage c) => SStorage (Ca
   {-# INLINE sDestroy #-}
   {-# INLINE sRead #-}
 
-data EnumTable c = EnumTable (V.IOVector S.IntSet) c
+class Indexable c where
+  toIndex :: c -> Int
 
-indexSlice :: forall w c a. (Enum c, Storage c ~ EnumTable a, Has w c) => c -> System w (Slice c)
+data IndexTable c = IndexTable (V.IOVector S.IntSet) c
+
+indexSlice :: forall w c a. (Indexable c, Storage c ~ IndexTable a, Has w c) => c -> System w (Slice c)
 indexSlice c =
-  do Store (EnumTable tab _) :: Store c <- getStore
-     indexSet <- liftIO $ V.read tab (fromEnum c)
+  do Store (IndexTable tab _) :: Store c <- getStore
+     indexSet <- liftIO $ V.read tab (toIndex c)
      return . sliceFromList . S.toList $ indexSet
 
 instance ( SStorage sc
          , Bounded  (SElem sc)
-         , Enum (SElem sc)
+         , Indexable (SElem sc)
          , SSafeElem sc ~ Maybe (SElem sc)
-         ) => SStorage (EnumTable sc) where
-  type SSafeElem (EnumTable sc) = SSafeElem sc
-  type SElem (EnumTable sc) = SElem sc
+         ) => SStorage (IndexTable sc) where
+  type SSafeElem (IndexTable sc) = SSafeElem sc
+  type SElem (IndexTable sc) = SElem sc
 
   sEmpty = do
-    let lo = fromEnum (minBound :: SElem sc)
-        hi = fromEnum (maxBound :: SElem sc)
+    let lo = toIndex (minBound :: SElem sc)
+        hi = toIndex (maxBound :: SElem sc)
         s  = hi - lo + 1
     tab <- V.replicate s mempty
     sc <- sEmpty
-    return $ EnumTable tab sc
+    return $ IndexTable tab sc
 
-  sAll (EnumTable _ sc) = sAll sc
-  sMember (EnumTable _ sc) = sMember sc
+  sAll (IndexTable _ sc) = sAll sc
+  sMember (IndexTable _ sc) = sMember sc
 
-  sDestroy (EnumTable tab sc) e =
+  sDestroy (IndexTable tab sc) e =
     do mx <- sRead sc e
        case mx of
          Nothing -> return ()
          Just !x -> do sDestroy sc e
-                       V.modify tab (S.delete e) (fromEnum x)
+                       V.modify tab (S.delete e) (toIndex x)
 
-  sRead (EnumTable _ sc) e = sRead sc e
-  sReadUnsafe (EnumTable _ sc) e = sReadUnsafe sc e
+  sRead (IndexTable _ sc) e = sRead sc e
+  sReadUnsafe (IndexTable _ sc) e = sReadUnsafe sc e
 
   sWrite itab Nothing e = sDestroy itab e
-  sWrite (EnumTable tab sc) (Just x) e =
+  sWrite (IndexTable tab sc) (Just x) e =
     do mx <- sRead sc e
        case mx of
          Nothing -> return ()
-         Just !xOld -> V.modify tab (S.delete e) (fromEnum xOld)
+         Just !xOld -> V.modify tab (S.delete e) (toIndex xOld)
 
-       V.modify tab (S.insert e) (fromEnum x)
+       V.modify tab (S.insert e) (toIndex x)
        sWrite sc (Just x) e
 
-  sWriteUnsafe (EnumTable tab sc) x e =
+  sWriteUnsafe (IndexTable tab sc) x e =
     do mx <- sRead sc e
        case mx of
          Nothing -> return ()
-         Just !xOld -> V.modify tab (S.delete e) (fromEnum xOld)
+         Just !xOld -> V.modify tab (S.delete e) (toIndex xOld)
 
-       V.modify tab (S.insert e) (fromEnum x)
+       V.modify tab (S.insert e) (toIndex x)
        sWriteUnsafe sc x e
 
   {-# INLINE sEmpty #-}
