@@ -156,13 +156,13 @@ instance (Has wld r, Has wld w) => PureFunction (Slice a, Reads r -> Writes w) w
                  sWrite sw w e
 
 {-# INLINE sliceForM_ #-}
-sliceForM_ :: forall w s e r a. Has w r => Slice s -> ((Entity e, Reads r) -> System w a) -> System w ()
+sliceForM_ :: forall w c a. Has w c => Slice c -> ((Entity c, Reads c) -> System w a) -> System w ()
 sliceForM_ (Slice vec) fm =
-  do Store s :: Store r <- getStore
+  do Store s :: Store c <- getStore
      U.forM_ vec (\e -> do !r <- liftIO$ sRead s e
                            fm (Entity e, Reads r))
 
-sliceMapM_ :: forall w s e r a. Has w r => ((Entity e, Reads r) -> System w a) -> Slice s -> System w ()
+sliceMapM_ :: forall w c a. Has w c => ((Entity c, Reads c) -> System w a) -> Slice c -> System w ()
 sliceMapM_ = flip Control.ECS.Core.sliceForM_
 
 sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
