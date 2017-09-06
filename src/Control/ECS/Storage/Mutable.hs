@@ -36,12 +36,19 @@ instance Monoid c => SStorage (Global c) where
   sReadUnsafe = sRead
 
 {-# INLINE readGlobal #-}
-readGlobal :: Has w c => System w (Reads c)
-readGlobal = ECS.read 0
+readGlobal :: forall w c. (Storage c ~ Global c, Has w c) => System w c
+readGlobal = do Store (Global ref) :: Store c <- getStore
+                liftIO$ readIORef ref
 
 {-# INLINE writeGlobal #-}
-writeGlobal :: Has w c => Writes c -> System w ()
-writeGlobal c = write c 0
+writeGlobal :: forall w c. (Storage c ~ Global c, Has w c) => c -> System w ()
+writeGlobal c = do Store (Global ref) :: Store c <- getStore
+                   liftIO$ writeIORef ref c
+
+{-# INLINE modifyGlobal #-}
+modifyGlobal :: forall w c. (Storage c ~ Global c, Has w c) => (c -> c) -> System w ()
+modifyGlobal f = do Store (Global ref) :: Store c <- getStore
+                    liftIO$ modifyIORef' ref f
 
 data Cache (n :: Nat) s = Cache
   { size  :: Int

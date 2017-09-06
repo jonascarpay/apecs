@@ -41,8 +41,6 @@ instance (w `Has` a, w `Has` b) => w `Has` (a, b) where
                 Store sb :: Store b <- getStore
                 return $ Store (sa, sb)
 
-
-
 -- (,,)
 instance (Component a, Component b, Component c) => Component (a, b, c) where
   type Storage (a, b, c) = (Storage a, Storage b, Storage c)

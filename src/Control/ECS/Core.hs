@@ -48,7 +48,7 @@ newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
 instance Eq (SSafeElem (Storage c)) => Eq (Reads c) where
   Reads a == Reads b = a == b
 
-class Component c => w `Has` c where
+class Component c => Has w c where
   getStore :: System w (Store c)
 
 instance Show (Entity c) where

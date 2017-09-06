@@ -29,9 +29,8 @@ instance Monoid EntityCounter where
 
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity a)
-nextEntity = do Reads (ECount c) :: Reads EntityCounter <- readGlobal
-                let w :: Writes EntityCounter = Writes (ECount (c+1))
-                writeGlobal w
+nextEntity = do (ECount c) <- readGlobal
+                writeGlobal (ECount $ c+1)
                 return (Entity c)
 
 {-# INLINE newEntity #-}
