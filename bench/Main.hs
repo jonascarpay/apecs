@@ -56,7 +56,7 @@ initialize = do replicateM_ 1000 . newEntityFast $ (Elem (Position 0, Velocity 1
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
                      , bgroup "init >> stepVelocity"
-                       [ bench "explicit stepVelocity" $ whnfIO (emptyWorld >>= runSystem (initialize >> explicit))
-                       , bench "apply stepVelocity"    $ whnfIO (emptyWorld >>= runSystem (initialize >> apply stepVelocity))
+                       [ bench "apply stepVelocity"    $ whnfIO (emptyWorld >>= runSystem (initialize >> apply stepVelocity))
+                       , bench "explicit stepVelocity" $ whnfIO (emptyWorld >>= runSystem (initialize >> explicit))
                        ]
                      ]
