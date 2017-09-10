@@ -7,12 +7,15 @@ module Apecs (
   get, set, setMaybe, modify,
   A.map, rmap', rmap, wmap, sliceForM_, sliceMapM_,
   readGlobal, writeGlobal, modifyGlobal,
+  sliceSize,
+  System(..), runSystem, runWith,
+  Component(..), Entity, Slice, Has(..), Safe(..),
 
   -- Reader
   asks, ask, liftIO, lift,
 
   -- Self
-  newEntity, EntityCounter, nextEntity,
+  newEntity, EntityCounter, nextEntity, initCounter,
   runGC,
 ) where
 

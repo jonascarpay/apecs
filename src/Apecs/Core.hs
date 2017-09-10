@@ -83,9 +83,9 @@ newtype Safe c = Safe {getSafe :: (SafeRW (Storage c))}
 
 -- Setting/Getting
 {-# INLINE get #-}
-get :: forall w c. (Store (Storage c), Has w c) => Entity c -> System w (SafeRW (Storage c))
+get :: forall w c. (Store (Storage c), Has w c) => Entity c -> System w (Safe c)
 get (Entity !ety) = do !(s :: Storage c) <- getStore
-                       liftIO$ explGet s ety
+                       liftIO$ Safe <$> explGet s ety
 
 {-# INLINE set #-}
 set :: forall w c. (Store (Storage c), Stores (Storage c) ~ c, Has w c) => Entity c -> c -> System w ()
@@ -230,6 +230,11 @@ sliceConcat :: Slice a -> Slice b -> Slice c
 sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
 
 -- Tuple instances
+instance (Component a, Component b) => Component (a,b) where
+  type Storage (a, b) = (Storage a, Storage b)
+instance (Has w a, Has w b) => Has w (a,b) where
+  getStore = (,) <$> getStore <*> getStore
+
 instance (Initializable a, Initializable b) => Initializable (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
   initStore (!aa, !ab) = (,) <$> initStore aa <*> initStore ab

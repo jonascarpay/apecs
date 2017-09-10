@@ -21,7 +21,7 @@ nextEntity = do EntityCounter n <- readGlobal
                 return (Entity n)
 
 {-# INLINE newEntity #-}
-newEntity :: (Stores (Storage c) ~ c, Store (Storage c), Has w c, Has w EntityCounter)
+newEntity :: (IsRuntime c, Has w c, Has w EntityCounter)
           => c -> System w (Entity c)
 newEntity c = do ety <- nextEntity
                  set (cast ety) c

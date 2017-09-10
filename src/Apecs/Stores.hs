@@ -2,7 +2,8 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Apecs.Stores
-  ( Global, readGlobal, writeGlobal,
+  ( Map, Set, Cache,
+    Global, readGlobal, writeGlobal,
   ) where
 
 import qualified Data.IntMap.Strict as M
@@ -12,9 +13,7 @@ import Data.Maybe (fromJust)
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector.Mutable as VM
-import Control.Applicative
 import Control.Monad
-import Control.Monad.IO.Class
 import GHC.TypeLits
 import Data.Proxy
 
@@ -64,13 +63,13 @@ instance HasMembers (Set c) where
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
 instance Store (Set c) where
-  type SafeRW (Set c) = Const Bool c
+  type SafeRW (Set c) = Bool
   type Stores (Set c) = c
   explGetUnsafe _ _ = return $ error "Unsafe access to Set"
-  explGet (Set ref) ety = Const . S.member ety <$> readIORef ref
+  explGet (Set ref) ety = S.member ety <$> readIORef ref
   explSet (Set ref) ety _ = modifyIORef' ref $ S.insert ety
-  explSetMaybe s ety (Const False) = explDestroy s ety
-  explSetMaybe s ety (Const True)  = explSet s ety (undefined :: c)
+  explSetMaybe s ety False = explDestroy s ety
+  explSetMaybe s ety True  = explSet s ety (undefined :: c)
   explMap _ _ = return ()
   explModify _ _ _ = return ()
   {-# INLINE explGetUnsafe #-}
