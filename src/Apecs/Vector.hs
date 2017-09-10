@@ -2,7 +2,7 @@
 
 {-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
 
-module Control.ECS.Vector where
+module Apecs.Vector where
 
 import Control.Applicative
 

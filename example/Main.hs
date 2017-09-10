@@ -2,10 +2,8 @@
 
 import Control.Monad
 
-import Control.ECS as E
-import Control.ECS.Storage.Mutable
-import Control.ECS.Storage.Immutable
-import Control.ECS.Vector -- Optional module for basic 2D and 3D vectos
+import Apecs as E
+import Apecs.Vector -- Optional module for basic 2D and 3D vectos
 
 newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
 instance Component Velocity where
