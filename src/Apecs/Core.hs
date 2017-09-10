@@ -102,7 +102,7 @@ modify (Entity !ety) f = do
 setMaybe :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
 setMaybe (Entity !ety) (Safe c) = do
   !(s :: Storage c) <- getStore
-  liftIO$ (explSetMaybe s ety c)
+  liftIO$ explSetMaybe s ety c
 
 -- Mapping functions
 
@@ -146,10 +146,10 @@ wmap !f = do !(sr :: Storage r) <- getStore
                           explSet sw e (f . Safe $ r)
 
 {-# INLINE sliceForM_ #-}
-sliceForM_ :: Monad m => Slice t -> (Entity c -> m b) -> m ()
+sliceForM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
 sliceForM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
 {-# INLINE sliceMapM_ #-}
-sliceMapM_ :: Monad m => (Entity c -> m b) -> Slice t -> m ()
+sliceMapM_ :: Monad m => (Entity c -> m b) -> Slice c -> m ()
 sliceMapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
 
 -- | Class of storages for global values
@@ -185,13 +185,16 @@ class Initializable (Storage c) => Component c where
 
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
--- | These following hj
 newtype Slice  c = Slice  {unSlice  :: U.Vector ID} deriving Show
 newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
 
-{-# INLINE cast #-}
-cast :: Entity a -> Entity b
-cast (Entity ety) = Entity ety
+class Cast a b where cast :: a -> b
+instance Cast (Entity a) (Entity b) where
+  {-# INLINE cast #-}
+  cast (Entity ety) = Entity ety
+instance Cast (Slice a) (Slice b) where
+  {-# INLINE cast #-}
+  cast (Slice vec) = Slice vec
 
 class Component c => Has w c where
   getStore :: System w (Storage c)

@@ -9,7 +9,7 @@ module Apecs (
   readGlobal, writeGlobal, modifyGlobal,
   sliceSize,
   System(..), runSystem, runWith,
-  Component(..), Entity, Slice, Has(..), Safe(..),
+  Component(..), Entity, Slice, Has(..), Safe(..), cast,
 
   -- Reader
   asks, ask, liftIO, lift,
