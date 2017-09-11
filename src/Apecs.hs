@@ -3,7 +3,7 @@
 module Apecs (
   -- Core
   initStore,
-  destroy, exists, sliceAll,
+  destroy, exists, sliceOwners,
   get, set, setMaybe, modify,
   cmap, rmap', rmap, wmap, wmap', sliceForM_, sliceForMC_, sliceMapM_, sliceMapMC_,
   readGlobal, writeGlobal, modifyGlobal,

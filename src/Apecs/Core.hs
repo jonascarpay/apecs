@@ -48,9 +48,9 @@ exists (Entity n) = do s :: Storage c <- getStore
                        liftIO$ explExists s n
 
 -- | A slice containing all entities with component @c@
-{-# INLINE sliceAll #-}
-sliceAll :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
-sliceAll = do s :: Storage c <- getStore
+{-# INLINE sliceOwners #-}
+sliceOwners :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
+sliceOwners = do s :: Storage c <- getStore
               liftIO$ Slice <$> explMembers s
 
 -- | Class of storages that associates components with entities.
