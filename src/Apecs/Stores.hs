@@ -1,11 +1,9 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE Strict #-}
 {-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
 {-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
 {-# LANGUAGE ConstraintKinds, DataKinds, KindSignatures #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -33,10 +31,10 @@ instance Initializable (Map c) where
   type InitArgs (Map c) = ()
   initStore _ = Map <$> newIORef mempty
 instance HasMembers (Map c) where
-  explDestroy (Map !ref) !ety = modifyIORef' ref (M.delete ety)
-  explMembers (Map !ref)      = U.fromList . M.keys <$> readIORef ref
-  explExists  (Map !ref) !ety = M.member ety <$> readIORef ref
-  explReset   (Map !ref)      = writeIORef ref mempty
+  explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
+  explMembers (Map ref)     = U.fromList . M.keys <$> readIORef ref
+  explExists  (Map ref) ety = M.member ety <$> readIORef ref
+  explReset   (Map ref)     = writeIORef ref mempty
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
@@ -44,13 +42,13 @@ instance HasMembers (Map c) where
 instance Store (Map c) where
   type SafeRW (Map c) = Maybe c
   type Stores (Map c) = c
-  explGetUnsafe (Map !ref) !ety = fromJust . M.lookup ety <$> readIORef ref
-  explGet       (Map !ref) !ety = M.lookup ety <$> readIORef ref
-  explSet       (Map !ref) !ety x = modifyIORef' ref $ M.insert ety x
+  explGetUnsafe (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
+  explGet       (Map ref) ety = M.lookup ety <$> readIORef ref
+  explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
   explSetMaybe  s ety Nothing = explDestroy s ety
   explSetMaybe  s ety (Just x) = explSet s ety x
-  explMap       (Map !ref) f = modifyIORef' ref $ M.map f
-  explModify    (Map !ref) ety f = modifyIORef' ref $ M.adjust f ety
+  explMap       (Map ref) f = modifyIORef' ref $ M.map f
+  explModify    (Map ref) ety f = modifyIORef' ref $ M.adjust f ety
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
@@ -102,10 +100,10 @@ instance GlobalRW (Global c) c where
   {-# INLINE explGlobalModify #-}
 
 data Cache (n :: Nat) s =
-  Cache !Int -- | Size
-        !(UM.IOVector Int) -- | Tags
-        !(VM.IOVector (Stores s)) -- | Members
-        !s -- | Writeback
+  Cache Int -- | Size
+        (UM.IOVector Int) -- | Tags
+        (VM.IOVector (Stores s)) -- | Members
+        s -- | Writeback
 
 instance (KnownNat n, Initializable s) => Initializable (Cache n s) where
   type InitArgs (Cache n s) = (InitArgs s)
@@ -118,15 +116,15 @@ instance (KnownNat n, Initializable s) => Initializable (Cache n s) where
 
 instance HasMembers s => HasMembers (Cache n s) where
   {-# INLINE explDestroy #-}
-  explDestroy (Cache n tags _ s) !ety = do
-    !tag <- UM.unsafeRead tags (ety `mod` n)
+  explDestroy (Cache n tags _ s) ety = do
+    tag <- UM.unsafeRead tags (ety `mod` n)
     if tag == ety
        then UM.unsafeWrite tags (ety `mod` n) (-1)
        else explDestroy s ety
 
   {-# INLINE explExists #-}
-  explExists (Cache n tags _ s) !ety = do
-    !tag <- UM.unsafeRead tags (ety `mod` n)
+  explExists (Cache n tags _ s) ety = do
+    tag <- UM.unsafeRead tags (ety `mod` n)
     if tag == ety then return True else explExists s ety
 
   {-# INLINE explMembers #-}
@@ -140,27 +138,27 @@ instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
   type Stores (Cache n s) = Stores s
 
   {-# INLINE explGetUnsafe #-}
-  explGetUnsafe (Cache n tags cache s) !ety = do
-    let !index = ety `mod` n
-    !tag <- UM.unsafeRead tags index
+  explGetUnsafe (Cache n tags cache s) ety = do
+    let index = ety `mod` n
+    tag <- UM.unsafeRead tags index
     if tag == ety
        then VM.unsafeRead cache index
        else explGetUnsafe s ety
 
   {-# INLINE explGet #-}
-  explGet (Cache n tags cache s) !ety = do
-    let !index = ety `mod` n
-    !tag <- UM.unsafeRead tags index
+  explGet (Cache n tags cache s) ety = do
+    let index = ety `mod` n
+    tag <- UM.unsafeRead tags index
     if tag == ety
        then Just <$> VM.unsafeRead cache index
        else explGet s ety
 
   {-# INLINE explSet #-}
-  explSet (Cache n tags cache s) !ety x = do
-    let !index = ety `mod` n
-    !tag <- UM.unsafeRead tags index
+  explSet (Cache n tags cache s) ety x = do
+    let index = ety `mod` n
+    tag <- UM.unsafeRead tags index
     when (tag /= (-1) && tag /= ety) $ do
-      !cached <- VM.unsafeRead cache index
+      cached <- VM.unsafeRead cache index
       explSet s ety cached
     UM.unsafeWrite tags  index ety
     VM.unsafeWrite cache index x
@@ -170,15 +168,15 @@ instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
   explSetMaybe c ety (Just x) = explSet c ety x
 
   {-# INLINE explMap #-}
-  explMap (Cache n tags cache s) !f = forM_ [0..n-1] $ \e -> do
-    !tag <- UM.read tags e
+  explMap (Cache n tags cache s) f = forM_ [0..n-1] $ \e -> do
+    tag <- UM.read tags e
     unless (tag == (-1)) (VM.modify cache f e)
     explMap s f
 
   {-# INLINE explModify #-}
-  explModify (Cache n tags cache s) !ety f = do
-    let !index = ety `mod` n
-    !tag <- UM.read tags index
+  explModify (Cache n tags cache s) ety f = do
+    let index = ety `mod` n
+    tag <- UM.read tags index
     if tag == ety
        then VM.modify cache f ety
        else explModify s ety f
