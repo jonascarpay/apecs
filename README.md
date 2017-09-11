@@ -7,6 +7,7 @@ There is an example below.
 For a general introduction to ECS, see [this talk on Entitas](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [Wikipedia](https://en.wikipedia.org/wiki/Entity–component–system).
 
 ### Design
+Entity Component Systems are a framework for game engines.
 An entity is an implicit collection of components.
 Components of the same type are stored together, indexed by the ID of the entity they belong to.
 A component is an atomic piece of data, like `Position` or `Velocity`.
