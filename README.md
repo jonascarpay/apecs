@@ -21,8 +21,8 @@ Using the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark
 
 |     | specs | apecs |
 | --- | ----- | --- |
-| build | 688 us | 288 us | 
-| update | 31 us | 40 us |
+| build | 688 us | 285 us | 
+| update | 31 us | 46 us |
 
 The main reason apecs can even keep up with specs, which was written in _Rust_ mind you, is caching.
 Wrapping a `SStorage` in a `Cached` adds a layer of caching to the store.

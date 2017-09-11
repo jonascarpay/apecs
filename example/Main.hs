@@ -39,11 +39,10 @@ game = do
   printPositions
 
   liftIO$ putStrLn "Stepping velocities"
-  rmap' $ \(Velocity v, Position p) -> Position (v+p)
+  rmap $ \(Velocity v, Position p) -> Position (v+p)
 
   printPositions
 
--- We can similarly iterate over all valid entities with some system
 printPositions :: System' ()
 printPositions = do slice :: Slice Position <- sliceAll
                     sliceMapM_ f slice

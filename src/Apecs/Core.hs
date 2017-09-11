@@ -112,32 +112,32 @@ setMaybe (Entity ety) (Safe c) = do
 -- Mapping functions
 
 -- | maps a pure function over all components
-{-# INLINE map #-}
-map :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
-map f = do s :: Storage c <- getStore
-           liftIO$ explMap s f
+{-# INLINE cmap #-}
+cmap :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
+cmap f = do s :: Storage c <- getStore
+            liftIO$ explMap s f
 
 -- | Maps a function over all entities with a @r@, and writes their @w@
-{-# INLINE rmap' #-}
-rmap' :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
-      => (r -> w) -> System world ()
-rmap' f = do sr :: Storage r <- getStore
-             sc :: Storage w <- getStore
-             liftIO$ do sl <- explMembers sr
-                        U.forM_ sl $ \ e -> do
-                           r <- explGetUnsafe sr e
-                           explSet sc e (f r)
-
--- | Maps a function over all entities with a @r@, and writes or deletes their @w@
 {-# INLINE rmap #-}
-rmap :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
-     => (r -> Safe w) -> System world ()
+rmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
+      => (r -> w) -> System world ()
 rmap f = do sr :: Storage r <- getStore
-            sw :: Storage w <- getStore
+            sc :: Storage w <- getStore
             liftIO$ do sl <- explMembers sr
                        U.forM_ sl $ \ e -> do
                           r <- explGetUnsafe sr e
-                          explSetMaybe sw e (getSafe $ f r)
+                          explSet sc e (f r)
+
+-- | Maps a function over all entities with a @r@, and writes or deletes their @w@
+{-# INLINE rmap' #-}
+rmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
+      => (r -> Safe w) -> System world ()
+rmap' f = do sr :: Storage r <- getStore
+             sw :: Storage w <- getStore
+             liftIO$ do sl <- explMembers sr
+                        U.forM_ sl $ \ e -> do
+                           r <- explGetUnsafe sr e
+                           explSetMaybe sw e (getSafe $ f r)
 
 -- | For all entities with a @w@, this map reads their @r@ and writes their @w@
 {-# INLINE wmap #-}
@@ -150,14 +150,37 @@ wmap f = do sr :: Storage r <- getStore
                          r <- explGet sr e
                          explSet sw e (f . Safe $ r)
 
+-- | For all entities with a @w@, this map reads their @r@ and writes or deletes their @w@
+{-# INLINE wmap' #-}
+wmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
+      => (Safe r -> Safe w) -> System world ()
+wmap' f = do sr :: Storage r <- getStore
+             sw :: Storage w <- getStore
+             liftIO$ do sl <- explMembers sr
+                        U.forM_ sl $ \ e -> do
+                          r <- explGet sr e
+                          explSetMaybe sw e (getSafe . f . Safe $ r)
+
 -- Slice traversal
 {-# INLINE sliceForM_ #-}
 sliceForM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
 sliceForM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
 
+{-# INLINE sliceForMC_ #-}
+sliceForMC_ :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
+sliceForMC_ (Slice vec) sys = do
+  s :: Storage c <- getStore
+  U.forM_ vec $ \e -> do
+    r <- liftIO$ explGet s e
+    sys (Entity e, Safe r)
+
 {-# INLINE sliceMapM_ #-}
 sliceMapM_ :: Monad m => (Entity c -> m b) -> Slice c -> m ()
 sliceMapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
+
+{-# INLINE sliceMapMC_ #-}
+sliceMapMC_ :: forall w c a. (Store (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w ()
+sliceMapMC_ sys vec = sliceForMC_ vec sys
 
 -- | Class of storages for global values
 class GlobalRW s c where
@@ -315,4 +338,3 @@ instance (GlobalRW a ca, GlobalRW b cb, GlobalRW c cc) => GlobalRW (a,b,c) (ca,c
   explGlobalWrite (sa,sb,sc) (wa,wb,wc) = explGlobalWrite sa wa >> explGlobalWrite sb wb >> explGlobalWrite sc wc
   {-# INLINE explGlobalRead #-}
   {-# INLINE explGlobalWrite #-}
-

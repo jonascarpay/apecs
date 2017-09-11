@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, DataKinds, BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE Strict, ScopedTypeVariables, DataKinds, BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Criterion
 import qualified Criterion.Main as C
@@ -24,28 +24,31 @@ data World = World
   }
 
 instance World `Has` Position where
-  {-# INLINE getStore #-}
   getStore = System $ asks positions
 
 instance World `Has` Velocity where
-  {-# INLINE getStore #-}
   getStore = System $ asks velocities
 
 instance World `Has` EntityCounter where
-  {-# INLINE getStore #-}
   getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
 emptyWorld = liftM3 World (initStore ()) (initStore ()) initCounter
 
-{-# INLINE stepVelocity #-}
-stepVelocity (Velocity !v, Position !p) = Position (p+v)
+cStep (Velocity v, Position p) = (Velocity v, Position (p+v))
+rStep (Velocity v, Position p) = Position (p+v)
 
-explicit :: System World ()
+rStep' :: (Velocity, Position) -> Safe Position
+rStep' (Velocity v, Position p) = Safe (Just (Position (p+v)))
+
+wStep' :: Safe (Velocity, Position) -> Safe Position
+wStep' (Safe (Just (Velocity v), Just (Position p))) = Safe (Just (Position (p+v)))
+
+wStep :: Safe (Velocity, Position) -> Position
+wStep (Safe (Just (Velocity v), Just (Position p))) = Position (p+v)
+
 explicit = do sl :: Slice (Velocity, Position) <- sliceAll
-              sliceForM_ sl $ \e -> do
-                Safe (Just (Velocity v), Just (Position p)) <- get e
-                set (cast e) (Position $ p + v)
+              sliceForMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
 
 initialize :: System World ()
 initialize = do replicateM_ 1000 $ newEntity (Position 0, Velocity 1)
@@ -53,8 +56,12 @@ initialize = do replicateM_ 1000 $ newEntity (Position 0, Velocity 1)
 
 main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
-                     , bgroup "init >> stepVelocity"
-                       [ bench "apply stepVelocity"    $ whnfIO (emptyWorld >>= runSystem (initialize >> rmap' stepVelocity))
-                       , bench "explicit stepVelocity" $ whnfIO (emptyWorld >>= runSystem (initialize >> explicit))
+                     , bgroup "init and step"
+                       [ bench "cmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> cmap  cStep))
+                       , bench "rmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> rmap  rStep))
+                       , bench "rmap'"  $ whnfIO (emptyWorld >>= runSystem (initialize >> rmap' rStep'))
+                       , bench "wmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> wmap  wStep))
+                       , bench "wmap'"  $ whnfIO (emptyWorld >>= runSystem (initialize >> wmap' wStep'))
+                       , bench "forMC_" $ whnfIO (emptyWorld >>= runSystem (initialize >> explicit))
                        ]
                      ]

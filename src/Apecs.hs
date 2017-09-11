@@ -5,7 +5,7 @@ module Apecs (
   initStore,
   destroy, exists, sliceAll,
   get, set, setMaybe, modify,
-  A.map, rmap', rmap, wmap, sliceForM_, sliceMapM_,
+  cmap, rmap', rmap, wmap, wmap', sliceForM_, sliceForMC_, sliceMapM_, sliceMapMC_,
   readGlobal, writeGlobal, modifyGlobal,
   sliceSize,
   System(..), runSystem, runWith,
