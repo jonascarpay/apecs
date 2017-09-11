@@ -7,6 +7,7 @@ There is an example below.
 For a general introduction to ECS, see [this talk on Entitas](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [Wikipedia](https://en.wikipedia.org/wiki/Entity–component–system).
 
 ### Design
+Entity Component Systems are a framework for game engines.
 An entity is an implicit collection of components.
 Components of the same type are stored together, indexed by the ID of the entity they belong to.
 A component is an atomic piece of data, like `Position` or `Velocity`.
@@ -20,7 +21,7 @@ For positions, we can wrap their store in a layer that automatically keeps a spa
 Most iterations and storage operations are inferred from the type system.
 
 ### Performance
-By using extensive caching and strict semantics to avoid space leaks, performance is excellent.
+By using extensive caching and strict semantics to avoid space leaks, performance is very good.
 Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can even keep up with specs, which was written in _Rust_:
 
 |     | specs | apecs |
@@ -84,9 +85,8 @@ game = do
   -- rmap maps a pure function over all entities in its domain
   rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  -- sliceOwners produces a slice of all owners of its component type.
-  -- In this case, the component type is inferred.
-  -- sliceMapMC_ iterates a system over a list of entities and components
+  -- sliceOwners produces a slice of all owners of some component.
+  -- sliceMapMC_ iterates a system over a slice of entities and components
   sliceOwners >>= sliceMapMC_ printEnemyPosition
 
 -- Here we need to use a Safe type, because sliceMapMC_'s read might fail
