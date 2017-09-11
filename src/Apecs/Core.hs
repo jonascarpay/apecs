@@ -1,6 +1,10 @@
-{-# LANGUAGE TypeFamilyDependencies, UndecidableInstances, BangPatterns, ScopedTypeVariables, FlexibleContexts, GeneralizedNewtypeDeriving, ConstraintKinds #-}
-
 {-# LANGUAGE Strict #-}
+{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
+{-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds, KindSignatures #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Apecs.Core where
 
@@ -25,28 +29,28 @@ class HasMembers s where
 
   {-# INLINE explReset #-}
   explReset :: s -> IO ()
-  explReset !s = do
+  explReset s = do
     sl <- explMembers s
     U.mapM_ (explDestroy s) sl
 
 -- | Destroys the component @c@ for the given entity
 {-# INLINE destroy #-}
 destroy :: forall w c. (Has w c, HasMembers (Storage c)) => Entity c -> System w ()
-destroy (Entity !n) = do !(s :: Storage c) <- getStore
-                         liftIO$ explDestroy s n
+destroy (Entity n) = do s :: Storage c <- getStore
+                        liftIO$ explDestroy s n
 
 -- | Returns whether the given entity has component @c@
 --   For composite components, this indicates whether the component
 --   has all its constituents
 {-# INLINE exists #-}
 exists :: forall w c. (Has w c, HasMembers (Storage c)) => Entity c -> System w Bool
-exists (Entity !n) = do !(s :: Storage c) <- getStore
-                        liftIO$ explExists s n
+exists (Entity n) = do s :: Storage c <- getStore
+                       liftIO$ explExists s n
 
 -- | A slice containing all entities with component @c@
 {-# INLINE sliceAll #-}
 sliceAll :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
-sliceAll = do !(s :: Storage c) <- getStore
+sliceAll = do s :: Storage c <- getStore
               liftIO$ Slice <$> explMembers s
 
 -- | Class of storages that associates components with entities.
@@ -65,43 +69,44 @@ class HasMembers s => Store s where
   -- | Modifies an element in the store.
   {-# INLINE explModify #-}
   explModify :: s -> Int -> (Stores s -> Stores s) -> IO ()
-  explModify !s !ety !f = do !etyExists <- explExists s ety
-                             when etyExists $ explGetUnsafe s ety >>= explSet s ety . f
+  explModify s ety f = do etyExists <- explExists s ety
+                          when etyExists $ explGetUnsafe s ety >>= explSet s ety . f
 
   -- | Maps over all elements of this store.
   --   The default implementation can be replaced by an optimized one
   {-# INLINE explMap #-}
   explMap :: s -> (Stores s -> Stores s) -> IO ()
-  explMap !s !f = do
-    !sl <- explMembers s
-    U.forM_ sl $ \ety -> do !(x :: Stores s) <- explGetUnsafe s ety
+  explMap s f = do
+    sl <- explMembers s
+    U.forM_ sl $ \ety -> do x :: Stores s <- explGetUnsafe s ety
                             explSet s ety (f x)
 
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
-type IsRuntime c = (Store (Storage c), Stores (Storage c) ~ c)
+type Runtime c = Stores (Storage c)
+type IsRuntime c = (Store (Storage c), Runtime c ~ c)
 newtype Safe c = Safe {getSafe :: (SafeRW (Storage c))}
 
 -- Setting/Getting
 {-# INLINE get #-}
 get :: forall w c. (Store (Storage c), Has w c) => Entity c -> System w (Safe c)
-get (Entity !ety) = do !(s :: Storage c) <- getStore
-                       liftIO$ Safe <$> explGet s ety
+get (Entity ety) = do s :: Storage c <- getStore
+                      liftIO$ Safe <$> explGet s ety
 
 {-# INLINE set #-}
 set :: forall w c. (Store (Storage c), Stores (Storage c) ~ c, Has w c) => Entity c -> c -> System w ()
-set (Entity !ety) !x = do
-  !(s :: Storage c) <- getStore
+set (Entity ety) x = do
+  s :: Storage c <- getStore
   liftIO$ explSet s ety x
 
 {-# INLINE modify #-}
 modify :: forall w c. (IsRuntime c, Has w c) => Entity c -> (c -> c) -> System w ()
-modify (Entity !ety) f = do
-  !(s :: Storage c) <- getStore
+modify (Entity ety) f = do
+  s :: Storage c <- getStore
   liftIO$ explModify s ety f
 
 setMaybe :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
-setMaybe (Entity !ety) (Safe c) = do
-  !(s :: Storage c) <- getStore
+setMaybe (Entity ety) (Safe c) = do
+  s :: Storage c <- getStore
   liftIO$ explSetMaybe s ety c
 
 -- Mapping functions
@@ -109,45 +114,47 @@ setMaybe (Entity !ety) (Safe c) = do
 -- | maps a pure function over all components
 {-# INLINE map #-}
 map :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
-map !f = do !(s :: Storage c) <- getStore
-            liftIO$ explMap s f
+map f = do s :: Storage c <- getStore
+           liftIO$ explMap s f
 
 -- | Maps a function over all entities with a @r@, and writes their @w@
 {-# INLINE rmap' #-}
 rmap' :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
       => (r -> w) -> System world ()
-rmap' !f = do !(sr :: Storage r) <- getStore
-              !(sc :: Storage w) <- getStore
-              liftIO$ do !sl <- explMembers sr
-                         U.forM_ sl $ \ !e -> do
-                           !r <- explGetUnsafe sr e
+rmap' f = do sr :: Storage r <- getStore
+             sc :: Storage w <- getStore
+             liftIO$ do sl <- explMembers sr
+                        U.forM_ sl $ \ e -> do
+                           r <- explGetUnsafe sr e
                            explSet sc e (f r)
 
 -- | Maps a function over all entities with a @r@, and writes or deletes their @w@
 {-# INLINE rmap #-}
 rmap :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
      => (r -> Safe w) -> System world ()
-rmap !f = do !(sr :: Storage r) <- getStore
-             !(sw :: Storage w) <- getStore
-             liftIO$ do !sl <- explMembers sr
-                        U.forM_ sl $ \ !e -> do
-                          !r <- explGetUnsafe sr e
+rmap f = do sr :: Storage r <- getStore
+            sw :: Storage w <- getStore
+            liftIO$ do sl <- explMembers sr
+                       U.forM_ sl $ \ e -> do
+                          r <- explGetUnsafe sr e
                           explSetMaybe sw e (getSafe $ f r)
 
 -- | For all entities with a @w@, this map reads their @r@ and writes their @w@
 {-# INLINE wmap #-}
 wmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
      => (Safe r -> w) -> System world ()
-wmap !f = do !(sr :: Storage r) <- getStore
-             !(sw :: Storage w) <- getStore
-             liftIO$ do !sl <- explMembers sr
-                        U.forM_ sl $ \ !e -> do
-                          !r <- explGet sr e
-                          explSet sw e (f . Safe $ r)
+wmap f = do sr :: Storage r <- getStore
+            sw :: Storage w <- getStore
+            liftIO$ do sl <- explMembers sr
+                       U.forM_ sl $ \ e -> do
+                         r <- explGet sr e
+                         explSet sw e (f . Safe $ r)
 
+-- Slice traversal
 {-# INLINE sliceForM_ #-}
 sliceForM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
 sliceForM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
+
 {-# INLINE sliceMapM_ #-}
 sliceMapM_ :: Monad m => (Entity c -> m b) -> Slice c -> m ()
 sliceMapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
@@ -240,13 +247,13 @@ instance (Has w a, Has w b) => Has w (a,b) where
 
 instance (Initializable a, Initializable b) => Initializable (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
-  initStore (!aa, !ab) = (,) <$> initStore aa <*> initStore ab
+  initStore (aa, ab) = (,) <$> initStore aa <*> initStore ab
 
 instance (HasMembers a, HasMembers b) => HasMembers (a,b) where
-  explMembers (!sa,!sb) = explMembers sa >>= U.filterM (explExists sb)
-  explReset   (!sa,!sb) = explReset sa >> explReset sb
-  explDestroy (!sa,!sb) !ety = explDestroy sa ety >> explDestroy sb ety
-  explExists  (!sa,!sb) !ety = (&&) <$> explExists sa ety <*> explExists sb ety
+  explMembers (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
+  explReset   (sa,sb) = explReset sa >> explReset sb
+  explDestroy (sa,sb) ety = explDestroy sa ety >> explDestroy sb ety
+  explExists  (sa,sb) ety = (&&) <$> explExists sa ety <*> explExists sb ety
   {-# INLINE explMembers #-}
   {-# INLINE explReset #-}
   {-# INLINE explDestroy #-}
@@ -255,10 +262,10 @@ instance (HasMembers a, HasMembers b) => HasMembers (a,b) where
 instance (Store a, Store b) => Store (a, b) where
   type SafeRW (a, b) = (SafeRW a, SafeRW b)
   type Stores (a, b) = (Stores a, Stores b)
-  explGetUnsafe  (!sa,!sb) !ety = (,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety
-  explGet        (!sa,!sb) !ety = (,) <$> explGet sa ety <*> explGet sb ety
-  explSet        (!sa,!sb) !ety (!wa,!wb) = explSet sa ety wa >> explSet sb ety wb
-  explSetMaybe   (!sa,!sb) !ety (!wa,!wb) = explSetMaybe sa ety wa >> explSetMaybe sb ety wb
+  explGetUnsafe  (sa,sb) ety = (,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety
+  explGet        (sa,sb) ety = (,) <$> explGet sa ety <*> explGet sb ety
+  explSet        (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
+  explSetMaybe   (sa,sb) ety (wa,wb) = explSetMaybe sa ety wa >> explSetMaybe sb ety wb
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}

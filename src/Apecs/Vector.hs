@@ -1,6 +1,6 @@
 -- | A lightweight version of Edward Kmett's linear, included for convenience' sake
 
-{-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilyDependencies, ScopedTypeVariables, FlexibleContexts #-}
 
 module Apecs.Vector where
 

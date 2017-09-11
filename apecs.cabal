@@ -36,15 +36,6 @@ library
     -Odph
     -fno-warn-unused-top-binds
 
-  default-extensions:
-    TypeOperators,
-    TypeFamilies,
-    MultiParamTypeClasses,
-    FlexibleInstances,
-    ScopedTypeVariables,
-    GeneralizedNewtypeDeriving,
-    StrictData
-
 executable example
   hs-source-dirs:
     example

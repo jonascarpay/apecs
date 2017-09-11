@@ -1,4 +1,13 @@
-{-# LANGUAGE TypeApplications, DataKinds, BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE Strict #-}
+{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
+{-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds, DataKinds, KindSignatures #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications #-}
+
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Apecs.Stores
