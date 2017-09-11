@@ -2,7 +2,11 @@
 
 module Apecs.Util
   ( EntityCounter, initCounter, nextEntity, newEntity
+  , runGC
   ) where
+
+import System.Mem (performMajorGC)
+import Control.Monad.Reader (liftIO)
 
 import Apecs.Core
 import Apecs.Stores
@@ -27,3 +31,6 @@ newEntity c = do ety <- nextEntity
                  set (cast ety) c
                  return (cast ety)
 
+
+runGC :: System w ()
+runGC = liftIO performMajorGC

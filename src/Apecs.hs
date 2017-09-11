@@ -19,12 +19,6 @@ module Apecs (
   runGC,
 ) where
 
-import Prelude hiding (read, all)
-import Control.Monad.Reader
-
 import Apecs.Core as A
 import Apecs.Util
-import System.Mem (performMajorGC)
-
-runGC :: System w ()
-runGC = liftIO performMajorGC
+import Control.Monad.Reader (asks, ask, liftIO, lift)

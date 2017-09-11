@@ -240,6 +240,7 @@ sliceConcat :: Slice a -> Slice b -> Slice c
 sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
 
 -- Tuple instances
+-- (,)
 instance (Component a, Component b) => Component (a,b) where
   type Storage (a, b) = (Storage a, Storage b)
 instance (Has w a, Has w b) => Has w (a,b) where
@@ -274,6 +275,44 @@ instance (Store a, Store b) => Store (a, b) where
 instance (GlobalRW a ca, GlobalRW b cb) => GlobalRW (a,b) (ca,cb) where
   explGlobalRead  (sa,sb) = (,) <$> explGlobalRead sa <*> explGlobalRead sb
   explGlobalWrite (sa,sb) (wa,wb) = explGlobalWrite sa wa >> explGlobalWrite sb wb
+  {-# INLINE explGlobalRead #-}
+  {-# INLINE explGlobalWrite #-}
+
+-- (,,)
+instance (Component a, Component b, Component c) => Component (a,b,c) where
+  type Storage (a, b, c) = (Storage a, Storage b, Storage c)
+instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
+  getStore = (,,) <$> getStore <*> getStore <*> getStore
+
+instance (Initializable a, Initializable b, Initializable c) => Initializable (a,b,c) where
+  type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
+  initStore (aa, ab, ac) = (,,) <$> initStore aa <*> initStore ab <*> initStore ac
+
+instance (HasMembers a, HasMembers b, HasMembers c) => HasMembers (a,b,c) where
+  explMembers (sa,sb,sc) = explMembers sa >>= U.filterM (explExists sb) >>= U.filterM (explExists sc)
+  explReset   (sa,sb,sc) = explReset sa >> explReset sb >> explReset sc
+  explDestroy (sa,sb,sc) ety = explDestroy sa ety >> explDestroy sb ety >> explDestroy sc ety
+  explExists  (sa,sb,sc) ety = and <$> sequence [explExists sa ety, explExists sb ety, explExists sc ety]
+  {-# INLINE explMembers #-}
+  {-# INLINE explReset #-}
+  {-# INLINE explDestroy #-}
+  {-# INLINE explExists #-}
+
+instance (Store a, Store b, Store c) => Store (a, b, c) where
+  type SafeRW (a, b, c) = (SafeRW a, SafeRW b, SafeRW c)
+  type Stores (a, b, c) = (Stores a, Stores b, Stores c)
+  explGetUnsafe  (sa,sb,sc) ety = (,,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety <*> explGetUnsafe sc ety
+  explGet        (sa,sb,sc) ety = (,,) <$> explGet sa ety <*> explGet sb ety <*> explGet sc ety
+  explSet        (sa,sb,sc) ety (wa,wb,wc) = explSet sa ety wa >> explSet sb ety wb >> explSet sc ety wc
+  explSetMaybe   (sa,sb,sc) ety (wa,wb,wc) = explSetMaybe sa ety wa >> explSetMaybe sb ety wb >> explSetMaybe sc ety wc
+  {-# INLINE explGetUnsafe #-}
+  {-# INLINE explGet #-}
+  {-# INLINE explSet #-}
+  {-# INLINE explSetMaybe #-}
+
+instance (GlobalRW a ca, GlobalRW b cb, GlobalRW c cc) => GlobalRW (a,b,c) (ca,cb,cc) where
+  explGlobalRead  (sa,sb,sc) = (,,) <$> explGlobalRead sa <*> explGlobalRead sb <*> explGlobalRead sc
+  explGlobalWrite (sa,sb,sc) (wa,wb,wc) = explGlobalWrite sa wa >> explGlobalWrite sb wb >> explGlobalWrite sc wc
   {-# INLINE explGlobalRead #-}
   {-# INLINE explGlobalWrite #-}
 
