@@ -9,7 +9,7 @@ module Apecs (
     initStoreWith,
 
     -- HasMembers
-    destroy, exists, owners,
+    destroy, exists, owners, resetStore,
 
     -- Store
     get, set, setMaybe, modify,

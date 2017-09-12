@@ -93,6 +93,10 @@ owners :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
 owners = do s :: Storage c <- getStore
             liftIO$ Slice <$> explMembers s
 
+resetStore :: forall w c p. (Has w c, HasMembers (Storage c)) => p c -> System w ()
+resetStore _ = do s :: Storage c <- getStore
+                  liftIO$ explReset s
+
 -- | Class of storages that associates components with entities.
 class HasMembers s => Store s where
   type SafeRW s -- ^ Return type for safe reads/writes to the store

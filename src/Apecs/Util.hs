@@ -12,7 +12,7 @@ module Apecs.Util (
   quantize, flatten, region, inbounds,
 
   -- * Optimized maps
-  rmap', rmap, wmap, wmap',
+  rmap', rmap, wmap, wmap', cmap',
 
   -- * Slice interation
   sliceForM, sliceForM_, sliceForMC, sliceForMC_,
@@ -64,6 +64,13 @@ newtype ConcatQueries q = ConcatQueries [q]
 instance Query q s => Query (ConcatQueries q) s where
   explSlice s (ConcatQueries qs) = mconcat <$> traverse (explSlice s) qs
 
+cmap' :: forall world c. (Has world c, IsRuntime c)
+      => (c -> Safe c) -> System world ()
+cmap' f = do s :: Storage c <- getStore
+             liftIO$ do sl <- explMembers s
+                        U.forM_ sl $ \e -> do
+                          r <- explGetUnsafe s e
+                          explSetMaybe s e (getSafe . f $ r)
 
 -- | Maps a function over all entities with a @r@, and writes their @w@
 {-# INLINE rmap #-}
