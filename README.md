@@ -22,12 +22,12 @@ Most iterations and storage operations are inferred from the type system.
 
 ### Performance
 Performance is good.
-Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can even keep up with specs, which was written in _Rust_:
+Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can keep up with specs, which was written in Rust:
 
 |     | specs | apecs |
 | --- | ----- | --- |
-| build | 688 us | 285 us | 
-| update | 31 us | 46 us |
+| build | 699 us | 285 us | 
+| update | 34 us | 46 us |
 
 ### Example
 ```haskell
