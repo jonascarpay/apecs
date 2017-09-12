@@ -13,7 +13,7 @@ module Apecs (
 
     -- Store
     get, set, setMaybe, modify,
-    cmap, rmap', rmap, wmap, wmap',
+    cmap, cmapM, cmapM_, cimapM, cimapM_,
     sliceSize,
 
     -- GlobalRW

@@ -47,6 +47,10 @@ wStep' (Safe (Just (Velocity v), Just (Position p))) = Safe (Just (Position (p+v
 wStep :: Safe (Velocity, Position) -> Position
 wStep (Safe (Just (Velocity v), Just (Position p))) = Position (p+v)
 
+{-# INLINE vstep #-}
+vstep :: System World ()
+vstep = cimapM_ $ \(e,(Velocity v,Position p)) -> set (cast e) (Position (p+v))
+
 explicit = do sl :: Slice (Velocity, Position) <- owners
               forMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
 
@@ -65,6 +69,7 @@ main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initializ
                        , bench "rmap'"  $ whnfIO (emptyWorld >>= runSystem (initialize >> rmap' rStep'))
                        , bench "wmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> wmap  wStep))
                        , bench "wmap'"  $ whnfIO (emptyWorld >>= runSystem (initialize >> wmap' wStep'))
+                       , bench "vstep"  $ whnfIO (emptyWorld >>= runSystem (initialize >> vstep))
                        , bench "forMC_" $ whnfIO (emptyWorld >>= runSystem (initialize >> explicit))
                        ]
                      ]

@@ -18,6 +18,7 @@ instance Component Velocity where
 instance Component Position where
   type Storage Position = Cache 100 (Map Position)
 
+instance Flag Enemy where flag = Enemy
 instance Component Enemy where
   -- Because enemy is just a flag, we can use a set
   type Storage Enemy = Set Enemy
@@ -51,17 +52,8 @@ game = do
   -- rmap maps a pure function over all entities in its domain
   rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  -- slice performs a type-based query and returns a slice
-  -- In this case, it produces a slice of all enemies
-  -- mapMC_ iterates a system over a slice, providing both the entity and associated components
-  slice All >>= mapMC_ printEnemyPosition
-
--- Define an EnemyUnit as a product of components
-type EnemyUnit = (Enemy,Position)
-
--- Here we need to use a Safe type, because sliceMapMC_'s read might fail
-printEnemyPosition :: (Entity EnemyUnit, Safe EnemyUnit) -> System' ()
-printEnemyPosition (e,Safe (_,Just p)) = liftIO.putStrLn $ show e ++ " has " ++ show p
+  -- Print the positions of all enemies
+  cmapM_ $ \(Enemy, Position p) -> liftIO (print p)
 
 main :: IO ()
 main = do w <- World <$> initStore <*> initStore <*> initStore <*> initCounter

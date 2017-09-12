@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Apecs.Stores
-  ( Map, Set, Cache,
+  ( Map, Set, Flag(..), Cache,
     Global, readGlobal, writeGlobal,
     IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
   ) where
@@ -65,6 +65,8 @@ instance Store (Map c) where
   {-# INLINE explCimapM_ #-}
   {-# INLINE explCimapM #-}
 
+class Flag c where
+  flag :: c
 newtype Set c = Set (IORef S.IntSet)
 instance Initializable (Set c) where
   type InitArgs (Set c) = ()
@@ -82,14 +84,14 @@ instance HasMembers (Set c) where
   {-# INLINE explReset #-}
   {-# INLINE explImapM_ #-}
   {-# INLINE explImapM #-}
-instance Store (Set c) where
+instance (Flag c) => Store (Set c) where
   type SafeRW (Set c) = Bool
   type Stores (Set c) = c
-  explGetUnsafe = error "Unsafe access to Set"
+  explGetUnsafe _ _ = return flag
   explGet (Set ref) ety = S.member ety <$> readIORef ref
   explSet (Set ref) ety _ = modifyIORef' ref $ S.insert ety
   explSetMaybe s ety False = explDestroy s ety
-  explSetMaybe s ety True  = explSet s ety (undefined :: c)
+  explSetMaybe s ety True  = explSet s ety flag
   explCmap _ _ = return ()
   explModify _ _ _ = return ()
   explCmapM   = error "Iterating over set"
@@ -293,12 +295,12 @@ instance HasMembers s => HasMembers (SetCache n s) where
     forM_ [0..n-1] $ \e -> UM.write tags e (-1)
     explReset s
 
-instance (SafeRW s ~ Bool, Store s) => Store (SetCache n s) where
+instance (Flag (Stores s), SafeRW s ~ Bool, Store s) => Store (SetCache n s) where
   type SafeRW (SetCache n s) = SafeRW s
   type Stores (SetCache n s) = Stores s
 
   {-# INLINE explGetUnsafe #-}
-  explGetUnsafe = error "Unsafe access to Set"
+  explGetUnsafe _ _ = return flag
 
   {-# INLINE explGet #-}
   explGet (SetCache n tags s) ety = do
@@ -313,12 +315,12 @@ instance (SafeRW s ~ Bool, Store s) => Store (SetCache n s) where
     let index = ety `mod` n
     tag <- UM.unsafeRead tags index
     when (tag /= (-1) && tag /= ety) $ do
-      explSet s tag undefined
+      explSet s tag flag
     UM.unsafeWrite tags  index ety
 
   {-# INLINE explSetMaybe #-}
   explSetMaybe c ety False = explDestroy c ety
-  explSetMaybe c ety True  = explSet c ety undefined
+  explSetMaybe c ety True  = explSet c ety flag
 
   {-# INLINE explCmap #-}
   explCmap _ _ = return ()
@@ -363,6 +365,7 @@ instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => HasMember
   {-# INLINE explMembers #-}
   explMembers (IndexTable _ s) = explMembers s
 
+  {-# INLINE explReset #-}
   explReset (IndexTable tab s) = do
     forM_ [0 .. VM.length tab-1] $ \e -> VM.write tab e mempty
     explReset s

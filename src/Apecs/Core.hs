@@ -180,89 +180,34 @@ setMaybe (Entity ety) (Safe c) = do
   s :: Storage c <- getStore
   liftIO$ explSetMaybe s ety c
 
--- Mapping functions
-
--- | maps a pure function over all components
 {-# INLINE cmap #-}
 cmap :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
 cmap f = do s :: Storage c <- getStore
             liftIO$ explCmap s f
 
 {-# INLINE cmapM_ #-}
--- | Monadically iterate a system over components.
---   Note that writing to the store while iterating over it is undefined behaviour.
 cmapM_ :: forall w c. (Has w c, IsRuntime c)
        => (c -> System w ()) -> System w ()
 cmapM_ sys = do s :: Storage c <- getStore
                 explCmapM_ s sys
 
 {-# INLINE cimapM_ #-}
--- | Monadically iterate a system over components and their indices.
---   Note that writing to the store while iterating over it is undefined behaviour.
 cimapM_ :: forall w c. (Has w c, IsRuntime c)
         => ((Entity c, c) -> System w ()) -> System w ()
 cimapM_ sys = do s :: Storage c <- getStore
                  explCimapM_ s (\(e,c) -> sys (Entity e,c))
 
 {-# INLINE cmapM #-}
--- | Monadically iterate a system over components.
---   Note that writing to the store while iterating over it is undefined behaviour.
 cmapM :: forall w c a. (Has w c, IsRuntime c)
       => (c -> System w a) -> System w [a]
 cmapM sys = do s :: Storage c <- getStore
                explCmapM s sys
 
 {-# INLINE cimapM #-}
--- | Monadically iterate a system over components and their indices.
---   Note that writing to the store while iterating over it is undefined behaviour.
 cimapM :: forall w c a. (Has w c, IsRuntime c)
        => ((Entity c, c) -> System w a) -> System w [a]
 cimapM sys = do s :: Storage c <- getStore
                 explCimapM s (\(e,c) -> sys (Entity e,c))
-
--- | Maps a function over all entities with a @r@, and writes their @w@
-{-# INLINE rmap #-}
-rmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
-      => (r -> w) -> System world ()
-rmap f = do sr :: Storage r <- getStore
-            sc :: Storage w <- getStore
-            liftIO$ do sl <- explMembers sr
-                       U.forM_ sl $ \ e -> do
-                          r <- explGetUnsafe sr e
-                          explSet sc e (f r)
-
--- | Maps a function over all entities with a @r@, and writes or deletes their @w@
-{-# INLINE rmap' #-}
-rmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
-      => (r -> Safe w) -> System world ()
-rmap' f = do sr :: Storage r <- getStore
-             sw :: Storage w <- getStore
-             liftIO$ do sl <- explMembers sr
-                        U.forM_ sl $ \ e -> do
-                           r <- explGetUnsafe sr e
-                           explSetMaybe sw e (getSafe $ f r)
-
--- | For all entities with a @w@, this map reads their @r@ and writes their @w@
-{-# INLINE wmap #-}
-wmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
-     => (Safe r -> w) -> System world ()
-wmap f = do sr :: Storage r <- getStore
-            sw :: Storage w <- getStore
-            liftIO$ do sl <- explMembers sr
-                       U.forM_ sl $ \ e -> do
-                         r <- explGet sr e
-                         explSet sw e (f . Safe $ r)
-
--- | For all entities with a @w@, this map reads their @r@ and writes or deletes their @w@
-{-# INLINE wmap' #-}
-wmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
-      => (Safe r -> Safe w) -> System world ()
-wmap' f = do sr :: Storage r <- getStore
-             sw :: Storage w <- getStore
-             liftIO$ do sl <- explMembers sr
-                        U.forM_ sl $ \ e -> do
-                          r <- explGet sr e
-                          explSetMaybe sw e (getSafe . f . Safe $ r)
 
 -- Slice traversal
 {-# INLINE forM_ #-}

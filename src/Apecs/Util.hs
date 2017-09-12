@@ -5,16 +5,17 @@ module Apecs.Util
   ( runGC, initStore,
     EntityCounter, initCounter, nextEntity, newEntity,
     ConcatQueries(..),
-    quantize, flatten, region, inbounds
+    quantize, flatten, region, inbounds,
+    rmap', rmap, wmap, wmap',
   ) where
 
 import System.Mem (performMajorGC)
 import Control.Monad.Reader (liftIO)
 import Control.Applicative (liftA2)
+import qualified Data.Vector.Unboxed as U
 
 import Apecs.Core
 import Apecs.Stores
-
 
 newtype EntityCounter = EntityCounter Int
 instance Component EntityCounter where
@@ -45,6 +46,53 @@ initStore = initStoreWith ()
 newtype ConcatQueries q = ConcatQueries [q]
 instance Query q s => Query (ConcatQueries q) s where
   explSlice s (ConcatQueries qs) = mconcat <$> traverse (explSlice s) qs
+
+-- | Optimized mapping functions
+
+-- | Maps a function over all entities with a @r@, and writes their @w@
+{-# INLINE rmap #-}
+rmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
+      => (r -> w) -> System world ()
+rmap f = do sr :: Storage r <- getStore
+            sc :: Storage w <- getStore
+            liftIO$ do sl <- explMembers sr
+                       U.forM_ sl $ \ e -> do
+                          r <- explGetUnsafe sr e
+                          explSet sc e (f r)
+
+-- | Maps a function over all entities with a @r@, and writes or deletes their @w@
+{-# INLINE rmap' #-}
+rmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
+      => (r -> Safe w) -> System world ()
+rmap' f = do sr :: Storage r <- getStore
+             sw :: Storage w <- getStore
+             liftIO$ do sl <- explMembers sr
+                        U.forM_ sl $ \ e -> do
+                           r <- explGetUnsafe sr e
+                           explSetMaybe sw e (getSafe $ f r)
+
+-- | For all entities with a @w@, this map reads their @r@ and writes their @w@
+{-# INLINE wmap #-}
+wmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
+     => (Safe r -> w) -> System world ()
+wmap f = do sr :: Storage r <- getStore
+            sw :: Storage w <- getStore
+            liftIO$ do sl <- explMembers sr
+                       U.forM_ sl $ \ e -> do
+                         r <- explGet sr e
+                         explSet sw e (f . Safe $ r)
+
+-- | For all entities with a @w@, this map reads their @r@ and writes or deletes their @w@
+{-# INLINE wmap' #-}
+wmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
+      => (Safe r -> Safe w) -> System world ()
+wmap' f = do sr :: Storage r <- getStore
+             sw :: Storage w <- getStore
+             liftIO$ do sl <- explMembers sr
+                        U.forM_ sl $ \ e -> do
+                          r <- explGet sr e
+                          explSetMaybe sw e (getSafe . f . Safe $ r)
+
 
 -- | The following functions are for spatial hashing.
 --   The idea is that your spatial hash is defined by two vectors;
