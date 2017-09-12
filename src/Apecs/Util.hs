@@ -211,7 +211,7 @@ timeSystem sys = do
   s <- liftIO getCPUTime
   a <- sys
   t <- liftIO getCPUTime
-  return (fromIntegral (s-t)/1e12, a)
+  return (fromIntegral (t-s)/1e12, a)
 
 {-# INLINE timeSystem_ #-}
 -- | Runs a system, discards its output, and gives its execution time in seconds

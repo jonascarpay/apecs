@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Apecs.Stores
-  ( Map, Set, Flag(..), Cache,
+  ( Map, Set, Flag(..), Cache, SetCache,
     Global, readGlobal, writeGlobal,
     IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
   ) where

@@ -17,9 +17,14 @@ dot a b = sum $ a * b
 vlength :: (Foldable v, Num (v a), Floating a) => v a -> a
 vlength a = sqrt (dot a a)
 
+{-# INLINE setLength #-}
+setLength :: (Num (f b), Functor f, Floating b, Foldable f) => b -> f b -> f b
+setLength r v = let l = vlength v in fmap ((*r).(/l)) v
+
 {-# INLINE normalize #-}
 normalize :: (Num (v b), Floating b, Foldable v, Functor f) => v b -> f b -> f b
 normalize v = fmap (/vlength v)
+
 
 -- V2
 data V2 a = V2 !a !a deriving (Eq, Show)
