@@ -7,8 +7,6 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-
 module Apecs.Stores
   ( Map, Set, Cache,
     Global, readGlobal, writeGlobal,
@@ -23,6 +21,7 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector.Mutable as VM
 import Control.Monad
+import Control.Monad.IO.Class
 import GHC.TypeLits
 import Data.Proxy
 
@@ -49,14 +48,22 @@ instance Store (Map c) where
   explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
   explSetMaybe  s ety Nothing = explDestroy s ety
   explSetMaybe  s ety (Just x) = explSet s ety x
-  explCmap       (Map ref) f = modifyIORef' ref $ M.map f
   explModify    (Map ref) ety f = modifyIORef' ref $ M.adjust f ety
+  explCmap      (Map ref) f = modifyIORef' ref $ M.map f
+  explCmapM_    (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM_ ma
+  explCmapM     (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM  ma . M.elems
+  explCimapM_   (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM_ ma . M.assocs
+  explCimapM    (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM  ma . M.assocs
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
   {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
+  {-# INLINE explCmapM_ #-}
+  {-# INLINE explCmapM #-}
+  {-# INLINE explCimapM_ #-}
+  {-# INLINE explCimapM #-}
 
 newtype Set c = Set (IORef S.IntSet)
 instance Initializable (Set c) where
@@ -67,10 +74,14 @@ instance HasMembers (Set c) where
   explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
   explReset (Set ref) = writeIORef ref mempty
   explExists (Set ref) ety = S.member ety <$> readIORef ref
+  explImapM_  (Set ref) ma = liftIO (readIORef ref) >>= Prelude.mapM_ ma . S.toList
+  explImapM   (Set ref) ma = liftIO (readIORef ref) >>= Prelude.mapM  ma . S.toList
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
+  {-# INLINE explImapM_ #-}
+  {-# INLINE explImapM #-}
 instance Store (Set c) where
   type SafeRW (Set c) = Bool
   type Stores (Set c) = c
@@ -81,6 +92,10 @@ instance Store (Set c) where
   explSetMaybe s ety True  = explSet s ety (undefined :: c)
   explCmap _ _ = return ()
   explModify _ _ _ = return ()
+  explCmapM   = error "Iterating over set"
+  explCmapM_  = error "Iterating over set"
+  explCimapM  = error "Iterating over set"
+  explCimapM_ = error "Iterating over set"
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
@@ -159,9 +174,21 @@ instance HasMembers s => HasMembers (Cache n s) where
     stored <- explMembers s
     return $! cached U.++ stored
 
+  {-# INLINE explReset #-}
   explReset (Cache n tags _ s) = do
     forM_ [0..n-1] $ \e -> UM.write tags e (-1)
     explReset s
+
+  {-# INLINE explImapM_ #-}
+  explImapM_ (Cache _ tags _ s) ma = do
+    liftIO (U.freeze tags) >>= U.mapM_ ma . U.filter (/= (-1))
+    explImapM_ s ma
+
+  {-# INLINE explImapM #-}
+  explImapM (Cache _ tags _ s) ma = do
+    as1 <- liftIO (U.freeze tags) >>= Prelude.mapM ma . U.toList . U.filter (/= (-1))
+    as2 <- explImapM s ma
+    return (as1 ++ as2)
 
 instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
   type SafeRW (Cache n s) = SafeRW s
@@ -211,6 +238,24 @@ instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
     if tag == ety
        then VM.modify cache f ety
        else explModify s ety f
+
+  {-# INLINE explCmapM_ #-}
+  explCmapM_ (Cache n tags cache s) ma = do
+    forM_ [0..n-1] $ \e -> do
+      tag <- liftIO$ UM.read tags e
+      unless (tag == (-1)) $ do
+        r <- liftIO$ VM.read cache e
+        void$ ma r
+    explCmapM_ s ma
+
+  {-# INLINE explCimapM_ #-}
+  explCimapM_ (Cache n tags cache s) ma = do
+    forM_ [0..n-1] $ \e -> do
+      tag <- liftIO$ UM.read tags e
+      unless (tag == (-1)) $ do
+        r <- liftIO$ VM.read cache e
+        void$ ma (e, r)
+    explCimapM_ s ma
 
 data SetCache (n :: Nat) s =
   SetCache Int -- | Size
@@ -322,6 +367,12 @@ instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => HasMember
     forM_ [0 .. VM.length tab-1] $ \e -> VM.write tab e mempty
     explReset s
 
+  {-# INLINE explImapM_ #-}
+  explImapM_ (IndexTable _ s) = explImapM_ s
+
+  {-# INLINE explImapM #-}
+  explImapM (IndexTable _ s) = explImapM s
+
 instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => Store (IndexTable s) where
   type SafeRW (IndexTable s) = SafeRW s
   type Stores (IndexTable s) = Stores s
@@ -355,6 +406,15 @@ instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => Store (In
                       VM.modify tab (S.delete ety) indexOld
                       VM.modify tab (S.insert ety) indexNew
                     explSet s ety x
+
+  explCmapM_  (IndexTable _ s) = explCmapM_  s
+  explCmapM   (IndexTable _ s) = explCmapM   s
+  explCimapM_ (IndexTable _ s) = explCimapM_ s
+  explCimapM  (IndexTable _ s) = explCimapM  s
+  {-# INLINE explCmapM_ #-}
+  {-# INLINE explCmapM #-}
+  {-# INLINE explCimapM_ #-}
+  {-# INLINE explCimapM #-}
 
 instance (Stores s ~ c, ToIndex (Stores s)) => Query (ByComponent c) (IndexTable s) where
   {-# INLINE explSlice #-}
