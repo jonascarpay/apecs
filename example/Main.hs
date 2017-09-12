@@ -2,6 +2,7 @@
 
 import Apecs
 import Apecs.Stores
+import Apecs.Util
 import Apecs.Vector -- Optional module for basic 2D and 3D vectos
 
 -- Component data definitions
@@ -50,10 +51,10 @@ game = do
   -- rmap maps a pure function over all entities in its domain
   rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  -- sliceOwners produces a slice of all owners of its component type.
-  -- In this case, the component type is inferred.
-  -- sliceMapMC_ iterates a system over a list of entities and components
-  sliceOwners >>= sliceMapMC_ printEnemyPosition
+  -- slice performs a type-based query and returns a slice
+  -- In this case, it produces a slice of all enemies
+  -- mapMC_ iterates a system over a slice, providing both the entity and associated components
+  slice All >>= mapMC_ printEnemyPosition
 
 -- Define an EnemyUnit as a product of components
 type EnemyUnit = (Enemy,Position)
@@ -63,5 +64,5 @@ printEnemyPosition :: (Entity EnemyUnit, Safe EnemyUnit) -> System' ()
 printEnemyPosition (e,Safe (_,Just p)) = liftIO.putStrLn $ show e ++ " has " ++ show p
 
 main :: IO ()
-main = do w <- World <$> initStore () <*> initStore () <*> initStore () <*> initCounter
+main = do w <- World <$> initStore <*> initStore <*> initStore <*> initCounter
           runSystem game w

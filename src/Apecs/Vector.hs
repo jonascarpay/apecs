@@ -1,16 +1,18 @@
 -- | A lightweight version of Edward Kmett's linear, included for convenience' sake
 
 {-# LANGUAGE TypeFamilyDependencies, ScopedTypeVariables, FlexibleContexts #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Apecs.Vector where
 
 import Control.Applicative
 
-class VecSimple a where
-  type VecElem a
-  dot :: a -> a -> VecElem a
-  vlength :: a -> VecElem a
-  normalize :: a -> a
+class Functor v => VecSimple v where
+  dot :: Floating a => v a -> v a -> a
+  vlength :: Floating a => v a -> a
+  normalize :: Floating a => v a -> v a
 
 -- V2
 data V2 a = V2 !a !a deriving (Eq, Show)
@@ -47,11 +49,12 @@ instance Fractional a => Fractional (V2 a) where
   fromRational = pure . fromRational
   {-# INLINE fromRational #-}
 
-instance Floating a => VecSimple (V2 a) where
-  type VecElem (V2 a) = a
+instance VecSimple V2 where
   {-# INLINE dot #-}
   V2 a b `dot` V2 c d = a*c + b*d
+  {-# INLINE vlength #-}
   vlength (V2 a b) = sqrt (a*a + b*b)
+  {-# INLINE normalize #-}
   normalize vec = vec / pure (vlength vec)
 
 -- V3
@@ -89,8 +92,7 @@ instance Fractional a => Fractional (V3 a) where
   fromRational = pure . fromRational
   {-# INLINE fromRational #-}
 
-instance Floating a => VecSimple (V3 a) where
-  type VecElem (V3 a) = a
+instance VecSimple V3 where
   {-# INLINE dot #-}
   V3 a b c `dot` V3 d e f = a*d + b*e + c*f
   vlength (V3 a b c) = sqrt (a*a + b*b + c*c)
@@ -99,3 +101,4 @@ instance Floating a => VecSimple (V3 a) where
 {-# INLINE outer #-}
 outer :: Num a => V3 a -> V3 a -> V3 a
 V3 a b c `outer` V3 d e f = V3 (b*f - e*c) (c*d - a*f) (a*e - b*d)
+

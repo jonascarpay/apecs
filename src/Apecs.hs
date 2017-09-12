@@ -2,23 +2,32 @@
 
 module Apecs (
   -- Core
-  initStore,
-  destroy, exists, sliceOwners,
-  get, set, setMaybe, modify,
-  cmap, rmap', rmap, wmap, wmap', sliceForM_, sliceForMC_, sliceMapM_, sliceMapMC_,
-  readGlobal, writeGlobal, modifyGlobal,
-  sliceSize,
-  System(..), runSystem, runWith,
-  Component(..), Entity, Slice, Has(..), Safe(..), cast,
+    System(..), runSystem, runWith,
+    Component(..), Entity, Slice, Has(..), Safe(..), cast,
+
+    -- Initializable
+    initStoreWith,
+
+    -- HasMembers
+    destroy, exists, owners,
+
+    -- Store
+    get, set, setMaybe, modify,
+    cmap, rmap', rmap, wmap, wmap',
+    sliceSize,
+
+    -- GlobalRW
+    readGlobal, writeGlobal, modifyGlobal,
+
+    -- Query
+    slice, All(..),
+
+    -- Slices
+    A.forM, A.forMC, A.forM_, A.forMC_, A.mapM, A.mapMC, A.mapM_, A.mapMC_,
 
   -- Reader
   asks, ask, liftIO, lift,
-
-  -- Self
-  newEntity, EntityCounter, nextEntity, initCounter,
-  runGC,
 ) where
 
 import Apecs.Core as A
-import Apecs.Util
 import Control.Monad.Reader (asks, ask, liftIO, lift)

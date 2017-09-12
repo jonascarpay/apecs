@@ -1,8 +1,8 @@
 {-# LANGUAGE Strict, ScopedTypeVariables, FlexibleContexts, TypeFamilies #-}
 
 module Apecs.Util
-  ( EntityCounter, initCounter, nextEntity, newEntity
-  , runGC
+  ( runGC, initStore,
+    EntityCounter, initCounter, nextEntity, newEntity
   ) where
 
 import System.Mem (performMajorGC)
@@ -16,7 +16,7 @@ instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
 
 initCounter :: IO (Storage EntityCounter)
-initCounter = initStore (EntityCounter 0)
+initCounter = initStoreWith (EntityCounter 0)
 
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity ())
@@ -31,6 +31,8 @@ newEntity c = do ety <- nextEntity
                  set (cast ety) c
                  return (cast ety)
 
-
 runGC :: System w ()
 runGC = liftIO performMajorGC
+
+initStore :: (Initializable s, InitArgs s ~ ()) => IO s
+initStore = initStoreWith ()

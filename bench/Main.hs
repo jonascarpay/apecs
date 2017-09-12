@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict, ScopedTypeVariables, DataKinds, BangPatterns, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE Strict, ScopedTypeVariables, DataKinds, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Criterion
 import qualified Criterion.Main as C
@@ -33,7 +33,7 @@ instance World `Has` EntityCounter where
   getStore = System $ asks entityCounter
 
 emptyWorld :: IO World
-emptyWorld = liftM3 World (initStore ()) (initStore ()) initCounter
+emptyWorld = liftM3 World initStore initStore initCounter
 
 cStep (Velocity v, Position p) = (Velocity v, Position (p+v))
 rStep (Velocity v, Position p) = Position (p+v)
@@ -47,8 +47,10 @@ wStep' (Safe (Just (Velocity v), Just (Position p))) = Safe (Just (Position (p+v
 wStep :: Safe (Velocity, Position) -> Position
 wStep (Safe (Just (Velocity v), Just (Position p))) = Position (p+v)
 
-explicit = do sl :: Slice (Velocity, Position) <- sliceAll
-              sliceForMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
+explicit = do sl :: Slice (Velocity, Position) <- owners
+              forMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
+
+cStep1 (Velocity p) = (Velocity (p+1))
 
 initialize :: System World ()
 initialize = do replicateM_ 1000 $ newEntity (Position 0, Velocity 1)
@@ -58,6 +60,7 @@ main :: IO ()
 main = C.defaultMain [ bench "init" $ whnfIO (emptyWorld >>= runSystem initialize)
                      , bgroup "init and step"
                        [ bench "cmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> cmap  cStep))
+                       , bench "cmap1"  $ whnfIO (emptyWorld >>= runSystem (initialize >> cmap  cStep1))
                        , bench "rmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> rmap  rStep))
                        , bench "rmap'"  $ whnfIO (emptyWorld >>= runSystem (initialize >> rmap' rStep'))
                        , bench "wmap"   $ whnfIO (emptyWorld >>= runSystem (initialize >> wmap  wStep))

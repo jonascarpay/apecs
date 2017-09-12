@@ -9,16 +9,33 @@
 module Apecs.Core where
 
 import Control.Monad.Reader
+import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
+
+-- | A component is defined by the type of its storage
+--   The storage in turn supplies runtime types for the component.
+class Initializable (Storage c) => Component c where
+  type Storage c = s | s -> c
 
 type ID    = Int
 type IDVec = U.Vector ID
+newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
+newtype Slice  c = Slice  {unSlice  :: U.Vector ID} deriving (Show, Monoid)
+newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
+
+{-# INLINE runSystem #-}
+runSystem :: System w a -> w -> IO a
+runSystem sys = runReaderT (unSystem sys)
+
+{-# INLINE runWith #-}
+runWith :: w -> System w a -> IO a
+runWith = flip runSystem
 
 -- Storage type class hierarchy
 -- | Common for every storage. Represents a container that can be initialized
 class Initializable s where
   type InitArgs s
-  initStore  :: InitArgs s -> IO s
+  initStoreWith :: InitArgs s -> IO s
 
 -- | A store that is indexed by entities
 class HasMembers s where
@@ -48,10 +65,10 @@ exists (Entity n) = do s :: Storage c <- getStore
                        liftIO$ explExists s n
 
 -- | A slice containing all entities with component @c@
-{-# INLINE sliceOwners #-}
-sliceOwners :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
-sliceOwners = do s :: Storage c <- getStore
-              liftIO$ Slice <$> explMembers s
+{-# INLINE owners #-}
+owners :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
+owners = do s :: Storage c <- getStore
+            liftIO$ Slice <$> explMembers s
 
 -- | Class of storages that associates components with entities.
 class HasMembers s => Store s where
@@ -162,25 +179,49 @@ wmap' f = do sr :: Storage r <- getStore
                           explSetMaybe sw e (getSafe . f . Safe $ r)
 
 -- Slice traversal
-{-# INLINE sliceForM_ #-}
-sliceForM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
-sliceForM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
+{-# INLINE forM_ #-}
+forM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
+forM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
 
-{-# INLINE sliceForMC_ #-}
-sliceForMC_ :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
-sliceForMC_ (Slice vec) sys = do
+{-# INLINE forM #-}
+forM :: Monad m => Slice c -> (Entity c -> m a) -> m [a]
+forM (Slice vec) ma = traverse (ma . Entity) (U.toList vec)
+
+{-# INLINE forMC #-}
+forMC :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w [a]
+forMC (Slice vec) sys = do
+  s :: Storage c <- getStore
+  for (U.toList vec) $ \e -> do
+    r <- liftIO$ explGet s e
+    sys (Entity e, Safe r)
+
+{-# INLINE forMC_ #-}
+forMC_ :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
+forMC_ (Slice vec) sys = do
   s :: Storage c <- getStore
   U.forM_ vec $ \e -> do
     r <- liftIO$ explGet s e
     sys (Entity e, Safe r)
 
-{-# INLINE sliceMapM_ #-}
-sliceMapM_ :: Monad m => (Entity c -> m b) -> Slice c -> m ()
-sliceMapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
+{-# INLINE mapM_ #-}
+mapM_ :: Monad m => (Entity c -> m a) -> Slice c -> m ()
+mapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
 
-{-# INLINE sliceMapMC_ #-}
-sliceMapMC_ :: forall w c a. (Store (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w ()
-sliceMapMC_ sys vec = sliceForMC_ vec sys
+{-# INLINE mapM #-}
+mapM :: Monad m => (Entity c -> m a) -> Slice c -> m [a]
+mapM ma (Slice vec) = traverse (ma . Entity) (U.toList vec)
+
+{-# INLINE mapMC #-}
+mapMC :: forall w c a. (Store (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w [a]
+mapMC sys (Slice vec) = do
+  s :: Storage c <- getStore
+  for (U.toList vec) $ \e -> do
+    r <- liftIO$ explGet s e
+    sys (Entity e, Safe r)
+
+{-# INLINE mapMC_ #-}
+mapMC_ :: forall w c a. (Store (Storage c), Has w c) => ((Entity c, Safe c) -> System w a) -> Slice c -> System w ()
+mapMC_ sys vec = forMC_ vec sys
 
 -- | Class of storages for global values
 class GlobalRW s c where
@@ -208,15 +249,18 @@ modifyGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => (c -> c) -> Sys
 modifyGlobal f = do s :: Storage c <- getStore
                     liftIO$ explGlobalModify s f
 
--- | A component is defined by the type of its storage
---   The storage in turn supplies runtime types for the component.
-class Initializable (Storage c) => Component c where
-  type Storage c = s | s -> c
+-- Query
+class Query q s where
+  explSlice :: s -> q -> IO (U.Vector Int)
 
-newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
+slice :: forall w c q. (Query q (Storage c), Has w c) => q -> System w (Slice c)
+slice q = do
+  s :: Storage c <- getStore
+  liftIO$ Slice <$> explSlice s q
 
-newtype Slice  c = Slice  {unSlice  :: U.Vector ID} deriving Show
-newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
+data All = All
+instance HasMembers s => Query All s where
+  explSlice s _ = explMembers s
 
 class Cast a b where cast :: a -> b
 instance Cast (Entity a) (Entity b) where
@@ -231,14 +275,6 @@ class Component c => Has w c where
 
 instance Show (Entity c) where
   show (Entity e) = "Entity " ++ show e
-
-{-# INLINE runSystem #-}
-runSystem :: System w a -> w -> IO a
-runSystem sys = runReaderT (unSystem sys)
-
-{-# INLINE runWith #-}
-runWith :: w -> System w a -> IO a
-runWith = flip runSystem
 
 sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
 sliceFoldM_ f seed (Slice sl) = U.foldM'_ ((.Entity) . f) seed sl
@@ -262,6 +298,7 @@ sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
 sliceConcat :: Slice a -> Slice b -> Slice c
 sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
 
+
 -- Tuple instances
 -- (,)
 instance (Component a, Component b) => Component (a,b) where
@@ -271,7 +308,7 @@ instance (Has w a, Has w b) => Has w (a,b) where
 
 instance (Initializable a, Initializable b) => Initializable (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
-  initStore (aa, ab) = (,) <$> initStore aa <*> initStore ab
+  initStoreWith (aa, ab) = (,) <$> initStoreWith aa <*> initStoreWith ab
 
 instance (HasMembers a, HasMembers b) => HasMembers (a,b) where
   explMembers (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
@@ -309,7 +346,7 @@ instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
 
 instance (Initializable a, Initializable b, Initializable c) => Initializable (a,b,c) where
   type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
-  initStore (aa, ab, ac) = (,,) <$> initStore aa <*> initStore ab <*> initStore ac
+  initStoreWith (aa, ab, ac) = (,,) <$> initStoreWith aa <*> initStoreWith ab <*> initStoreWith ac
 
 instance (HasMembers a, HasMembers b, HasMembers c) => HasMembers (a,b,c) where
   explMembers (sa,sb,sc) = explMembers sa >>= U.filterM (explExists sb) >>= U.filterM (explExists sc)
