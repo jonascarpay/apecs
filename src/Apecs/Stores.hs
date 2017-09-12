@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Apecs.Stores
-  ( Map, Set, Flag(..), Cache, SetCache,
+  ( Map, Set, Flag(..), Cache,
     Global, readGlobal, writeGlobal,
     IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
   ) where
@@ -258,75 +258,6 @@ instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
         r <- liftIO$ VM.read cache e
         void$ ma (e, r)
     explCimapM_ s ma
-
-data SetCache (n :: Nat) s =
-  SetCache Int -- | Size
-           (UM.IOVector Int) -- | Tags
-           s -- | Writeback
-
-instance (KnownNat n, Initializable s) => Initializable (SetCache n s) where
-  type InitArgs (SetCache n s) = (InitArgs s)
-  initStoreWith args = do
-    let n = fromIntegral$ natVal (Proxy @n)
-    tags <- UM.replicate n (-1)
-    child <- initStoreWith args
-    return (SetCache n tags child)
-
-instance HasMembers s => HasMembers (SetCache n s) where
-  {-# INLINE explDestroy #-}
-  explDestroy (SetCache n tags s) ety = do
-    tag <- UM.unsafeRead tags (ety `mod` n)
-    if tag == ety
-       then UM.unsafeWrite tags (ety `mod` n) (-1)
-       else explDestroy s ety
-
-  {-# INLINE explExists #-}
-  explExists (SetCache n tags s) ety = do
-    tag <- UM.unsafeRead tags (ety `mod` n)
-    if tag == ety then return True else explExists s ety
-
-  {-# INLINE explMembers #-}
-  explMembers (SetCache _ tags s) = do
-    cached <- U.filter (/= (-1)) <$> U.freeze tags
-    stored <- explMembers s
-    return $! cached U.++ stored
-
-  explReset (SetCache n tags s) = do
-    forM_ [0..n-1] $ \e -> UM.write tags e (-1)
-    explReset s
-
-instance (Flag (Stores s), SafeRW s ~ Bool, Store s) => Store (SetCache n s) where
-  type SafeRW (SetCache n s) = SafeRW s
-  type Stores (SetCache n s) = Stores s
-
-  {-# INLINE explGetUnsafe #-}
-  explGetUnsafe _ _ = return flag
-
-  {-# INLINE explGet #-}
-  explGet (SetCache n tags s) ety = do
-    let index = ety `mod` n
-    tag <- UM.unsafeRead tags index
-    if tag == ety
-       then return True
-       else explGet s ety
-
-  {-# INLINE explSet #-}
-  explSet (SetCache n tags s) ety _ = do
-    let index = ety `mod` n
-    tag <- UM.unsafeRead tags index
-    when (tag /= (-1) && tag /= ety) $ do
-      explSet s tag flag
-    UM.unsafeWrite tags  index ety
-
-  {-# INLINE explSetMaybe #-}
-  explSetMaybe c ety False = explDestroy c ety
-  explSetMaybe c ety True  = explSet c ety flag
-
-  {-# INLINE explCmap #-}
-  explCmap _ _ = return ()
-
-  {-# INLINE explModify #-}
-  explModify _ _ _ = return ()
 
 -- | A component that can be hashed to a table index.
 --   minBound must hash to the lowest possible value, maxBound must hash to the highest.
