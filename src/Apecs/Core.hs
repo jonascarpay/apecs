@@ -39,7 +39,6 @@ class Initializable s where
 
 -- | A store that is indexed by entities
 class HasMembers s where
-  {-# MINIMAL explDestroy, explExists, explMembers #-}
   explDestroy :: s -> Int -> IO ()
   explExists  :: s -> Int -> IO Bool
   explMembers :: s -> IO (U.Vector Int)
@@ -49,6 +48,30 @@ class HasMembers s where
   explReset s = do
     sl <- explMembers s
     U.mapM_ (explDestroy s) sl
+
+  explImapM_ :: MonadIO m => s -> (Int -> m a) -> m ()
+  {-# INLINE explImapM_ #-}
+  explImapM_ s ma = liftIO (explMembers s) >>= Prelude.mapM_ ma . U.toList
+
+  explImapM :: MonadIO m => s -> (Int -> m a) -> m [a]
+  {-# INLINE explImapM #-}
+  explImapM s ma = liftIO (explMembers s) >>= Prelude.mapM ma . U.toList
+
+{-# INLINE imapM_ #-}
+-- | Monadically iterate a system over all entities that have that component.
+--   Note that writing to the store while iterating over it is undefined behaviour.
+imapM_ :: forall w c. (Has w c, HasMembers (Storage c))
+       => (Entity c -> System w ()) -> System w ()
+imapM_ sys = do s :: Storage c <- getStore
+                explImapM_ s (sys . Entity)
+
+{-# INLINE imapM #-}
+-- | Monadically iterate a system over all entities that have that component.
+--   Note that writing to the store while iterating over it is undefined behaviour.
+imapM :: forall w c a. (Has w c, HasMembers (Storage c))
+      => (Entity c -> System w a) -> System w [a]
+imapM sys = do s :: Storage c <- getStore
+               explImapM s (sys . Entity)
 
 -- | Destroys the component @c@ for the given entity
 {-# INLINE destroy #-}
@@ -91,38 +114,38 @@ class HasMembers s => Store s where
 
   -- | Maps over all elements of this store.
   --   The default implementation can be replaced by an optimized one
-  {-# INLINE explCmap #-}
   explCmap :: s -> (Stores s -> Stores s) -> IO ()
+  {-# INLINE explCmap #-}
   explCmap s f = do
     sl <- explMembers s
     U.forM_ sl $ \ety -> do
       x :: Stores s <- explGetUnsafe s ety
       explSet s ety (f x)
 
-  {-# INLINE explCmapM_ #-}
   explCmapM_ :: MonadIO m => s -> (Stores s -> m a) -> m ()
+  {-# INLINE explCmapM_ #-}
   explCmapM_ s sys = do
     sl <- liftIO$ explMembers s
     U.forM_ sl $ \ety -> do x :: Stores s <- liftIO$ explGetUnsafe s ety
                             sys x
 
-  {-# INLINE explCimapM_ #-}
   explCimapM_ :: MonadIO m => s -> ((Int, Stores s) -> m a) -> m ()
+  {-# INLINE explCimapM_ #-}
   explCimapM_ s sys = do
     sl <- liftIO$ explMembers s
     U.forM_ sl $ \ety -> do x :: Stores s <- liftIO$ explGetUnsafe s ety
                             sys (ety,x)
 
-  {-# INLINE explCmapM #-}
   explCmapM  :: MonadIO m => s -> (Stores s -> m a) -> m [a]
+  {-# INLINE explCmapM #-}
   explCmapM s sys = do
     sl <- liftIO$ explMembers s
     for (U.toList sl) $ \ety -> do
       x :: Stores s <- liftIO$ explGetUnsafe s ety
       sys x
 
-  {-# INLINE explCimapM #-}
   explCimapM :: MonadIO m => s -> ((Int, Stores s) -> m a) -> m [a]
+  {-# INLINE explCimapM #-}
   explCimapM s sys = do
     sl <- liftIO$ explMembers s
     for (U.toList sl) $ \ety -> do
@@ -166,24 +189,32 @@ cmap f = do s :: Storage c <- getStore
             liftIO$ explCmap s f
 
 {-# INLINE cmapM_ #-}
+-- | Monadically iterate a system over components.
+--   Note that writing to the store while iterating over it is undefined behaviour.
 cmapM_ :: forall w c. (Has w c, IsRuntime c)
        => (c -> System w ()) -> System w ()
 cmapM_ sys = do s :: Storage c <- getStore
                 explCmapM_ s sys
 
 {-# INLINE cimapM_ #-}
+-- | Monadically iterate a system over components and their indices.
+--   Note that writing to the store while iterating over it is undefined behaviour.
 cimapM_ :: forall w c. (Has w c, IsRuntime c)
         => ((Entity c, c) -> System w ()) -> System w ()
 cimapM_ sys = do s :: Storage c <- getStore
                  explCimapM_ s (\(e,c) -> sys (Entity e,c))
 
 {-# INLINE cmapM #-}
+-- | Monadically iterate a system over components.
+--   Note that writing to the store while iterating over it is undefined behaviour.
 cmapM :: forall w c a. (Has w c, IsRuntime c)
       => (c -> System w a) -> System w [a]
 cmapM sys = do s :: Storage c <- getStore
                explCmapM s sys
 
 {-# INLINE cimapM #-}
+-- | Monadically iterate a system over components and their indices.
+--   Note that writing to the store while iterating over it is undefined behaviour.
 cimapM :: forall w c a. (Has w c, IsRuntime c)
        => ((Entity c, c) -> System w a) -> System w [a]
 cimapM sys = do s :: Storage c <- getStore
