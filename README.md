@@ -1,7 +1,7 @@
 # apecs
 
 apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-It provides an expressive DSL that translates to fast storage operations.
+It exposes a DSL that translates to fast storage operations, resulting in expressivity without sacrificing performance or safety.
 
 There is an example below.
 For a general introduction to ECS, see [this talk on Entitas](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [Wikipedia](https://en.wikipedia.org/wiki/Entity–component–system).
@@ -15,19 +15,19 @@ These pieces compose, so we can use `(Position, Velocity)` as if it were a singl
 
 Your components are associated with a storage type.
 The root of a store is typically a Map.
-For components that are accessed often, we wrap this Map in one or more Caches.
-This allows us to store most components in fast fixed size vectors at runtime.
-For positions, we can wrap their store in a layer that automatically keeps a spatial hash of all positions written to it.
+For components that are accessed often, we can wrap this Map in one or more Caches.
+This allows us to store most components in mutable fixed size vectors at runtime.
+For positions, we can similarly wrap their store in a layer that automatically keeps a spatial hash of all positions written to it.
 Most iterations and storage operations are inferred from the type system.
 
 ### Performance
-By using extensive caching and strict semantics to avoid space leaks, performance is very good.
-Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can even keep up with specs, which was written in _Rust_:
+Performance is good.
+Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can keep up with specs, which was written in Rust:
 
 |     | specs | apecs |
 | --- | ----- | --- |
-| build | 688 us | 285 us | 
-| update | 31 us | 46 us |
+| build | 699 us | 285 us | 
+| update | 34 us | 46 us |
 
 ### Example
 ```haskell
