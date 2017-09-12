@@ -9,10 +9,17 @@ module Apecs.Vector where
 
 import Control.Applicative
 
-class Functor v => VecSimple v where
-  dot :: Floating a => v a -> v a -> a
-  vlength :: Floating a => v a -> a
-  normalize :: Floating a => v a -> v a
+{-# INLINE dot #-}
+dot :: (Num (v a), Num a, Foldable v) => v a -> v a -> a
+dot a b = sum $ a * b
+
+{-# INLINE vlength #-}
+vlength :: (Foldable v, Num (v a), Floating a) => v a -> a
+vlength a = sqrt (dot a a)
+
+{-# INLINE normalize #-}
+normalize :: (Num (v b), Floating b, Foldable v, Functor f) => v b -> f b -> f b
+normalize v = fmap (/vlength v)
 
 -- V2
 data V2 a = V2 !a !a deriving (Eq, Show)
@@ -49,13 +56,31 @@ instance Fractional a => Fractional (V2 a) where
   fromRational = pure . fromRational
   {-# INLINE fromRational #-}
 
-instance VecSimple V2 where
-  {-# INLINE dot #-}
-  V2 a b `dot` V2 c d = a*c + b*d
-  {-# INLINE vlength #-}
-  vlength (V2 a b) = sqrt (a*a + b*b)
-  {-# INLINE normalize #-}
-  normalize vec = vec / pure (vlength vec)
+instance Foldable V2 where
+  foldMap f (V2 x y)    = f x `mappend` f y
+  foldr f seed (V2 x y) = f x (f y seed)
+  foldr1 f (V2 x y)     = f x y
+  foldl f seed (V2 x y) = f (f seed x) y
+  foldl1 f (V2 x y)     = f x y
+  null _                = False
+  length _              = 2
+  elem a (V2 x y)       = x == a || y == a
+  minimum (V2 x y)      = min x y
+  maximum (V2 x y)      = max x y
+  sum (V2 x y)          = x + y
+  product (V2 x y)      = x * y
+  {-# INLINE foldMap #-}
+  {-# INLINE foldr #-}
+  {-# INLINE foldr1 #-}
+  {-# INLINE foldl #-}
+  {-# INLINE foldl1 #-}
+  {-# INLINE null #-}
+  {-# INLINE length #-}
+  {-# INLINE elem #-}
+  {-# INLINE minimum #-}
+  {-# INLINE maximum #-}
+  {-# INLINE product #-}
+  {-# INLINE sum #-}
 
 -- V3
 data V3 a = V3 !a !a !a deriving (Eq, Show)
@@ -92,11 +117,31 @@ instance Fractional a => Fractional (V3 a) where
   fromRational = pure . fromRational
   {-# INLINE fromRational #-}
 
-instance VecSimple V3 where
-  {-# INLINE dot #-}
-  V3 a b c `dot` V3 d e f = a*d + b*e + c*f
-  vlength (V3 a b c) = sqrt (a*a + b*b + c*c)
-  normalize vec = vec / pure (vlength vec)
+instance Foldable V3 where
+  foldMap f (V3 x y z)    = f x `mappend` f y `mappend` f z
+  foldr f seed (V3 x y z) = f x (f y (f z seed))
+  foldr1 f (V3 x y z)     = f x (f y z)
+  foldl f seed (V3 x y z) = f (f (f seed x) y) z
+  foldl1 f (V3 x y z)     = f (f x y) z
+  null _                  = False
+  length _                = 3
+  elem a (V3 x y z)       = x == a || y == a || z == a
+  minimum (V3 x y z)      = min (min x y) z
+  maximum (V3 x y z)      = max (max x y) z
+  sum (V3 x y z)          = x + y + z
+  product (V3 x y z)      = x * y * z
+  {-# INLINE foldMap #-}
+  {-# INLINE foldr #-}
+  {-# INLINE foldr1 #-}
+  {-# INLINE foldl #-}
+  {-# INLINE foldl1 #-}
+  {-# INLINE null #-}
+  {-# INLINE length #-}
+  {-# INLINE elem #-}
+  {-# INLINE minimum #-}
+  {-# INLINE maximum #-}
+  {-# INLINE product #-}
+  {-# INLINE sum #-}
 
 {-# INLINE outer #-}
 outer :: Num a => V3 a -> V3 a -> V3 a
