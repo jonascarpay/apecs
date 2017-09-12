@@ -18,6 +18,9 @@ module Apecs.Util (
   sliceForM, sliceForM_, sliceForMC, sliceForMC_,
   sliceMapM, sliceMapM_, sliceMapMC, sliceMapMC_,
 
+  -- * Timing
+  timeSystem, timeSystem_,
+
   ) where
 
 import System.Mem (performMajorGC)
@@ -25,6 +28,7 @@ import Control.Monad.Reader (liftIO)
 import Control.Applicative (liftA2)
 import qualified Data.Vector.Unboxed as U
 import Data.Traversable (for)
+import System.CPUTime
 
 import Apecs.Core
 import Apecs.Stores
@@ -190,3 +194,19 @@ flatten size vec = foldr (\(n,x) acc -> n*acc + x) 0 (liftA2 (,) size vec)
 inbounds :: (Num (v a), Ord a, Applicative v, Foldable v)
          => v a -> v a -> Bool
 inbounds size vec = and (liftA2 (>=) vec 0) && and (liftA2 (<=) vec size)
+
+
+
+-- | Runs a system and gives its execution time in seconds
+{-# INLINE timeSystem #-}
+timeSystem :: System w a -> System w (Double, a)
+timeSystem sys = do
+  s <- liftIO getCPUTime
+  a <- sys
+  t <- liftIO getCPUTime
+  return (fromIntegral (s-t)/1e12, a)
+
+{-# INLINE timeSystem_ #-}
+-- | Runs a system, discards its output, and gives its execution time in seconds
+timeSystem_ :: System w a -> System w Double
+timeSystem_ = fmap fst . timeSystem
