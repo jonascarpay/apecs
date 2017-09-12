@@ -91,12 +91,43 @@ class HasMembers s => Store s where
 
   -- | Maps over all elements of this store.
   --   The default implementation can be replaced by an optimized one
-  {-# INLINE explMap #-}
-  explMap :: s -> (Stores s -> Stores s) -> IO ()
-  explMap s f = do
+  {-# INLINE explCmap #-}
+  explCmap :: s -> (Stores s -> Stores s) -> IO ()
+  explCmap s f = do
     sl <- explMembers s
-    U.forM_ sl $ \ety -> do x :: Stores s <- explGetUnsafe s ety
-                            explSet s ety (f x)
+    U.forM_ sl $ \ety -> do
+      x :: Stores s <- explGetUnsafe s ety
+      explSet s ety (f x)
+
+  {-# INLINE explCmapM_ #-}
+  explCmapM_ :: MonadIO m => s -> (Stores s -> m a) -> m ()
+  explCmapM_ s sys = do
+    sl <- liftIO$ explMembers s
+    U.forM_ sl $ \ety -> do x :: Stores s <- liftIO$ explGetUnsafe s ety
+                            sys x
+
+  {-# INLINE explCimapM_ #-}
+  explCimapM_ :: MonadIO m => s -> ((Int, Stores s) -> m a) -> m ()
+  explCimapM_ s sys = do
+    sl <- liftIO$ explMembers s
+    U.forM_ sl $ \ety -> do x :: Stores s <- liftIO$ explGetUnsafe s ety
+                            sys (ety,x)
+
+  {-# INLINE explCmapM #-}
+  explCmapM  :: MonadIO m => s -> (Stores s -> m a) -> m [a]
+  explCmapM s sys = do
+    sl <- liftIO$ explMembers s
+    for (U.toList sl) $ \ety -> do
+      x :: Stores s <- liftIO$ explGetUnsafe s ety
+      sys x
+
+  {-# INLINE explCimapM #-}
+  explCimapM :: MonadIO m => s -> ((Int, Stores s) -> m a) -> m [a]
+  explCimapM s sys = do
+    sl <- liftIO$ explMembers s
+    for (U.toList sl) $ \ety -> do
+      x :: Stores s <- liftIO$ explGetUnsafe s ety
+      sys (ety,x)
 
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
 type Runtime c = Stores (Storage c)
@@ -132,7 +163,31 @@ setMaybe (Entity ety) (Safe c) = do
 {-# INLINE cmap #-}
 cmap :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
 cmap f = do s :: Storage c <- getStore
-            liftIO$ explMap s f
+            liftIO$ explCmap s f
+
+{-# INLINE cmapM_ #-}
+cmapM_ :: forall w c. (Has w c, IsRuntime c)
+       => (c -> System w ()) -> System w ()
+cmapM_ sys = do s :: Storage c <- getStore
+                explCmapM_ s sys
+
+{-# INLINE cimapM_ #-}
+cimapM_ :: forall w c. (Has w c, IsRuntime c)
+        => ((Entity c, c) -> System w ()) -> System w ()
+cimapM_ sys = do s :: Storage c <- getStore
+                 explCimapM_ s (\(e,c) -> sys (Entity e,c))
+
+{-# INLINE cmapM #-}
+cmapM :: forall w c a. (Has w c, IsRuntime c)
+      => (c -> System w a) -> System w [a]
+cmapM sys = do s :: Storage c <- getStore
+               explCmapM s sys
+
+{-# INLINE cimapM #-}
+cimapM :: forall w c a. (Has w c, IsRuntime c)
+       => ((Entity c, c) -> System w a) -> System w [a]
+cimapM sys = do s :: Storage c <- getStore
+                explCimapM s (\(e,c) -> sys (Entity e,c))
 
 -- | Maps a function over all entities with a @r@, and writes their @w@
 {-# INLINE rmap #-}

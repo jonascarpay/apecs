@@ -49,13 +49,13 @@ instance Store (Map c) where
   explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
   explSetMaybe  s ety Nothing = explDestroy s ety
   explSetMaybe  s ety (Just x) = explSet s ety x
-  explMap       (Map ref) f = modifyIORef' ref $ M.map f
+  explCmap       (Map ref) f = modifyIORef' ref $ M.map f
   explModify    (Map ref) ety f = modifyIORef' ref $ M.adjust f ety
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
-  {-# INLINE explMap #-}
+  {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
 newtype Set c = Set (IORef S.IntSet)
@@ -79,13 +79,13 @@ instance Store (Set c) where
   explSet (Set ref) ety _ = modifyIORef' ref $ S.insert ety
   explSetMaybe s ety False = explDestroy s ety
   explSetMaybe s ety True  = explSet s ety (undefined :: c)
-  explMap _ _ = return ()
+  explCmap _ _ = return ()
   explModify _ _ _ = return ()
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
-  {-# INLINE explMap #-}
+  {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
 newtype Const c = Const c
@@ -110,7 +110,7 @@ instance Store (Const c) where
   explSet       _ _ _ = return ()
   explSetMaybe  _ _ _ = return ()
   explModify    _ _ _ = return ()
-  explMap       _ _ = return ()
+  explCmap       _ _ = return ()
 
 newtype Global c = Global (IORef c)
 instance Initializable (Global c) where
@@ -197,12 +197,12 @@ instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
   explSetMaybe c ety Nothing  = explDestroy c ety
   explSetMaybe c ety (Just x) = explSet c ety x
 
-  {-# INLINE explMap #-}
-  explMap (Cache n tags cache s) f = do
+  {-# INLINE explCmap #-}
+  explCmap (Cache n tags cache s) f = do
     forM_ [0..n-1] $ \e -> do
       tag <- UM.read tags e
       unless (tag == (-1)) (VM.modify cache f e)
-    explMap s f
+    explCmap s f
 
   {-# INLINE explModify #-}
   explModify (Cache n tags cache s) ety f = do
@@ -275,8 +275,8 @@ instance (SafeRW s ~ Bool, Store s) => Store (SetCache n s) where
   explSetMaybe c ety False = explDestroy c ety
   explSetMaybe c ety True  = explSet c ety undefined
 
-  {-# INLINE explMap #-}
-  explMap _ _ = return ()
+  {-# INLINE explCmap #-}
+  explCmap _ _ = return ()
 
   {-# INLINE explModify #-}
   explModify _ _ _ = return ()
