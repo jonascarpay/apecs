@@ -111,8 +111,6 @@ instance Store (Const c) where
   explSetMaybe  _ _ _ = return ()
   explModify    _ _ _ = return ()
   explMap       _ _ = return ()
-instance Query q (Const c) where
-  explSlice _ _ = return mempty
 
 newtype Global c = Global (IORef c)
 instance Initializable (Global c) where

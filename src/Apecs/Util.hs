@@ -1,8 +1,10 @@
-{-# LANGUAGE Strict, ScopedTypeVariables, FlexibleContexts, TypeFamilies #-}
+{-# LANGUAGE Strict, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 
 module Apecs.Util
   ( runGC, initStore,
-    EntityCounter, initCounter, nextEntity, newEntity
+    EntityCounter, initCounter, nextEntity, newEntity,
+    ConcatQueries(..),
   ) where
 
 import System.Mem (performMajorGC)
@@ -36,3 +38,8 @@ runGC = liftIO performMajorGC
 
 initStore :: (Initializable s, InitArgs s ~ ()) => IO s
 initStore = initStoreWith ()
+
+newtype ConcatQueries q = ConcatQueries [q]
+instance Query q s => Query (ConcatQueries q) s where
+  explSlice s (ConcatQueries qs) = mconcat <$> traverse (explSlice s) qs
+
