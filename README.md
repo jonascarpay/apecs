@@ -15,9 +15,9 @@ These pieces compose, so we can use `(Position, Velocity)` as if it were a singl
 
 Your components are associated with a storage type.
 The root of a store is typically a Map.
-For components that are accessed often, we wrap this Map in one or more Caches.
+For components that are accessed often, we can wrap this Map in one or more Caches.
 This allows us to store most components in mutable fixed size vectors at runtime.
-For positions, we can wrap their store in a layer that automatically keeps a spatial hash of all positions written to it.
+For positions, we can similarly wrap their store in a layer that automatically keeps a spatial hash of all positions written to it.
 Most iterations and storage operations are inferred from the type system.
 
 ### Performance
