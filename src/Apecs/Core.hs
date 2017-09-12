@@ -253,6 +253,7 @@ modifyGlobal f = do s :: Storage c <- getStore
 class Query q s where
   explSlice :: s -> q -> IO (U.Vector Int)
 
+{-# INLINE slice #-}
 slice :: forall w c q. (Query q (Storage c), Has w c) => q -> System w (Slice c)
 slice q = do
   s :: Storage c <- getStore
@@ -260,6 +261,7 @@ slice q = do
 
 data All = All
 instance HasMembers s => Query All s where
+  {-# INLINE explSlice #-}
   explSlice s _ = explMembers s
 
 class Cast a b where cast :: a -> b
@@ -276,25 +278,31 @@ class Component c => Has w c where
 instance Show (Entity c) where
   show (Entity e) = "Entity " ++ show e
 
+{-# INLINE sliceFoldM_ #-}
 sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
 sliceFoldM_ f seed (Slice sl) = U.foldM'_ ((.Entity) . f) seed sl
 
 -- | Gets the size of a slice (O(n))
+{-# INLINE sliceSize #-}
 sliceSize :: Slice a -> Int
 sliceSize (Slice vec) = U.length vec
 
 -- | Tests whether a slice is empty (O(1))
+{-# INLINE sliceNull #-}
 sliceNull :: Slice a -> Bool
 sliceNull (Slice vec) = U.null vec
 
 -- | Construct a slice from a list of IDs
+{-# INLINE sliceFromList #-}
 sliceFromList :: [ID] -> Slice a
 sliceFromList = Slice . U.fromList
 
 -- | Monadically filter a slice
+{-# INLINE sliceFilterM #-}
 sliceFilterM :: (Entity c -> System w Bool) -> Slice c -> System w (Slice c)
 sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
 
+{-# INLINE sliceConcat #-}
 sliceConcat :: Slice a -> Slice b -> Slice c
 sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
 
@@ -304,6 +312,7 @@ sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
 instance (Component a, Component b) => Component (a,b) where
   type Storage (a, b) = (Storage a, Storage b)
 instance (Has w a, Has w b) => Has w (a,b) where
+  {-# INLINE getStore #-}
   getStore = (,) <$> getStore <*> getStore
 
 instance (Initializable a, Initializable b) => Initializable (a,b) where
@@ -342,6 +351,7 @@ instance (GlobalRW a ca, GlobalRW b cb) => GlobalRW (a,b) (ca,cb) where
 instance (Component a, Component b, Component c) => Component (a,b,c) where
   type Storage (a, b, c) = (Storage a, Storage b, Storage c)
 instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
+  {-# INLINE getStore #-}
   getStore = (,,) <$> getStore <*> getStore <*> getStore
 
 instance (Initializable a, Initializable b, Initializable c) => Initializable (a,b,c) where
