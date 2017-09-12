@@ -209,51 +209,6 @@ cimapM :: forall w c a. (Has w c, IsRuntime c)
 cimapM sys = do s :: Storage c <- getStore
                 explCimapM s (\(e,c) -> sys (Entity e,c))
 
--- Slice traversal
-{-# INLINE forM_ #-}
-forM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
-forM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
-
-{-# INLINE forM #-}
-forM :: Monad m => Slice c -> (Entity c -> m a) -> m [a]
-forM (Slice vec) ma = traverse (ma . Entity) (U.toList vec)
-
-{-# INLINE forMC #-}
-forMC :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w [a]
-forMC (Slice vec) sys = do
-  s :: Storage c <- getStore
-  for (U.toList vec) $ \e -> do
-    r <- liftIO$ explGet s e
-    sys (Entity e, Safe r)
-
-{-# INLINE forMC_ #-}
-forMC_ :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
-forMC_ (Slice vec) sys = do
-  s :: Storage c <- getStore
-  U.forM_ vec $ \e -> do
-    r <- liftIO$ explGet s e
-    sys (Entity e, Safe r)
-
-{-# INLINE mapM_ #-}
-mapM_ :: Monad m => (Entity c -> m a) -> Slice c -> m ()
-mapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
-
-{-# INLINE mapM #-}
-mapM :: Monad m => (Entity c -> m a) -> Slice c -> m [a]
-mapM ma (Slice vec) = traverse (ma . Entity) (U.toList vec)
-
-{-# INLINE mapMC #-}
-mapMC :: forall w c a. (Store (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w [a]
-mapMC sys (Slice vec) = do
-  s :: Storage c <- getStore
-  for (U.toList vec) $ \e -> do
-    r <- liftIO$ explGet s e
-    sys (Entity e, Safe r)
-
-{-# INLINE mapMC_ #-}
-mapMC_ :: forall w c a. (Store (Storage c), Has w c) => ((Entity c, Safe c) -> System w a) -> Slice c -> System w ()
-mapMC_ sys vec = forMC_ vec sys
-
 -- | Class of storages for global values
 class GlobalRW s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}

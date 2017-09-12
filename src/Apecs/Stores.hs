@@ -25,7 +25,7 @@ import Control.Monad.IO.Class
 import GHC.TypeLits
 import Data.Proxy
 
-import Apecs.Core hiding (mapM_, forM_)
+import Apecs.Core
 
 newtype Map c = Map (IORef (M.IntMap c))
 instance Initializable (Map c) where
@@ -50,10 +50,10 @@ instance Store (Map c) where
   explSetMaybe  s ety (Just x) = explSet s ety x
   explModify    (Map ref) ety f = modifyIORef' ref $ M.adjust f ety
   explCmap      (Map ref) f = modifyIORef' ref $ M.map f
-  explCmapM_    (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM_ ma
-  explCmapM     (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM  ma . M.elems
-  explCimapM_   (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM_ ma . M.assocs
-  explCimapM    (Map ref) ma = liftIO (readIORef ref) >>= Prelude.mapM  ma . M.assocs
+  explCmapM_    (Map ref) ma = liftIO (readIORef ref) >>= mapM_ ma
+  explCmapM     (Map ref) ma = liftIO (readIORef ref) >>= mapM  ma . M.elems
+  explCimapM_   (Map ref) ma = liftIO (readIORef ref) >>= mapM_ ma . M.assocs
+  explCimapM    (Map ref) ma = liftIO (readIORef ref) >>= mapM  ma . M.assocs
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
@@ -76,8 +76,8 @@ instance HasMembers (Set c) where
   explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
   explReset (Set ref) = writeIORef ref mempty
   explExists (Set ref) ety = S.member ety <$> readIORef ref
-  explImapM_  (Set ref) ma = liftIO (readIORef ref) >>= Prelude.mapM_ ma . S.toList
-  explImapM   (Set ref) ma = liftIO (readIORef ref) >>= Prelude.mapM  ma . S.toList
+  explImapM_  (Set ref) ma = liftIO (readIORef ref) >>= mapM_ ma . S.toList
+  explImapM   (Set ref) ma = liftIO (readIORef ref) >>= mapM  ma . S.toList
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
@@ -188,7 +188,7 @@ instance HasMembers s => HasMembers (Cache n s) where
 
   {-# INLINE explImapM #-}
   explImapM (Cache _ tags _ s) ma = do
-    as1 <- liftIO (U.freeze tags) >>= Prelude.mapM ma . U.toList . U.filter (/= (-1))
+    as1 <- liftIO (U.freeze tags) >>= mapM ma . U.toList . U.filter (/= (-1))
     as2 <- explImapM s ma
     return (as1 ++ as2)
 
