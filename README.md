@@ -3,22 +3,8 @@
 apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 It exposes a DSL that translates to fast storage operations, resulting in expressivity without sacrificing performance or safety.
 
-There is an example below.
+There is an example below, and a tutorial can be found [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md).
 For a general introduction to ECS, see [this talk](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [here](https://en.wikipedia.org/wiki/Entity–component–system).
-
-### Design
-Entity Component Systems are a framework for game engines.
-An entity is an implicit collection of components.
-Components of the same type are stored together, indexed by the ID of the entity they belong to.
-A component is an atomic piece of data, like `Position` or `Velocity`.
-These pieces compose, so we can use `(Position, Velocity)` as if it were a single component.
-
-Your components are associated with a storage type.
-The root of a store is typically a Map.
-For components that are accessed often, we can wrap this Map in one or more Caches.
-This allows us to store most components in mutable fixed size vectors at runtime.
-For positions, we can similarly wrap their store in a layer that automatically keeps a spatial hash of all positions written to it.
-Most iterations and storage operations are inferred from the type system.
 
 ### Performance
 Performance is good.
