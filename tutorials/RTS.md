@@ -72,4 +72,40 @@ Using the right storage type is important when optimizing performance, but for n
 In fact, you'll find that the bottleneck is SDL, and not apecs.
 
 
+#### The game world
+Defining your game world is straightforward.
+The only extra thing to look out for is the `EntityCounter`.
+Adding an `EntityCounter` means we can use `newEntity` to add entities to our game world, which is nice.
+```haskell
+data World = World
+  { positions     :: Storage Position
+  , targets       :: Storage Target
+  , selected      :: Storage Selected
+  , mouseState    :: Storage MouseState
+  , entityCounter :: Storage EntityCounter
+  }
+```
+It simply holds the storages of each component.
+Or, to be more precise, it holds immutable references to mutable storage containers for each of your components.
+When actually executing the game, we produce a world in the IO monad:
+```haskell
+initWorld = do
+  positions <- initStore
+  targets   <- initStore
+  selected  <- initStore
+  mouseState <- initStoreWith Rest
+  counter <- initCounter
+  return $ World positions targets selected counter
+```
+One last thing is to make sure we can access each of these at the type level by defining instances for `Has`:
+```haskell
+instance World `Has` Position      where getStore = System $ asks positions
+instance World `Has` Target        where getStore = System $ asks targets
+instance World `Has` Selected      where getStore = System $ asks selected
+instance World `Has` MouseState    where getStore = System $ asks mouseState
+instance World `Has` EntityCounter where getStore = System $ asks entityCounter
+```
+The boilerplate ends here, you will never need to touch your `World` or the `Has` class again.
+In the future, this might be automated using Template Haskell, but it's still good to at least know what's being generated.
+
 #### Systems
