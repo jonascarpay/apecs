@@ -30,24 +30,37 @@ library
     containers,
     mtl,
     vector
-
   ghc-options:
     -Wall
     -Odph
     -fno-warn-unused-top-binds
 
-executable example
+executable simple
   hs-source-dirs:
     example
   main-is:
-    Main.hs
+    Simple.hs
   build-depends:
     base, apecs
   default-language:
     Haskell2010
   ghc-options:
     -Wall
+    -fno-warn-unused-top-binds
+
+executable rts
+  hs-source-dirs:
+    example
+  main-is:
+    RTS.hs
+  build-depends:
+    base, apecs, sdl2, random
+  default-language:
+    Haskell2010
+  ghc-options:
+    -Wall
     -Odph
+    -pgmL markdown-unlit
     -fno-warn-unused-top-binds
 
 benchmark apecs-bench
