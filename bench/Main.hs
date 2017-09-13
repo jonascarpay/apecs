@@ -52,7 +52,7 @@ vstep :: System World ()
 vstep = cimapM_ $ \(e,(Velocity v,Position p)) -> set (cast e) (Position (p+v))
 
 explicit = do sl :: Slice (Velocity, Position) <- owners
-              forMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
+              sliceForMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
 
 cStep1 (Velocity p) = (Velocity (p+1))
 
