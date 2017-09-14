@@ -202,6 +202,7 @@ This is the second part of the game loop:
 ```
 We start by reading the `MouseState` global.
 The result of `readGlobal` is determined by the type it is instantiated with.
+`resetStore` is semantically equivalent to `cmap $ \(_ :: Selected) -> False`, i.e. it just deletes every component of some type, but more general and usually faster.
 After resetting the store, we determine what units are selected.
 We can do this using `rmap'`. `f` looks at every `Position`, and returns `Safe True` if the position was inside the selection box.
 Because `Selected` is a `Set`, its `Safe` representation is a `Bool` rather than `Maybe c`.
@@ -268,7 +269,7 @@ cimapM_ $ \(e, Position p) -> do
 Here we see `cimapM_`, note the extra `i`, which gives both the read component, and the current entity.
 We then check whether or not it has a `Selected` component.
 `exists :: Entity c -> System w ()` checks to see if the entity has a certain component.
-We could emulate this with `get`, but this is more general and usually faster.
+We could emulate this with `get`, but this is, like `resetStore`, more general and usually faster.
 Because the entities we iterate over are only guaranteed to have a `Position`, their type is `Entity Position`.
 To check whether or not they are `Selected`, we need to explicitly cast them.
 If you were to call `exists` with an `Entity (Position, Velocity)`, it'd tell you whether or not that entity has both a `Position` and `Velocity`.
