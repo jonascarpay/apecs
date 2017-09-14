@@ -1,7 +1,7 @@
 ## apecs tutorial
-###An RTS-like game
+### An RTS-like game
 
-In this tutorial we'll take a look at how to write a simple RTS game using apecs.
+In this tutorial we'll take a look at how to write a simple RTS-like game using apecs.
 We'll be using [SDL2](https://github.com/haskell-game/sdl2) for graphics.
 Don't worry if you don't know SDL2, neither do I.
 We'll only be drawing single pixels to the screen, so it should be pretty easy to follow what's going on.
@@ -207,6 +207,9 @@ We can do this using `rmap'`. `f` looks at every `Position`, and returns `Safe T
 Because `Selected` is a `Set`, its `Safe` representation is a `Bool` rather than `Maybe c`.
 
 ### Events
+Handling events is unpacking SDL Event types and matching them to a piece of game logic:
+
+Here we start tracking the mouse when the left button is pressed, and stop when it is released.
 ```haskell
 handleEvent :: SDL.EventPayload -> System' ()
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonLeft _ (P p))) =
@@ -214,13 +217,24 @@ handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.
 
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Released _ SDL.ButtonLeft _ _)) =
   writeGlobal Rest
+```
 
+This is how we update the selection box when the mouse moves:
+```haskell
 handleEvent (SDL.MouseMotionEvent (SDL.MouseMotionEventData _ _ _ (P p) _)) = do
   md <- readGlobal
   case md of
     Rest -> return ()
     Dragging a _ -> writeGlobal (Dragging a (fromIntegral <$> p))
+```
 
+And finally, what to do when the right mouse button is pressed.
+As per genre convention, the selected units are to start moving to wherever we clicked with the right mouse button.
+Now, this is an interesting piece of game logic.
+How do you direct a group of units?
+You can't just send them all to the same location, or they'd end up overlapping.
+For simplicity's sake, I chose to arrange them randomly in a square, with area proportional to the number of selected units.
+```
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
   sl :: Slice Selected <- slice All
   let r = (*3) . subtract 1 . sqrt . fromIntegral$ sliceSize sl
@@ -228,7 +242,48 @@ handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.
   sliceForM_ sl $ \e -> do
     dx <- liftIO$ randomRIO (-r,r)
     dy <- liftIO$ randomRIO (-r,r)
-    set (cast e) (Target (V2 (fromIntegral px+dx) (fromIntegral py+dy)))
+    set e (Target (V2 (fromIntegral px+dx) (fromIntegral py+dy)))
 
 handleEvent _ = return ()
 ```
+`slice` performs a query, and returns a `Slice`, which is just a list of entities.
+The only query we can currently perform is `All`, which returns all owners of the specified component.
+Other queries can be performed by using a more elaborate `Storage` type, but that's for a later tutorial.
+The reason we need a slice instead of a map is that we need to know the amount of selected units.
+
+There's a few more interesting functions here.
+`sliceForM_` monadically iteraters over a `Slice`.
+`set entity component` then explicitly writes a component for an entity, overwriting whatever might have been there.
+
+#### Rendering
+Rendering turns out to be really easy.
+It looks like this:
+```haskell
+cimapM_ $ \(e, Position p) -> do
+  e <- exists (cast e :: Entity Selected)
+  liftIO$ SDL.rendererDrawColor renderer $= if e then V4 255 255 255 255 else V4 255 0 0 255
+  SDL.drawPoint renderer (P (round <$> p))
+```
+`cmapM_` is to `cmap` as `mapM_` is to `map`.
+Here we see `cimapM_`, note the extra `i`, which gives both the read component, and the current entity.
+We then check whether or not it has a `Selected` component.
+`exists :: Entity c -> System w ()` checks to see if the entity has a certain component.
+We could emulate this with `get`, but this is more general and usually faster.
+Because the entities we iterate over are only guaranteed to have a `Position`, their type is `Entity Position`.
+To check whether or not they are `Selected`, we need to explicitly cast them.
+If you were to call `exists` with an `Entity (Position, Velocity)`, it'd tell you whether or not that entity has both a `Position` and `Velocity`.
+
+#### Conclusion
+These are the tools you need to build a game in apecs.
+I did not discuss every line in the final program, as they were mostly SDL-related.
+Again, the final version in its full glory can be found [here](https://github.com/jonascarpay/apecs/blob/master/example/RTS.hs).
+
+The reason for writing this tutorial at this point is that apecs is now sufficiently developed where it has most of the functionality of other ECS, and is now a viable way of developing games in Haskell.
+The library is still under development, but for now, that is mostly on parts outside the scope of this tutorial.
+I hope to have a version on hackage soon!
+
+There will be at least one more tutorial, on how to make things fast.
+We'll be taking a look at
+  - How to cache your components for O(1) reads and writes
+  - How to use an IndexTable to add queries to your component storages
+  - How to use those indextables to get a free spatial hash of our positions

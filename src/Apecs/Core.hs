@@ -168,7 +168,7 @@ get (Entity ety) = do s :: Storage c <- getStore
                       liftIO$ Safe <$> explGet s ety
 
 {-# INLINE set #-}
-set :: forall w c. (Store (Storage c), Stores (Storage c) ~ c, Has w c) => Entity c -> c -> System w ()
+set :: forall w c e. (Store (Storage c), Stores (Storage c) ~ c, Has w c) => Entity e -> c -> System w ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
   liftIO$ explSet s ety x

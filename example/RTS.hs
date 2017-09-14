@@ -135,7 +135,7 @@ handleEvents = do
       sliceForM_ sl $ \e -> do
         dx <- liftIO$ randomRIO (-r,r)
         dy <- liftIO$ randomRIO (-r,r)
-        set (cast e) (Target (V2 (fromIntegral px+dx) (fromIntegral py+dy)))
+        set e (Target (V2 (fromIntegral px+dx) (fromIntegral py+dy)))
 
     handleEvent _ = return ()
 
