@@ -133,7 +133,7 @@ It makes a new guy with a position of (0,0).
 Here's another:
 ```haskell
 newGuy2 :: System' ()
-newGuy = newEntity (Position (V2 0 0), Velocity (V2 0 0))
+newGuy2 = newEntity (Player, Position (V2 0 0), Velocity (V2 0 0))
 ```
 That's right; components can be tupled up and used as if they were a single component.
 
