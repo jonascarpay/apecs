@@ -202,10 +202,12 @@ This is the second part of the game loop:
 ```
 We start by reading the `MouseState` global.
 The result of `readGlobal` is determined by the type it is instantiated with.
-`resetStore` is semantically equivalent to `cmap' $ \(_ :: Selected) -> False`, i.e. it just deletes every component of some type, but more general and usually faster.
-After resetting the store, we determine what units are selected.
-We can do this using `rmap'`. `f` looks at every `Position`, and returns `Safe True` if the position was inside the selection box.
+`resetStore` is semantically equivalent to `cmap' $ \(_ :: Selected) -> Safe False`, i.e. it just deletes every component of some type, but more general and usually faster.
 Because `Selected` is a `Set`, its `Safe` representation is a `Bool` rather than `Maybe c`.
+For components in a `Map`, the equivalent of `resetStore` is `cmap' $ \(_ :: c) -> Nothing`.
+After resetting the store, we determine what units are selected.
+We can do this using `rmap'`.
+`f` looks at every `Position`, and returns `Safe True` if the position was inside the selection box.
 
 ### Events
 Handling events is unpacking SDL Event types and matching them to a piece of game logic:
