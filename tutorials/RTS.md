@@ -32,7 +32,7 @@ In our game, we want to be able to select units and order them around.
 We start by defining our components.
 
 First up is position.
-A `Position` is just a two-dimensional vector of `Double`s:
+A `Position` is just a two-dimensional vector of `Double`s.
 When defining a data type as a component, you have to specify how the component is stored in memory.
 At the root of a storage you'll generally find one of three kinds of storage; a `Map`, `Set`, or `Global`.
 In this case, we can simply store the position in a `Map`.
