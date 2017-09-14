@@ -15,7 +15,7 @@ The concept is as follows:
 
 Your game world consists of entities.
 An entity is an ID and a collection of components.
-Examples of components include its position, velocity, health, and 3D model.
+Examples of components include position, velocity, health, and 3D model.
 All of the entity's state is captured by the components it holds.
 The game logic is then defined in systems that operate on the game world.
 This is taking the [component pattern](http://gameprogrammingpatterns.com/component.html) to the extreme, where we can arbitrarily add and remove components from entities.
