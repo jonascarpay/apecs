@@ -202,7 +202,7 @@ This is the second part of the game loop:
 ```
 We start by reading the `MouseState` global.
 The result of `readGlobal` is determined by the type it is instantiated with.
-`resetStore` is semantically equivalent to `cmap $ \(_ :: Selected) -> False`, i.e. it just deletes every component of some type, but more general and usually faster.
+`resetStore` is semantically equivalent to `cmap' $ \(_ :: Selected) -> False`, i.e. it just deletes every component of some type, but more general and usually faster.
 After resetting the store, we determine what units are selected.
 We can do this using `rmap'`. `f` looks at every `Position`, and returns `Safe True` if the position was inside the selection box.
 Because `Selected` is a `Set`, its `Safe` representation is a `Bool` rather than `Maybe c`.
