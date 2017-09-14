@@ -104,7 +104,7 @@ step = do
   m <- readGlobal
   case m of
     Rest -> return ()
-    Dragging a@(V2 ax ay) b@(V2 bx by) -> do
+    Dragging (V2 ax ay) (V2 bx by) -> do
       resetStore (Proxy :: Proxy Selected)
       let f :: Position -> Safe Selected
           f (Position (V2 x y)) = Safe (x >= min ax bx && x <= max ax bx && y >= min ay by && y <= max ay by)
