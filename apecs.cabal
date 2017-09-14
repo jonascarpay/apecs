@@ -60,7 +60,6 @@ executable rts
   ghc-options:
     -Wall
     -Odph
-    -pgmL markdown-unlit
     -fno-warn-unused-top-binds
 
 benchmark apecs-bench
