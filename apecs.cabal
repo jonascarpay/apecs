@@ -1,24 +1,22 @@
 name:                apecs
-version:             0.1.0.0
--- synopsis:
--- description:
+version:             0.1.1.0
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
-copyright:           MIT
-category:            Web
+category:            Game, Control, Data
 build-type:          Simple
 cabal-version:       >=1.10
-extra-source-files:  README.md
+extra-source-files:  README.md, tutorials/RTS.md
+synopsis:            A fast ECS for game engine programming
+description:         A fast ECS for game engine programming
 
 library
   hs-source-dirs:
     src
   exposed-modules:
     Apecs,
-    Apecs.Vector,
     Apecs.Stores,
     Apecs.Util
   other-modules:
@@ -26,7 +24,7 @@ library
   default-language:
     Haskell2010
   build-depends:
-    base,
+    base >= 4.7 && < 5,
     containers,
     mtl,
     vector
@@ -41,7 +39,7 @@ executable simple
   main-is:
     Simple.hs
   build-depends:
-    base, apecs
+    base, apecs, linear
   default-language:
     Haskell2010
   ghc-options:
@@ -54,7 +52,7 @@ executable rts
   main-is:
     RTS.hs
   build-depends:
-    base, apecs, sdl2, random
+    base, apecs, sdl2, random, linear
   default-language:
     Haskell2010
   ghc-options:
@@ -70,7 +68,7 @@ benchmark apecs-bench
   main-is:
     Main.hs
   build-depends:
-    base, apecs, criterion
+    base, apecs, criterion, linear
   default-language:
     Haskell2010
   ghc-options:

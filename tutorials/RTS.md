@@ -181,7 +181,7 @@ step = do
       stepPosition :: (Target, Position) -> Safe (Target, Position)
       stepPosition (Target t, Position p)
         | V.vlength (p-t) < speed = Safe (Nothing, Just (Position t))
-        | otherwise               = Safe (Just (Target t), Just (Position (p + V.setLength speed (t-p))))
+        | otherwise               = Safe (Just (Target t), Just (Position (p + speed * normalize (t-p))))
 
   cmap' stepPosition
 ```

@@ -3,7 +3,7 @@
 import Apecs
 import Apecs.Stores
 import Apecs.Util
-import Apecs.Vector -- Optional module for basic 2D and 3D vectos
+import Linear
 
 -- Component data definitions
 newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
@@ -41,7 +41,7 @@ type System' a = System World a
 game :: System' ()
 game = do
   -- Create new entities
-  newEntity (Position 0)
+  ety <- newEntity (Position 0)
   -- Components can be composed using tuples
   newEntity (Position 0, Velocity 1)
   -- Tagging one as an enemy is a matter of adding the constructor
@@ -51,6 +51,9 @@ game = do
   liftIO$ putStrLn "Stepping velocities"
   -- rmap maps a pure function over all entities in its domain
   rmap $ \(Position p, Velocity v) -> Position (v+p)
+
+  -- Set can be used to (over)write components
+  set ety (Position 2, Enemy)
 
   -- Print the positions of all enemies
   cmapM_ $ \(Enemy, Position p) -> liftIO (print p)

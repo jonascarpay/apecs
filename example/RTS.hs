@@ -8,16 +8,15 @@
 module Main where
 
 import Control.Monad as M
-import SDL.Vect
 import qualified SDL
 import SDL (($=))
 import System.Random
 import Data.Proxy
+import SDL.Vect
 
 import Apecs as A
 import Apecs.Stores
 import Apecs.Util
-import qualified Apecs.Vector as V
 
 hres, vres :: Num a => a
 hres = 1024
@@ -93,11 +92,12 @@ render renderer = do
   SDL.present renderer
 
 step = do
-  let speed = 5
+  let speed :: Num a => a
+      speed = 5
       stepPosition :: (Target, Position) -> Safe (Target, Position)
       stepPosition (Target t, Position p)
-        | V.vlength (p-t) < speed = Safe (Nothing, Just (Position t))
-        | otherwise               = Safe (Just (Target t), Just (Position (p + V.setLength speed (t-p))))
+        | norm (p-t) < speed = Safe (Nothing, Just (Position t))
+        | otherwise               = Safe (Just (Target t), Just (Position (p + speed * normalize (t-p))))
 
   cmap' stepPosition
 

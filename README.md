@@ -20,7 +20,7 @@ Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchma
 import Apecs
 import Apecs.Stores
 import Apecs.Util
-import Apecs.Vector -- Optional module for basic 2D and 3D vectos
+import Linear.V2
 
 -- Component data definitions
 newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)

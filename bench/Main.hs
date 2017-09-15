@@ -7,7 +7,8 @@ import Control.Monad
 import Apecs as A
 import Apecs.Stores
 import Apecs.Util
-import Apecs.Vector
+
+import Linear
 
 newtype Position = Position (V2 Float) deriving (Eq, Show)
 instance Component Position where
