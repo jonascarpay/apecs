@@ -52,7 +52,11 @@ executable rts
   main-is:
     RTS.hs
   build-depends:
-    base, apecs, sdl2, random, linear
+    base,
+    apecs,
+    sdl2 >= 2.3.0,
+    random,
+    linear
   default-language:
     Haskell2010
   ghc-options:
