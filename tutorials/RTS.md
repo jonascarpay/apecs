@@ -237,7 +237,7 @@ Now, this is an interesting piece of game logic.
 How do you direct a group of units?
 You can't just send them all to the same location, or they'd end up overlapping.
 For simplicity's sake, I chose to arrange them randomly in a square, with area proportional to the number of selected units.
-```
+```haskell
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
   sl :: Slice Selected <- slice All
   let r = (*3) . subtract 1 . sqrt . fromIntegral$ sliceSize sl
