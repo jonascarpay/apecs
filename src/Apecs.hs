@@ -12,7 +12,7 @@ module Apecs (
     destroy, exists, owners, resetStore,
 
     -- Store
-    get, set, setMaybe, modify,
+    get, set, setOrDelete, modify,
     cmap, cmapM, cmapM_, cimapM, cimapM_,
     sliceSize,
 

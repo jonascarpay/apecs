@@ -32,31 +32,38 @@ class Component c => Has w c where
 
 
 -- Storage types
--- | Common for every storage. Represents a container that can be initialized
+-- | Common for every storage. Represents a container that can be initialized.
 class Initializable s where
   type InitArgs s
   initStoreWith :: InitArgs s -> IO s
 
--- | A store that is indexed by entities
+-- | A store that is indexed by entities.
 class HasMembers s where
+  -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
+  -- | Returns whether there is a component for the given index
   explExists  :: s -> Int -> IO Bool
+  -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
 
+  -- | Removes all components. Default implementation iterates over members and calls explDestroy.
   {-# INLINE explReset #-}
   explReset :: s -> IO ()
   explReset s = do
     sl <- explMembers s
     U.mapM_ (explDestroy s) sl
 
+  -- | Monadically iterates over member indices
   explImapM_ :: MonadIO m => s -> (Int -> m a) -> m ()
   {-# INLINE explImapM_ #-}
-  explImapM_ s ma = liftIO (explMembers s) >>= Prelude.mapM_ ma . U.toList
+  explImapM_ s ma = liftIO (explMembers s) >>= mapM_ ma . U.toList
 
+  -- | Monadically iterates over member indices
   explImapM :: MonadIO m => s -> (Int -> m a) -> m [a]
   {-# INLINE explImapM #-}
-  explImapM s ma = liftIO (explMembers s) >>= Prelude.mapM ma . U.toList
+  explImapM s ma = liftIO (explMembers s) >>= mapM ma . U.toList
 
+-- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
 newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 
 -- | Class of storages that associates components with entities.
@@ -82,11 +89,7 @@ class HasMembers s => Store s where
   --   The default implementation can be replaced by an optimized one
   explCmap :: s -> (Stores s -> Stores s) -> IO ()
   {-# INLINE explCmap #-}
-  explCmap s f = do
-    sl <- explMembers s
-    U.forM_ sl $ \ety -> do
-      x :: Stores s <- explGetUnsafe s ety
-      explSet s ety (f x)
+  explCmap s f = explMembers s >>= (U.mapM_ $ \ety -> explModify s ety f)
 
   explCmapM_ :: MonadIO m => s -> (Stores s -> m a) -> m ()
   {-# INLINE explCmapM_ #-}

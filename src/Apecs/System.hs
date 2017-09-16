@@ -12,10 +12,12 @@ import qualified Data.Vector.Unboxed as U
 
 import Apecs.Types
 
+-- | Run a system with a game world
 {-# INLINE runSystem #-}
 runSystem :: System w a -> w -> IO a
 runSystem sys = runReaderT (unSystem sys)
 
+-- | Run a system with a game world
 {-# INLINE runWith #-}
 runWith :: w -> System w a -> IO a
 runWith = flip runSystem
@@ -46,27 +48,32 @@ resetStore _ = do s :: Storage c <- getStore
                   liftIO$ explReset s
 
 -- Setting/Getting
+-- | Gets the component for a given entity.
+--   This is a safe access, because the entity might not have the requested components.
 {-# INLINE get #-}
 get :: forall w c. (Store (Storage c), Has w c) => Entity c -> System w (Safe c)
 get (Entity ety) = do s :: Storage c <- getStore
                       liftIO$ Safe <$> explGet s ety
 
+-- | Writes a component to a given entity. Will overwrite existing components.
 {-# INLINE set #-}
 set :: forall w c e. (Store (Storage c), Stores (Storage c) ~ c, Has w c) => Entity e -> c -> System w ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
   liftIO$ explSet s ety x
 
+-- | Same as @set@, but uses Safe to possibly delete a component
+setOrDelete :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
+setOrDelete (Entity ety) (Safe c) = do
+  s :: Storage c <- getStore
+  liftIO$ explSetMaybe s ety c
+
+-- | Applies a function if possible. Equivalent to reading, mapping, and writing, but stores can provide optimized implementations.
 {-# INLINE modify #-}
 modify :: forall w c. (IsRuntime c, Has w c) => Entity c -> (c -> c) -> System w ()
 modify (Entity ety) f = do
   s :: Storage c <- getStore
   liftIO$ explModify s ety f
-
-setMaybe :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
-setMaybe (Entity ety) (Safe c) = do
-  s :: Storage c <- getStore
-  liftIO$ explSetMaybe s ety c
 
 {-# INLINE imapM_ #-}
 -- | Monadically iterate a system over all entities that have that component.
