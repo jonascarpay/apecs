@@ -319,7 +319,7 @@ instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => Store (In
     let indexNew = toIndex x
     mc <- explGet s ety
     case mc of
-      Nothing -> do VM.modify tab (S.insert ety) indexNew
+      Nothing -> VM.modify tab (S.insert ety) indexNew
       Just c  -> do let indexOld = toIndex c
                     unless (indexOld == indexNew) $ do
                       VM.modify tab (S.delete ety) indexOld

@@ -89,7 +89,7 @@ class HasMembers s => Store s where
   --   The default implementation can be replaced by an optimized one
   explCmap :: s -> (Stores s -> Stores s) -> IO ()
   {-# INLINE explCmap #-}
-  explCmap s f = explMembers s >>= (U.mapM_ $ \ety -> explModify s ety f)
+  explCmap s f = explMembers s >>= U.mapM_ (\ety -> explModify s ety f)
 
   explCmapM_ :: MonadIO m => s -> (Stores s -> m a) -> m ()
   {-# INLINE explCmapM_ #-}
