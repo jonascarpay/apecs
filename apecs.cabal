@@ -44,7 +44,6 @@ executable simple
   default-language:
     Haskell2010
   ghc-options:
-    -Wall
     -fno-warn-unused-top-binds
 
 executable rts
@@ -61,7 +60,6 @@ executable rts
   default-language:
     Haskell2010
   ghc-options:
-    -Wall
     -Odph
     -fno-warn-unused-top-binds
 

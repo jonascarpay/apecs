@@ -1,26 +1,33 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Apecs (
-  -- Types
-    System(..), runSystem, runWith,
+  -- * Types
+    System(..),
     Component(..), Entity(..), Slice, Has(..), Safe(..), cast,
 
-    -- Initializable
+  -- * Initializable
     initStoreWith,
 
-    -- HasMembers
+  -- * HasMembers wrapper functions
     destroy, exists, owners, resetStore,
 
-    -- Store
+  -- * Store wrapper functions
     get, set, setOrDelete, modify,
     cmap, cmapM, cmapM_, cimapM, cimapM_,
-    sliceSize,
+    rmap', rmap, wmap, wmap', cmap',
 
-    -- GlobalRW
+
+  -- * GlobalRW wrapper functions
     readGlobal, writeGlobal, modifyGlobal,
 
-    -- Query
+  -- * Query
     slice, All(..),
+
+  -- * Other
+    runSystem, runWith,
+
+  -- All slice functions
+  module SL,
 
   -- Reader
   asks, ask, liftIO, lift,
@@ -30,5 +37,5 @@ import Control.Monad.Reader (asks, ask, liftIO, lift)
 
 import Apecs.Types
 import Apecs.System
-import Apecs.Slice
+import Apecs.Slice as SL
 
