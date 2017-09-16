@@ -9,7 +9,7 @@
 
 module Apecs.Stores
   ( Map, Set, Flag(..), Cache,
-    Global, readGlobal, writeGlobal,
+    Global,
     IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
   ) where
 

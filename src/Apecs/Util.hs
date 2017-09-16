@@ -32,6 +32,7 @@ import System.CPUTime
 
 import Apecs.Core
 import Apecs.Stores
+import Apecs.System
 
 -- | Initializes a store with (), useful since most stores have () as their initialization argument
 initStore :: (Initializable s, InitArgs s ~ ()) => IO s

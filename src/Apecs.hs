@@ -26,5 +26,8 @@ module Apecs (
   asks, ask, liftIO, lift,
 ) where
 
-import Apecs.Core as A
 import Control.Monad.Reader (asks, ask, liftIO, lift)
+
+import Apecs.Core
+import Apecs.System
+

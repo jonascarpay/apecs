@@ -17,10 +17,10 @@ library
     src
   exposed-modules:
     Apecs,
+    Apecs.Core,
+    Apecs.System,
     Apecs.Stores,
     Apecs.Util
-  other-modules:
-    Apecs.Core
   default-language:
     Haskell2010
   build-depends:

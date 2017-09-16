@@ -3,33 +3,21 @@
 {-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE ConstraintKinds, KindSignatures #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Apecs.Core where
 
-import Control.Monad.Reader
+
+import Control.Monad
+import Control.Monad.IO.Class
 import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
 
--- | A component is defined by the type of its storage
---   The storage in turn supplies runtime types for the component.
-class Initializable (Storage c) => Component c where
-  type Storage c = s | s -> c
-
 type ID = Int
 type IDVec = U.Vector ID
-newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 newtype Slice c = Slice {unSlice :: U.Vector ID} deriving (Show, Monoid)
 newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Ord, Show)
-
-{-# INLINE runSystem #-}
-runSystem :: System w a -> w -> IO a
-runSystem sys = runReaderT (unSystem sys)
-
-{-# INLINE runWith #-}
-runWith :: w -> System w a -> IO a
-runWith = flip runSystem
 
 -- Storage type class hierarchy
 -- | Common for every storage. Represents a container that can be initialized
@@ -56,46 +44,6 @@ class HasMembers s where
   explImapM :: MonadIO m => s -> (Int -> m a) -> m [a]
   {-# INLINE explImapM #-}
   explImapM s ma = liftIO (explMembers s) >>= Prelude.mapM ma . U.toList
-
-{-# INLINE imapM_ #-}
--- | Monadically iterate a system over all entities that have that component.
---   Note that writing to the store while iterating over it is undefined behaviour.
-imapM_ :: forall w c. (Has w c, HasMembers (Storage c))
-       => (Entity c -> System w ()) -> System w ()
-imapM_ sys = do s :: Storage c <- getStore
-                explImapM_ s (sys . Entity)
-
-{-# INLINE imapM #-}
--- | Monadically iterate a system over all entities that have that component.
---   Note that writing to the store while iterating over it is undefined behaviour.
-imapM :: forall w c a. (Has w c, HasMembers (Storage c))
-      => (Entity c -> System w a) -> System w [a]
-imapM sys = do s :: Storage c <- getStore
-               explImapM s (sys . Entity)
-
--- | Destroys the component @c@ for the given entity
-{-# INLINE destroy #-}
-destroy :: forall w c. (Has w c, HasMembers (Storage c)) => Entity c -> System w ()
-destroy (Entity n) = do s :: Storage c <- getStore
-                        liftIO$ explDestroy s n
-
--- | Returns whether the given entity has component @c@
---   For composite components, this indicates whether the component
---   has all its constituents
-{-# INLINE exists #-}
-exists :: forall w c. (Has w c, HasMembers (Storage c)) => Entity c -> System w Bool
-exists (Entity n) = do s :: Storage c <- getStore
-                       liftIO$ explExists s n
-
--- | A slice containing all entities with component @c@
-{-# INLINE owners #-}
-owners :: forall w c. (Has w c, HasMembers (Storage c)) => System w (Slice c)
-owners = do s :: Storage c <- getStore
-            liftIO$ Slice <$> explMembers s
-
-resetStore :: forall w c p. (Has w c, HasMembers (Storage c)) => p c -> System w ()
-resetStore _ = do s :: Storage c <- getStore
-                  liftIO$ explReset s
 
 -- | Class of storages that associates components with entities.
 class HasMembers s => Store s where
@@ -156,63 +104,6 @@ class HasMembers s => Store s where
       x :: Stores s <- liftIO$ explGetUnsafe s ety
       sys (ety,x)
 
--- | A constraint that indicates that the runtime representation of @c@ is @c@
-type Runtime c = Stores (Storage c)
-type IsRuntime c = (Store (Storage c), Runtime c ~ c)
-newtype Safe c = Safe {getSafe :: (SafeRW (Storage c))}
-
--- Setting/Getting
-{-# INLINE get #-}
-get :: forall w c. (Store (Storage c), Has w c) => Entity c -> System w (Safe c)
-get (Entity ety) = do s :: Storage c <- getStore
-                      liftIO$ Safe <$> explGet s ety
-
-{-# INLINE set #-}
-set :: forall w c e. (Store (Storage c), Stores (Storage c) ~ c, Has w c) => Entity e -> c -> System w ()
-set (Entity ety) x = do
-  s :: Storage c <- getStore
-  liftIO$ explSet s ety x
-
-{-# INLINE modify #-}
-modify :: forall w c. (IsRuntime c, Has w c) => Entity c -> (c -> c) -> System w ()
-modify (Entity ety) f = do
-  s :: Storage c <- getStore
-  liftIO$ explModify s ety f
-
-setMaybe :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
-setMaybe (Entity ety) (Safe c) = do
-  s :: Storage c <- getStore
-  liftIO$ explSetMaybe s ety c
-
-{-# INLINE cmap #-}
-cmap :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
-cmap f = do s :: Storage c <- getStore
-            liftIO$ explCmap s f
-
-{-# INLINE cmapM_ #-}
-cmapM_ :: forall w c. (Has w c, IsRuntime c)
-       => (c -> System w ()) -> System w ()
-cmapM_ sys = do s :: Storage c <- getStore
-                explCmapM_ s sys
-
-{-# INLINE cimapM_ #-}
-cimapM_ :: forall w c. (Has w c, IsRuntime c)
-        => ((Entity c, c) -> System w ()) -> System w ()
-cimapM_ sys = do s :: Storage c <- getStore
-                 explCimapM_ s (\(e,c) -> sys (Entity e,c))
-
-{-# INLINE cmapM #-}
-cmapM :: forall w c a. (Has w c, IsRuntime c)
-      => (c -> System w a) -> System w [a]
-cmapM sys = do s :: Storage c <- getStore
-               explCmapM s sys
-
-{-# INLINE cimapM #-}
-cimapM :: forall w c a. (Has w c, IsRuntime c)
-       => ((Entity c, c) -> System w a) -> System w [a]
-cimapM sys = do s :: Storage c <- getStore
-                explCimapM s (\(e,c) -> sys (Entity e,c))
-
 -- | Class of storages for global values
 class GlobalRW s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}
@@ -224,30 +115,9 @@ class GlobalRW s c where
   explGlobalModify s f = do r <- explGlobalRead s
                             explGlobalWrite s (f r)
 
-{-# INLINE readGlobal #-}
-readGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => System w c
-readGlobal = do s :: Storage c <- getStore
-                liftIO$ explGlobalRead s
-
-{-# INLINE writeGlobal #-}
-writeGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => c -> System w ()
-writeGlobal c = do s :: Storage c <- getStore
-                   liftIO$ explGlobalWrite s c
-
-{-# INLINE modifyGlobal #-}
-modifyGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => (c -> c) -> System w ()
-modifyGlobal f = do s :: Storage c <- getStore
-                    liftIO$ explGlobalModify s f
-
 -- Query
 class Query q s where
   explSlice :: s -> q -> IO (U.Vector Int)
-
-{-# INLINE slice #-}
-slice :: forall w c q. (Query q (Storage c), Has w c) => q -> System w (Slice c)
-slice q = do
-  s :: Storage c <- getStore
-  liftIO$ Slice <$> explSlice s q
 
 data All = All
 instance HasMembers s => Query All s where
@@ -262,46 +132,8 @@ instance Cast (Slice a) (Slice b) where
   {-# INLINE cast #-}
   cast (Slice vec) = Slice vec
 
-class Component c => Has w c where
-  getStore :: System w (Storage c)
-
-{-# INLINE sliceFoldM_ #-}
-sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
-sliceFoldM_ f seed (Slice sl) = U.foldM'_ ((.Entity) . f) seed sl
-
--- | Gets the size of a slice (O(n))
-{-# INLINE sliceSize #-}
-sliceSize :: Slice a -> Int
-sliceSize (Slice vec) = U.length vec
-
--- | Tests whether a slice is empty (O(1))
-{-# INLINE sliceNull #-}
-sliceNull :: Slice a -> Bool
-sliceNull (Slice vec) = U.null vec
-
--- | Construct a slice from a list of IDs
-{-# INLINE sliceFromList #-}
-sliceFromList :: [ID] -> Slice a
-sliceFromList = Slice . U.fromList
-
--- | Monadically filter a slice
-{-# INLINE sliceFilterM #-}
-sliceFilterM :: (Entity c -> System w Bool) -> Slice c -> System w (Slice c)
-sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
-
-{-# INLINE sliceConcat #-}
-sliceConcat :: Slice a -> Slice b -> Slice c
-sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
-
-
--- Tuple instances
+-- Tuple Instances
 -- (,)
-instance (Component a, Component b) => Component (a,b) where
-  type Storage (a, b) = (Storage a, Storage b)
-instance (Has w a, Has w b) => Has w (a,b) where
-  {-# INLINE getStore #-}
-  getStore = (,) <$> getStore <*> getStore
-
 instance (Initializable a, Initializable b) => Initializable (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
   initStoreWith (aa, ab) = (,) <$> initStoreWith aa <*> initStoreWith ab
@@ -335,12 +167,6 @@ instance (GlobalRW a ca, GlobalRW b cb) => GlobalRW (a,b) (ca,cb) where
   {-# INLINE explGlobalWrite #-}
 
 -- (,,)
-instance (Component a, Component b, Component c) => Component (a,b,c) where
-  type Storage (a, b, c) = (Storage a, Storage b, Storage c)
-instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
-  {-# INLINE getStore #-}
-  getStore = (,,) <$> getStore <*> getStore <*> getStore
-
 instance (Initializable a, Initializable b, Initializable c) => Initializable (a,b,c) where
   type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
   initStoreWith (aa, ab, ac) = (,,) <$> initStoreWith aa <*> initStoreWith ab <*> initStoreWith ac
