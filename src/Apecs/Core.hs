@@ -17,11 +17,11 @@ import qualified Data.Vector.Unboxed as U
 class Initializable (Storage c) => Component c where
   type Storage c = s | s -> c
 
-type ID    = Int
+type ID = Int
 type IDVec = U.Vector ID
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
-newtype Slice  c = Slice  {unSlice  :: U.Vector ID} deriving (Show, Monoid)
-newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Num)
+newtype Slice c = Slice {unSlice :: U.Vector ID} deriving (Show, Monoid)
+newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Ord, Show)
 
 {-# INLINE runSystem #-}
 runSystem :: System w a -> w -> IO a
@@ -264,9 +264,6 @@ instance Cast (Slice a) (Slice b) where
 
 class Component c => Has w c where
   getStore :: System w (Storage c)
-
-instance Show (Entity c) where
-  show (Entity e) = "Entity " ++ show e
 
 {-# INLINE sliceFoldM_ #-}
 sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
