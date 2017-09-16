@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
 {-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -6,18 +5,29 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Apecs.Core where
+module Apecs.Types where
 
-
-import Control.Monad
-import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
 
-type ID = Int
-type IDVec = U.Vector ID
-newtype Slice c = Slice {unSlice :: U.Vector ID} deriving (Show, Monoid)
-newtype Entity c = Entity {unEntity :: ID} deriving (Eq, Ord, Show)
+newtype Slice c = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)
+newtype Entity c = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
+
+-- | A constraint that indicates that the runtime representation of @c@ is @c@
+type Runtime c = Stores (Storage c)
+type IsRuntime c = (Store (Storage c), Runtime c ~ c)
+newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
+
+newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
+
+class Component c => Has w c where
+  getStore :: System w (Storage c)
+
+-- | A component is defined by the type of its storage
+--   The storage in turn supplies runtime types for the component.
+class Initializable (Storage c) => Component c where
+  type Storage c = s | s -> c
 
 -- Storage type class hierarchy
 -- | Common for every storage. Represents a container that can be initialized
@@ -134,6 +144,12 @@ instance Cast (Slice a) (Slice b) where
 
 -- Tuple Instances
 -- (,)
+instance (Component a, Component b) => Component (a,b) where
+  type Storage (a, b) = (Storage a, Storage b)
+instance (Has w a, Has w b) => Has w (a,b) where
+  {-# INLINE getStore #-}
+  getStore = (,) <$> getStore <*> getStore
+
 instance (Initializable a, Initializable b) => Initializable (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
   initStoreWith (aa, ab) = (,) <$> initStoreWith aa <*> initStoreWith ab
@@ -167,6 +183,12 @@ instance (GlobalRW a ca, GlobalRW b cb) => GlobalRW (a,b) (ca,cb) where
   {-# INLINE explGlobalWrite #-}
 
 -- (,,)
+instance (Component a, Component b, Component c) => Component (a,b,c) where
+  type Storage (a, b, c) = (Storage a, Storage b, Storage c)
+instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
+  {-# INLINE getStore #-}
+  getStore = (,,) <$> getStore <*> getStore <*> getStore
+
 instance (Initializable a, Initializable b, Initializable c) => Initializable (a,b,c) where
   type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
   initStoreWith (aa, ab, ac) = (,,) <$> initStoreWith aa <*> initStoreWith ab <*> initStoreWith ac

@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
@@ -10,21 +10,7 @@ module Apecs.System where
 import Control.Monad.Reader
 import qualified Data.Vector.Unboxed as U
 
-import Apecs.Core
-
--- | A component is defined by the type of its storage
---   The storage in turn supplies runtime types for the component.
-class Initializable (Storage c) => Component c where
-  type Storage c = s | s -> c
-
-newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
-class Component c => Has w c where
-  getStore :: System w (Storage c)
-
--- | A constraint that indicates that the runtime representation of @c@ is @c@
-type Runtime c = Stores (Storage c)
-type IsRuntime c = (Store (Storage c), Runtime c ~ c)
-newtype Safe c = Safe {getSafe :: (SafeRW (Storage c))}
+import Apecs.Types
 
 {-# INLINE runSystem #-}
 runSystem :: System w a -> w -> IO a
@@ -164,7 +150,7 @@ sliceNull (Slice vec) = U.null vec
 
 -- | Construct a slice from a list of IDs
 {-# INLINE sliceFromList #-}
-sliceFromList :: [ID] -> Slice a
+sliceFromList :: [Int] -> Slice a
 sliceFromList = Slice . U.fromList
 
 -- | Monadically filter a slice
@@ -175,19 +161,3 @@ sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
 {-# INLINE sliceConcat #-}
 sliceConcat :: Slice a -> Slice b -> Slice c
 sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
-
--- Tuple instances
--- (,)
-instance (Component a, Component b) => Component (a,b) where
-  type Storage (a, b) = (Storage a, Storage b)
-instance (Has w a, Has w b) => Has w (a,b) where
-  {-# INLINE getStore #-}
-  getStore = (,) <$> getStore <*> getStore
-
--- (,,)
-instance (Component a, Component b, Component c) => Component (a,b,c) where
-  type Storage (a, b, c) = (Storage a, Storage b, Storage c)
-instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
-  {-# INLINE getStore #-}
-  getStore = (,,) <$> getStore <*> getStore <*> getStore
-

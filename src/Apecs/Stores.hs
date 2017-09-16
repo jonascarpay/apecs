@@ -25,7 +25,7 @@ import Control.Monad.IO.Class
 import GHC.TypeLits
 import Data.Proxy
 
-import Apecs.Core
+import Apecs.Types
 
 newtype Map c = Map (IORef (M.IntMap c))
 instance Initializable (Map c) where

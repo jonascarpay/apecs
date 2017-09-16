@@ -30,7 +30,7 @@ import qualified Data.Vector.Unboxed as U
 import Data.Traversable (for)
 import System.CPUTime
 
-import Apecs.Core
+import Apecs.Types
 import Apecs.Stores
 import Apecs.System
 

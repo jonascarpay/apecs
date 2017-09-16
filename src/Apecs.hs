@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Apecs (
-  -- Core
+  -- Types
     System(..), runSystem, runWith,
     Component(..), Entity, Slice, Has(..), Safe(..), cast,
 
@@ -28,6 +28,6 @@ module Apecs (
 
 import Control.Monad.Reader (asks, ask, liftIO, lift)
 
-import Apecs.Core
+import Apecs.Types
 import Apecs.System
 

@@ -17,7 +17,7 @@ library
     src
   exposed-modules:
     Apecs,
-    Apecs.Core,
+    Apecs.Types,
     Apecs.System,
     Apecs.Stores,
     Apecs.Util
