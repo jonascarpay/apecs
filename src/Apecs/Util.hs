@@ -1,5 +1,6 @@
 {-# LANGUAGE Strict, ScopedTypeVariables, TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Apecs.Util (
   -- * Utility
@@ -38,7 +39,7 @@ import Apecs.System
 initStore :: (Initializable s, InitArgs s ~ ()) => IO s
 initStore = initStoreWith ()
 
-newtype EntityCounter = EntityCounter Int
+newtype EntityCounter = EntityCounter Int deriving (Num, Eq, Show)
 instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
 

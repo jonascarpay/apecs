@@ -11,25 +11,27 @@ import Control.Monad.Reader
 import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
 
-newtype Slice c = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)
+-- | An Entity is really just an Int. The type variable is used to keep track of reads and writes, but can be freely cast.
 newtype Entity c = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
 
--- | A constraint that indicates that the runtime representation of @c@ is @c@
-type Runtime c = Stores (Storage c)
-type IsRuntime c = (Store (Storage c), Runtime c ~ c)
-newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
+-- | A slice is a list of entities, represented by a Data.Unbox.Vector of Ints.
+newtype Slice c = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)
 
+-- | A system is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
-
-class Component c => Has w c where
-  getStore :: System w (Storage c)
 
 -- | A component is defined by the type of its storage
 --   The storage in turn supplies runtime types for the component.
+--   For the component to be valid, its Storage must be in instance of Initializable.
 class Initializable (Storage c) => Component c where
   type Storage c = s | s -> c
 
--- Storage type class hierarchy
+-- | A world `Has` a component if it can produce its Storage
+class Component c => Has w c where
+  getStore :: System w (Storage c)
+
+
+-- Storage types
 -- | Common for every storage. Represents a container that can be initialized
 class Initializable s where
   type InitArgs s
@@ -54,6 +56,8 @@ class HasMembers s where
   explImapM :: MonadIO m => s -> (Int -> m a) -> m [a]
   {-# INLINE explImapM #-}
   explImapM s ma = liftIO (explMembers s) >>= Prelude.mapM ma . U.toList
+
+newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 
 -- | Class of storages that associates components with entities.
 class HasMembers s => Store s where
@@ -114,6 +118,9 @@ class HasMembers s => Store s where
       x :: Stores s <- liftIO$ explGetUnsafe s ety
       sys (ety,x)
 
+type Runtime c = Stores (Storage c)
+-- | A constraint that indicates that the runtime representation of @c@ is @c@
+type IsRuntime c = (Store (Storage c), Runtime c ~ c)
 -- | Class of storages for global values
 class GlobalRW s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}

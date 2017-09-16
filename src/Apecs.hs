@@ -3,7 +3,7 @@
 module Apecs (
   -- Types
     System(..), runSystem, runWith,
-    Component(..), Entity, Slice, Has(..), Safe(..), cast,
+    Component(..), Entity(..), Slice, Has(..), Safe(..), cast,
 
     -- Initializable
     initStoreWith,

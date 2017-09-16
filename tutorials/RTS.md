@@ -92,10 +92,10 @@ Or, to be more precise, it holds immutable references to mutable storage contain
 When actually executing the game, we produce a world in the IO monad:
 ```haskell
 initWorld = do
-  positions  <- initStore
+  positions  <- initStore -- initStore = initStoreWith (), used to initialize most stores
   targets    <- initStore
   selected   <- initStore
-  mouseState <- initStoreWith Rest
+  mouseState <- initStoreWith Rest -- A global needs to be initialized with a value
   counter    <- initCounter
   return $ World positions targets selected counter
 ```
@@ -289,4 +289,4 @@ There will be at least one more tutorial, on how to make things fast.
 We'll be taking a look at
   - How to cache your components for O(1) reads and writes
   - How to use an IndexTable to add queries to your component storages
-  - How to use those indextables to get a free spatial hash of our positions
+  - How to use those IndexTables to get a free spatial hash of our positions
