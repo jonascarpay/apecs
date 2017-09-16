@@ -15,10 +15,6 @@ module Apecs.Util (
   -- * Optimized maps
   rmap', rmap, wmap, wmap', cmap',
 
-  -- * Slice interation
-  sliceForM, sliceForM_, sliceForMC, sliceForMC_,
-  sliceMapM, sliceMapM_, sliceMapMC, sliceMapMC_,
-
   -- * Timing
   timeSystem, timeSystem_,
 
@@ -28,7 +24,6 @@ import System.Mem (performMajorGC)
 import Control.Monad.Reader (liftIO)
 import Control.Applicative (liftA2)
 import qualified Data.Vector.Unboxed as U
-import Data.Traversable (for)
 import System.CPUTime
 
 import Apecs.Types
@@ -118,51 +113,6 @@ wmap' f = do sr :: Storage r <- getStore
                           r <- explGet sr e
                           explSetMaybe sw e (getSafe . f . Safe $ r)
 
-
--- Slice traversal
-{-# INLINE sliceForM_ #-}
-sliceForM_ :: Monad m => Slice c -> (Entity c -> m b) -> m ()
-sliceForM_ (Slice vec) ma = U.forM_ vec (ma . Entity)
-
-{-# INLINE sliceForM #-}
-sliceForM :: Monad m => Slice c -> (Entity c -> m a) -> m [a]
-sliceForM (Slice vec) ma = traverse (ma . Entity) (U.toList vec)
-
-{-# INLINE sliceForMC #-}
-sliceForMC :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w [a]
-sliceForMC (Slice vec) sys = do
-  s :: Storage c <- getStore
-  for (U.toList vec) $ \e -> do
-    r <- liftIO$ explGet s e
-    sys (Entity e, Safe r)
-
-{-# INLINE sliceForMC_ #-}
-sliceForMC_ :: forall w c a. (Store (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
-sliceForMC_ (Slice vec) sys = do
-  s :: Storage c <- getStore
-  U.forM_ vec $ \e -> do
-    r <- liftIO$ explGet s e
-    sys (Entity e, Safe r)
-
-{-# INLINE sliceMapM_ #-}
-sliceMapM_ :: Monad m => (Entity c -> m a) -> Slice c -> m ()
-sliceMapM_ ma (Slice vec) = U.mapM_ (ma . Entity) vec
-
-{-# INLINE sliceMapM #-}
-sliceMapM :: Monad m => (Entity c -> m a) -> Slice c -> m [a]
-sliceMapM ma (Slice vec) = traverse (ma . Entity) (U.toList vec)
-
-{-# INLINE sliceMapMC #-}
-sliceMapMC :: forall w c a. (Store (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w [a]
-sliceMapMC sys (Slice vec) = do
-  s :: Storage c <- getStore
-  for (U.toList vec) $ \e -> do
-    r <- liftIO$ explGet s e
-    sys (Entity e, Safe r)
-
-{-# INLINE sliceMapMC_ #-}
-sliceMapMC_ :: forall w c a. (Store (Storage c), Has w c) => ((Entity c, Safe c) -> System w a) -> Slice c -> System w ()
-sliceMapMC_ sys vec = sliceForMC_ vec sys
 
 -- | The following functions are for spatial hashing.
 --   The idea is that your spatial hash is defined by two vectors;

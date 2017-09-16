@@ -18,8 +18,9 @@ library
   exposed-modules:
     Apecs,
     Apecs.Types,
-    Apecs.System,
     Apecs.Stores,
+    Apecs.System,
+    Apecs.Slice,
     Apecs.Util
   default-language:
     Haskell2010

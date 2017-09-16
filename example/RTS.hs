@@ -84,6 +84,7 @@ render renderer = do
     liftIO$ SDL.rendererDrawColor renderer $= if e then V4 255 255 255 255 else V4 255 0 0 255
     SDL.drawPoint renderer (P (round <$> p))
 
+  liftIO$ SDL.rendererDrawColor renderer $= V4 255 255 255 255
   r <- readGlobal
   case r of
     Dragging a b -> SDL.drawRect renderer (Just $ SDL.Rectangle (P (round <$> a)) (round <$> b-a))

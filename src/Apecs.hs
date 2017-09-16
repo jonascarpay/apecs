@@ -30,4 +30,5 @@ import Control.Monad.Reader (asks, ask, liftIO, lift)
 
 import Apecs.Types
 import Apecs.System
+import Apecs.Slice
 

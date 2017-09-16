@@ -8,7 +8,6 @@
 module Apecs.System where
 
 import Control.Monad.Reader
-import qualified Data.Vector.Unboxed as U
 
 import Apecs.Types
 
@@ -141,30 +140,3 @@ modifyGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => (c -> c) -> Sys
 modifyGlobal f = do s :: Storage c <- getStore
                     liftIO$ explGlobalModify s f
 
-{-# INLINE sliceFoldM_ #-}
-sliceFoldM_ :: (a -> Entity c -> System w a) -> a -> Slice b -> System w ()
-sliceFoldM_ f seed (Slice sl) = U.foldM'_ ((.Entity) . f) seed sl
-
--- | Gets the size of a slice (O(n))
-{-# INLINE sliceSize #-}
-sliceSize :: Slice a -> Int
-sliceSize (Slice vec) = U.length vec
-
--- | Tests whether a slice is empty (O(1))
-{-# INLINE sliceNull #-}
-sliceNull :: Slice a -> Bool
-sliceNull (Slice vec) = U.null vec
-
--- | Construct a slice from a list of IDs
-{-# INLINE sliceFromList #-}
-sliceFromList :: [Int] -> Slice a
-sliceFromList = Slice . U.fromList
-
--- | Monadically filter a slice
-{-# INLINE sliceFilterM #-}
-sliceFilterM :: (Entity c -> System w Bool) -> Slice c -> System w (Slice c)
-sliceFilterM fm (Slice vec) = Slice <$> U.filterM (fm . Entity) vec
-
-{-# INLINE sliceConcat #-}
-sliceConcat :: Slice a -> Slice b -> Slice c
-sliceConcat (Slice a) (Slice b) = Slice (a U.++ b)
