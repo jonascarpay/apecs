@@ -34,7 +34,9 @@ class Component c => Has w c where
 -- Storage types
 -- | Common for every storage. Represents a container that can be initialized.
 class Initializable s where
+  -- | The initialization argument required by this store
   type InitArgs s
+  -- Initialize the store with its initialization arguments.
   initStoreWith :: InitArgs s -> IO s
 
 -- | A store that is indexed by entities.
@@ -68,8 +70,10 @@ newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 
 -- | Class of storages that associates components with entities.
 class HasMembers s => Store s where
-  type SafeRW s -- ^ Return type for safe reads/writes to the store
-  type Stores s -- ^ The type of components stored by this Store
+  -- | Return type for safe reads writes to the store
+  type SafeRW s
+  -- | The type of components stored by this Store
+  type Stores s
   -- | Unsafe index to the store. Undefined if the component does not exist
   explGetUnsafe :: s -> Int -> IO (Stores s)
   -- | Retrieves a component from the store
@@ -121,9 +125,8 @@ class HasMembers s => Store s where
       x :: Stores s <- liftIO$ explGetUnsafe s ety
       sys (ety,x)
 
-type Runtime c = Stores (Storage c)
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
-type IsRuntime c = (Store (Storage c), Runtime c ~ c)
+type IsRuntime c = (Store (Storage c), Stores (Storage c) ~ c)
 -- | Class of storages for global values
 class GlobalRW s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}
@@ -135,16 +138,20 @@ class GlobalRW s c where
   explGlobalModify s f = do r <- explGlobalRead s
                             explGlobalWrite s (f r)
 
--- Query
+-- | Classes of queries @q@ that can be performed on a store @s@.
 class Query q s where
+  -- | Returns a slice of the results of the query
   explSlice :: s -> q -> IO (U.Vector Int)
 
+-- | Query that returns all members, equivalent to @members@
 data All = All
 instance HasMembers s => Query All s where
   {-# INLINE explSlice #-}
   explSlice s _ = explMembers s
 
-class Cast a b where cast :: a -> b
+-- | Casts for entities and slices
+class Cast a b where
+  cast :: a -> b
 instance Cast (Entity a) (Entity b) where
   {-# INLINE cast #-}
   cast (Entity ety) = Entity ety

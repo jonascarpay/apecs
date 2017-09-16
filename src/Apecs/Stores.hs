@@ -27,6 +27,8 @@ import Data.Proxy
 
 import Apecs.Types
 
+-- | A map from Data.Intmap.Strict. O(n log(n)) for most operations.
+--   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
 instance Initializable (Map c) where
   type InitArgs (Map c) = ()
@@ -65,8 +67,12 @@ instance Store (Map c) where
   {-# INLINE explCimapM_ #-}
   {-# INLINE explCimapM #-}
 
+-- | Class for flags, used by @Set@ to yield runtime representations.
 class Flag c where
   flag :: c
+
+-- | A store that keeps membership, but holds no values.
+--   Produces @flag@ runtime values.
 newtype Set c = Set (IORef S.IntSet)
 instance Initializable (Set c) where
   type InitArgs (Set c) = ()
@@ -105,11 +111,11 @@ instance (Flag c) => Store (Set c) where
   {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
+-- | Constant value. Not very practical, but fun to write.
 newtype Const c = Const c
 instance Initializable (Const c) where
   type InitArgs (Const c) = c
   initStoreWith c = return$ Const c
-
 instance GlobalRW (Const c) c where
   explGlobalRead  (Const c) = return c
   explGlobalWrite  _ _ = return ()
@@ -129,6 +135,8 @@ instance Store (Const c) where
   explModify    _ _ _ = return ()
   explCmap       _ _ = return ()
 
+-- | Global value.
+--   Must be given an initial value upon construction.
 newtype Global c = Global (IORef c)
 instance Initializable (Global c) where
   type InitArgs (Global c) = c
@@ -142,11 +150,11 @@ instance GlobalRW (Global c) c where
   {-# INLINE explGlobalWrite #-}
   {-# INLINE explGlobalModify #-}
 
+-- | A cache around another store.
+--   The wrapped store must produce safe representations using Maybe.
+--   Note that iterating over a cache is linear in its size, so large, sparsely populated caches will actually decrease performance.
 data Cache (n :: Nat) s =
-  Cache Int -- | Size
-        (UM.IOVector Int) -- | Tags
-        (VM.IOVector (Stores s)) -- | Members
-        s -- | Writeback
+  Cache Int (UM.IOVector Int) (VM.IOVector (Stores s)) s
 
 instance (KnownNat n, Initializable s) => Initializable (Cache n s) where
   type InitArgs (Cache n s) = (InitArgs s)
@@ -264,8 +272,12 @@ instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
 --   For Enums, toIndex = fromEnum
 class Bounded a => ToIndex a where
   toIndex :: a -> Int
+-- | A query to an IndexTable by an explicit index
 newtype ByIndex a     = ByIndex Int
+-- | A query to an IndexTable by a reference component
 newtype ByComponent c = ByComponent c
+-- | A table that keeps a hashtable of indices along with its writes.
+-- TODO: Benchmark? hashing function as argument?
 data IndexTable s = IndexTable
   { table :: VM.IOVector S.IntSet
   , wrapped :: s

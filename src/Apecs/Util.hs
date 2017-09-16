@@ -30,29 +30,36 @@ import Apecs.System
 initStore :: (Initializable s, InitArgs s ~ ()) => IO s
 initStore = initStoreWith ()
 
+-- | Secretly just an int in a newtype
 newtype EntityCounter = EntityCounter Int deriving (Num, Eq, Show)
 instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
 
+-- | Initialize an EntityCounter
 initCounter :: IO (Storage EntityCounter)
 initCounter = initStoreWith (EntityCounter 0)
 
+-- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity ())
 nextEntity = do EntityCounter n <- readGlobal
                 writeGlobal (EntityCounter (n+1))
                 return (Entity n)
 
+-- | Writes the given components to a new entity, and yields that entity
 {-# INLINE newEntity #-}
 newEntity :: (IsRuntime c, Has w c, Has w EntityCounter)
           => c -> System w (Entity c)
 newEntity c = do ety <- nextEntity
-                 set (cast ety) c
+                 set ety c
                  return (cast ety)
 
+-- | Explicitly invoke the garbage collector
 runGC :: System w ()
 runGC = liftIO performMajorGC
 
+-- | Sequentially performs a series of queries and concatenates their result.
+--   Especially useful when iterating over an IndexTable
 newtype ConcatQueries q = ConcatQueries [q]
 instance Query q s => Query (ConcatQueries q) s where
   explSlice s (ConcatQueries qs) = mconcat <$> traverse (explSlice s) qs

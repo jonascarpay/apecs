@@ -91,35 +91,41 @@ imapM :: forall w c a. (Has w c, HasMembers (Storage c))
 imapM sys = do s :: Storage c <- getStore
                explImapM s (sys . Entity)
 
+-- | Maps a pure function over all components
 {-# INLINE cmap #-}
 cmap :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
 cmap f = do s :: Storage c <- getStore
             liftIO$ explCmap s f
 
+-- | mapM_ version of cmap
 {-# INLINE cmapM_ #-}
 cmapM_ :: forall w c. (Has w c, IsRuntime c)
        => (c -> System w ()) -> System w ()
 cmapM_ sys = do s :: Storage c <- getStore
                 explCmapM_ s sys
 
+-- | indexed cmapM_, also gives the current entity.
 {-# INLINE cimapM_ #-}
 cimapM_ :: forall w c. (Has w c, IsRuntime c)
         => ((Entity c, c) -> System w ()) -> System w ()
 cimapM_ sys = do s :: Storage c <- getStore
                  explCimapM_ s (\(e,c) -> sys (Entity e,c))
 
+-- | mapM version of cmap. Can be used to get a list of entities
 {-# INLINE cmapM #-}
 cmapM :: forall w c a. (Has w c, IsRuntime c)
       => (c -> System w a) -> System w [a]
 cmapM sys = do s :: Storage c <- getStore
                explCmapM s sys
 
+-- | indexed cmapM, also gives the current entity.
 {-# INLINE cimapM #-}
 cimapM :: forall w c a. (Has w c, IsRuntime c)
        => ((Entity c, c) -> System w a) -> System w [a]
 cimapM sys = do s :: Storage c <- getStore
                 explCimapM s (\(e,c) -> sys (Entity e,c))
 
+-- | Maps a function that might delete its components
 cmap' :: forall world c. (Has world c, IsRuntime c)
       => (c -> Safe c) -> System world ()
 cmap' f = do s :: Storage c <- getStore
@@ -173,22 +179,26 @@ wmap' f = do sr :: Storage r <- getStore
                           explSetMaybe sw e (getSafe . f . Safe $ r)
 
 
+-- | Performs a query
 {-# INLINE slice #-}
 slice :: forall w c q. (Query q (Storage c), Has w c) => q -> System w (Slice c)
 slice q = do
   s :: Storage c <- getStore
   liftIO$ Slice <$> explSlice s q
 
+-- | Reads a global value
 {-# INLINE readGlobal #-}
 readGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => System w c
 readGlobal = do s :: Storage c <- getStore
                 liftIO$ explGlobalRead s
 
+-- | Writes a global value
 {-# INLINE writeGlobal #-}
 writeGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => c -> System w ()
 writeGlobal c = do s :: Storage c <- getStore
                    liftIO$ explGlobalWrite s c
 
+-- | Modifies a global value
 {-# INLINE modifyGlobal #-}
 modifyGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => (c -> c) -> System w ()
 modifyGlobal f = do s :: Storage c <- getStore
