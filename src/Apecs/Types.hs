@@ -30,6 +30,8 @@ class Initializable (Storage c) => Component c where
 class Component c => Has w c where
   getStore :: System w (Storage c)
 
+instance (Component c, Initializable s, s ~ Storage c) => Has s c where
+  getStore = System ask
 
 -- Storage types
 -- | Common for every storage. Represents a container that can be initialized.
