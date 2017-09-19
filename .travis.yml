@@ -24,8 +24,6 @@ addons:
   apt:
     packages:
       - libgmp-dev
-      - libsdl2-2.0
-      - libsdl2-dev
 
 before_install:
 # Download and unpack the stack executable
