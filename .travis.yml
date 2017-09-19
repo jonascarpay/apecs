@@ -19,11 +19,20 @@ cache:
   directories:
   - $HOME/.stack
 
-# Ensure necessary system libraries are present
-addons:
-  apt:
-    packages:
-      - libgmp-dev
+matrix:
+  include:
+    # works on Precise and Trusty
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - clang-3.7
+      env:
+        - MATRIX_EVAL="CC=clang-3.7 && CXX=clang++-3.7"
+
 
 before_install:
 # Download and unpack the stack executable
@@ -33,8 +42,11 @@ before_install:
 
 install:
 # Build dependencies
+- stack --no-terminal --install-ghc build
 - stack --no-terminal --install-ghc test --only-dependencies
+- stack --no-terminal --install-ghc bench --only-dependencies
 
 script:
 # Build the package, its tests, and its docs and run the tests
-- stack --no-terminal test --haddock --no-haddock-deps && stack bench
+- stack --no-terminal test --haddock --no-haddock-deps
+- stack --no-terminal bench --haddock --no-haddock-deps
