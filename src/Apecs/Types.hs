@@ -125,6 +125,7 @@ class HasMembers s => Store s where
       sys (ety,x)
 
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
+--   This will almost always be the case, but it _might_ not be so we need this constraint.
 type IsRuntime c = (Store (Storage c), Stores (Storage c) ~ c)
 
 -- | Class of storages for global values

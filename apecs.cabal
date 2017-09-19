@@ -1,5 +1,5 @@
 name:                apecs
-version:             0.2.0.2
+version:             0.2.0.3
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -34,6 +34,20 @@ library
     -Odph
     -fno-warn-unused-top-binds
 
+test-suite apecs-spec
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    Spec.hs
+  hs-source-dirs:
+    spec
+  build-depends:
+    base >= 4.7 && < 5,
+    apecs,
+    QuickCheck
+  default-language:
+    Haskell2010
+
 benchmark apecs-bench
   type:
     exitcode-stdio-1.0
@@ -42,7 +56,10 @@ benchmark apecs-bench
   main-is:
     Main.hs
   build-depends:
-    base, apecs, criterion, linear
+    base >= 4.7 && < 5,
+    apecs,
+    criterion,
+    linear
   default-language:
     Haskell2010
   ghc-options:
@@ -52,16 +69,3 @@ benchmark apecs-bench
     -optlo-O3
     -funfolding-use-threshold1000
     -funfolding-keeness-factor1000
-    -threaded
-
-test-suite apecs-spec
-  type:
-    exitcode-stdio-1.0
-  main-is:
-    Spec.hs
-  hs-source-dirs:
-    spec
-  build-depends:
-    base, apecs, QuickCheck
-  default-language:
-    Haskell2010
