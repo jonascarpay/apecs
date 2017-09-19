@@ -5,7 +5,7 @@ In this tutorial we'll take a look at how to write a simple RTS-like game using 
 We'll be using [SDL2](https://github.com/haskell-game/sdl2) for graphics.
 Don't worry if you don't know SDL2, neither do I.
 We'll only be drawing single pixels to the screen, so it should be pretty easy to follow what's going on.
-The final result can be found [here](https://github.com/jonascarpay/apecs-examples/blob/master/example/RTS.hs).
+The final result can be found [here](https://github.com/jonascarpay/apecs/blob/master/examples/RTS.hs).
 You can run it with `stack build && stack exec rts`.
 I will be skipping some details, so make sure to keep it handy if you want to follow along.
 
@@ -279,7 +279,7 @@ If you were to call `exists` with an `Entity (Position, Velocity)`, it'd tell yo
 #### Conclusion
 These are the tools you need to build a game in apecs.
 I did not discuss every line in the final program, as they were mostly SDL-related.
-Again, the final version in its full glory can be found [here](https://github.com/jonascarpay/apecs-examples/blob/master/example/RTS.hs).
+Again, the final version in its full glory can be found [here](https://github.com/jonascarpay/apecs/blob/master/examples/RTS.hs).
 
 The reason for writing this tutorial at this point is that apecs is now sufficiently developed where it has most of the functionality of other ECS, and is now a viable way of developing games in Haskell.
 The library is still under development, but for now, that is mostly on parts outside the scope of this tutorial.
