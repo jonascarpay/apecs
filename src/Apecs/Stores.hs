@@ -20,8 +20,7 @@ import Data.Maybe (fromJust)
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector.Mutable as VM
-import Control.Monad
-import Control.Monad.IO.Class
+import Control.Monad.Reader
 import GHC.TypeLits
 import Data.Proxy
 

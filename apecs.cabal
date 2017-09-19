@@ -91,6 +91,6 @@ test-suite apecs-spec
   hs-source-dirs:
     spec
   build-depends:
-    base, apecs, QuickCheck, linear
+    base, apecs, QuickCheck
   default-language:
     Haskell2010

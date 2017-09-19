@@ -30,9 +30,6 @@ class Initializable (Storage c) => Component c where
 class Component c => Has w c where
   getStore :: System w (Storage c)
 
-instance (Component c, Initializable s, s ~ Storage c) => Has s c where
-  getStore = System ask
-
 -- Storage types
 -- | Common for every storage. Represents a container that can be initialized.
 class Initializable s where
@@ -129,6 +126,7 @@ class HasMembers s => Store s where
 
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
 type IsRuntime c = (Store (Storage c), Stores (Storage c) ~ c)
+
 -- | Class of storages for global values
 class GlobalRW s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}
