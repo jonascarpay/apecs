@@ -110,6 +110,68 @@ instance (Flag c) => Store (Set c) where
   {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
+data Unique c = Unique (IORef Int) (IORef c)
+instance Initializable (Unique c) where
+  type InitArgs (Unique c) = ()
+  initStoreWith _ = Unique <$> newIORef (-1) <*> newIORef undefined
+instance HasMembers (Unique c) where
+  explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
+  explMembers (Unique eref _) = U.singleton <$> readIORef eref
+  explReset   (Unique eref _) = writeIORef eref (-1)
+  explExists  (Unique eref _) ety = (==ety) <$> readIORef eref
+  explImapM_  (Unique eref _) ma = do e <- liftIO (readIORef eref); when (e /= -1) (void$ ma e)
+  explImapM   (Unique eref _) ma = do
+    e <- liftIO (readIORef eref)
+    if e /= -1 then return [] else pure <$> ma e
+  {-# INLINE explDestroy #-}
+  {-# INLINE explMembers #-}
+  {-# INLINE explExists #-}
+  {-# INLINE explReset #-}
+  {-# INLINE explImapM_ #-}
+  {-# INLINE explImapM #-}
+
+instance Store (Unique c) where
+  type SafeRW (Unique c) = Maybe c
+  type Stores (Unique c) = c
+  explGetUnsafe (Unique _ cref) _ = readIORef cref
+  explGet       (Unique eref cref) ety = do
+    e <- readIORef eref
+    if e == ety then Just <$> readIORef cref else return Nothing
+
+  explSet       (Unique eref cref) ety x = writeIORef eref ety >> writeIORef cref x
+  explSetMaybe  s ety Nothing = explDestroy s ety
+  explSetMaybe  s ety (Just x) = explSet s ety x
+  explCmap      (Unique _    cref) f = modifyIORef' cref f
+  explModify    (Unique eref cref) ety f = do
+    e <- readIORef eref
+    when (e==ety) (modifyIORef' cref f)
+
+  explCmapM (Unique eref cref) ma = do
+    e <- liftIO$ readIORef eref
+    if e /= -1 then liftIO (readIORef cref) >>= fmap pure . ma
+               else return []
+
+  explCmapM_ (Unique eref cref) ma = do
+    e <- liftIO$ readIORef eref
+    when (e /= -1) . void $ liftIO (readIORef cref) >>= ma
+
+  explCimapM (Unique eref cref) ma = do
+    e <- liftIO$ readIORef eref
+    if e /= -1 then liftIO (readIORef cref) >>= fmap pure . ma . (,) e
+               else return []
+
+  explCimapM_ (Unique eref cref) ma = do
+    e <- liftIO$ readIORef eref
+    when (e /= -1) . void $ liftIO (readIORef cref) >>= ma . (,) e
+
+  {-# INLINE explGetUnsafe #-}
+  {-# INLINE explGet #-}
+  {-# INLINE explSet #-}
+  {-# INLINE explSetMaybe #-}
+  {-# INLINE explCmap #-}
+  {-# INLINE explModify #-}
+
+
 -- | Constant value. Not very practical, but fun to write.
 newtype Const c = Const c
 instance Initializable (Const c) where
