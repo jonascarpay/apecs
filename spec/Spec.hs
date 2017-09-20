@@ -10,7 +10,6 @@ import Test.QuickCheck.Monadic
 import Control.Monad
 
 import Apecs
-import Apecs.Types
 import Apecs.Util
 import qualified Apecs.Stores as S
 

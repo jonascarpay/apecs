@@ -155,7 +155,10 @@ instance GlobalRW (Global c) c where
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Stores s)) s
 
-instance (KnownNat n, Initializable s) => Initializable (Cache n s) where
+class (Initializable s, HasMembers s, Store s, SafeRW s ~ Maybe (Stores s)) => Cachable s
+instance Cachable (Map s)
+
+instance (KnownNat n, Cachable s) => Initializable (Cache n s) where
   type InitArgs (Cache n s) = (InitArgs s)
   initStoreWith args = do
     let n = fromIntegral$ natVal (Proxy @n)
@@ -164,7 +167,7 @@ instance (KnownNat n, Initializable s) => Initializable (Cache n s) where
     child <- initStoreWith args
     return (Cache n tags cache child)
 
-instance HasMembers s => HasMembers (Cache n s) where
+instance Cachable s => HasMembers (Cache n s) where
   {-# INLINE explDestroy #-}
   explDestroy (Cache n tags _ s) ety = do
     tag <- UM.unsafeRead tags (ety `mod` n)
@@ -199,7 +202,7 @@ instance HasMembers s => HasMembers (Cache n s) where
     as2 <- explImapM s ma
     return (as1 ++ as2)
 
-instance (SafeRW s ~ Maybe (Stores s), Store s) => Store (Cache n s) where
+instance Cachable s => Store (Cache n s) where
   type SafeRW (Cache n s) = SafeRW s
   type Stores (Cache n s) = Stores s
 
@@ -292,7 +295,7 @@ instance (ToIndex (Stores s), Initializable s) => Initializable (IndexTable s) w
     tab <- VM.replicate size mempty
     return (IndexTable tab s)
 
-instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => HasMembers (IndexTable s) where
+instance (Cachable s, ToIndex (Stores s)) => HasMembers (IndexTable s) where
   {-# INLINE explDestroy #-}
   explDestroy (IndexTable tab s) ety = do
     mc <- explGet s ety
@@ -318,7 +321,7 @@ instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => HasMember
   {-# INLINE explImapM #-}
   explImapM (IndexTable _ s) = explImapM s
 
-instance (SafeRW s ~ Maybe (Stores s), ToIndex (Stores s), Store s) => Store (IndexTable s) where
+instance (Cachable s, ToIndex (Stores s)) => Store (IndexTable s) where
   type SafeRW (IndexTable s) = SafeRW s
   type Stores (IndexTable s) = Stores s
   {-# INLINE explGetUnsafe #-}
