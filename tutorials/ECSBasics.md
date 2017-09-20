@@ -18,7 +18,7 @@ instance Component Velocity where type Storage Velocity = Map Velocity
 newtype Position = Position Float deriving (Eq, Show)
 instance Component Position where type Storage Position = Map Position
 
-newtype Player = Player Int deriving (Eq, Show)
+data Player = Player deriving (Eq, Show)
 instance Component Player where type Storage Player = Unique Player
 
 data World = World {velocities :: Storage Velocity, positions :: Storage Position, players :: Storage Player, ec :: Storage EntityCounter}
@@ -55,6 +55,14 @@ The `World`'s job is to store components.
 Let's inspect the world we've been given.
 Running `printPositions`, `printVelocities`, and `printPlayer` prints the contents of the three component stores our world has.
 As expected, all are empty.
+```
+λ> printPositions
+
+λ> printVelocities
+
+λ> printPlayer
+
+```
 
 Let's add a new entity:
 ```
@@ -107,13 +115,15 @@ At runtime, an entity really is just an integer, but at compile time, it also ha
 This type is generally interpreted as meaning what components we expect the entity to have.
 `get`, for example, uses it to decide which components to look up.
 
+The first entity we created only had a position.
+As expected, reading its Velocity fails.
 ```
 λ> printEntity (Entity 0 :: Entity (Position, Velocity))
 (Just (Position 0.0),Nothing)
 ```
-The first entity we created only had a position.
-As expected, reading its Velocity fails.
 
+`destroy` uses the type of its argument to determine what components to destroy.
+By casting `ety` to `Entity Velocity` we only delete its Velocity.
 ```
 λ> run$ destroy (cast ety :: Entity Velocity)
 
@@ -128,9 +138,8 @@ As expected, reading its Velocity fails.
 λ> printVelocities
 (Entity 1,Velocity 0)
 ```
-`destroy` uses the type of its argument to determine what components to destroy.
-By casting `ety` to `Entity Velocity` we only delete its Velocity.
 
+`exists` tells us whether or not an entity has all components that its type suggests it has.
 ```
 λ> run$ exists ety
 False
@@ -138,4 +147,23 @@ False
 λ> run$ exists (cast ety :: Entity Position)
 True
 ```
-`exists` tells us whether or not an entity has all components that its type suggests it has.
+
+`set` can be used to write or update a component.
+It doesn't care about the type of its entity argument.
+```
+λ> run$ set ety (Velocity 2)
+
+λ> printEntity ety
+(Just (Velocity 2),Just (Position 4.0))
+```
+
+#### Conclusion
+These are the primitive operations you'll find in most ECS.
+You won't often use them directly, but almost all systems can be defined using only these primitives.
+In fact, these are pretty close to the minimal complete definition for a `Store`.
+
+Most stores will behave like the Maps our Positions and Velocities are stored in.
+Sometimes, however, apecs will allow you to bend the rules a little when the performance boost is worth it  (try running `run$ set (Entity 0) Player >> set (Entity 1) Player` and then `printPlayer`).
+See the documentation for what types of stores are available.
+
+Next time, we'll make apecs fast.

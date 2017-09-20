@@ -12,7 +12,7 @@ module Apecs (
     destroy, exists, owners, resetStore,
 
   -- * Store wrapper functions
-    get, set, setOrDelete, modify,
+    get, set, set', modify,
     cmap, cmapM, cmapM_, cimapM, cimapM_,
     rmap', rmap, wmap, wmap', cmap',
 

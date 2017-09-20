@@ -63,8 +63,8 @@ set (Entity ety) x = do
   liftIO$ explSet s ety x
 
 -- | Same as @set@, but uses Safe to possibly delete a component
-setOrDelete :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
-setOrDelete (Entity ety) (Safe c) = do
+set' :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
+set' (Entity ety) (Safe c) = do
   s :: Storage c <- getStore
   liftIO$ explSetMaybe s ety c
 
