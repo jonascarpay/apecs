@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Apecs.Stores
-  ( Map, Set, Flag(..), Cache,
+  ( Map, Set, Flag(..), Cache, Unique,
     Global,
     IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
   ) where
@@ -110,6 +110,8 @@ instance (Flag c) => Store (Set c) where
   {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
+-- | A Unique contains exactly one component belonging to some entity.
+--   Writing to it overwrites both the previous component and its owner.
 data Unique c = Unique (IORef Int) (IORef c)
 instance Initializable (Unique c) where
   type InitArgs (Unique c) = ()

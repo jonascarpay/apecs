@@ -12,7 +12,7 @@ import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
 
 -- | An Entity is really just an Int. The type variable is used to keep track of reads and writes, but can be freely cast.
-newtype Entity c = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
+newtype Entity c = Entity Int deriving (Eq, Ord, Show)
 
 -- | A slice is a list of entities, represented by a Data.Unbox.Vector of Ints.
 newtype Slice c = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)

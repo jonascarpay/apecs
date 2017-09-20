@@ -4,7 +4,7 @@
 
 module Apecs.Util (
   -- * Utility
-  initStore, ConcatQueries(..), runGC,
+  initStore, ConcatQueries(..), runGC, unEntity,
 
   -- * EntityCounter
   EntityCounter, initCounter, nextEntity, newEntity,
@@ -29,6 +29,9 @@ import Apecs.System
 -- | Initializes a store with (), useful since most stores have () as their initialization argument
 initStore :: (Initializable s, InitArgs s ~ ()) => IO s
 initStore = initStoreWith ()
+
+unEntity :: Entity a -> Int
+unEntity (Entity e) = e
 
 -- | Secretly just an int in a newtype
 newtype EntityCounter = EntityCounter Int deriving (Num, Eq, Show)
