@@ -4,6 +4,8 @@ module Apecs (
   -- * Types
     System(..),
     Component(..), Entity(..), Slice, Has(..), Safe(..), cast,
+    Map, Set, Unique, Global,
+
 
   -- * Initializable
     initStoreWith,
@@ -38,4 +40,5 @@ import Control.Monad.Reader (asks, ask, liftIO, lift)
 import Apecs.Types
 import Apecs.System
 import Apecs.Slice as SL
+import Apecs.Stores
 

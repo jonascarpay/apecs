@@ -11,6 +11,7 @@ module Apecs.Stores
   ( Map, Set, Flag(..), Cache, Unique,
     Global,
     IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
+    Cachable,
   ) where
 
 import qualified Data.IntMap.Strict as M
@@ -221,6 +222,7 @@ data Cache (n :: Nat) s =
 
 class (Initializable s, HasMembers s, Store s, SafeRW s ~ Maybe (Stores s)) => Cachable s
 instance Cachable (Map s)
+instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
 instance (KnownNat n, Cachable s) => Initializable (Cache n s) where
   type InitArgs (Cache n s) = (InitArgs s)
