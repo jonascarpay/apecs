@@ -1,5 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE Strict #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Apecs.Loggers where
 
@@ -33,6 +35,17 @@ instance Log l => IOLog (FromPure l) where
   ioLogReset (FromPure lref) = writeIORef lref logEmpty
 
 data Logger l s = Logger l s
+
+class HasLog s l where
+  explGetLog :: s -> l
+
+instance HasLog (Logger l s) l where explGetLog (Logger l _) = l
+
+instance HasLog s l => HasLog (Logger la s) l where explGetLog (Logger _ s) = explGetLog s
+
+getLog :: forall w l. (HasLog (Storage (IOLogComponent l)) l, Has w (IOLogComponent l)) => System w l
+getLog = explGetLog <$> (getStore :: System w (Storage (IOLogComponent l)))
+
 
 instance (IOLog l, Cachable s) => Initializable (Logger l s) where
   type InitArgs (Logger l s) = InitArgs s
