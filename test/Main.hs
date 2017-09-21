@@ -8,6 +8,7 @@
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Control.Monad
+import qualified Data.IntSet as S
 
 import Apecs
 import Apecs.Util
@@ -17,7 +18,7 @@ type Vec = (Double, Double)
 
 newtype Position = Position Vec deriving (Arbitrary, Eq, Show)
 instance Component Position where
-  type Storage Position = S.Map Position
+  type Storage Position = S.Logger (IndexLogger Position) (S.Map Position)
 
 newtype CachePos = CachePos Vec deriving (Arbitrary, Eq, Show)
 instance Component CachePos where
@@ -35,6 +36,12 @@ instance S.Flag Flag where flag = Flag
 instance Component Flag where
   type Storage Flag = S.Set Flag
 
+newtype IndexLogger c = IndexLogger S.IntSet
+instance S.Log (IndexLogger c) where
+  type LogComponent (IndexLogger c) = c
+  logEmpty = IndexLogger mempty
+  logOnSet (Entity e) _ _ (IndexLogger s) = IndexLogger $ S.insert e s
+  logOnDestroy (Entity e) _ (IndexLogger s) = IndexLogger $ S.delete e s
 
 newtype RandomEntity a = RandomEntity (Entity a) deriving (Eq, Show)
 instance Arbitrary (RandomEntity a) where
@@ -55,17 +62,6 @@ getSetPos cs (RandomEntity e) p = monadicIO $ run f >>= assert
   where
     f = do
       w :: Storage Position <- initStore
-      runWith (W1 w) $ do
-        forM_ cs $ \(RandomEntity ety, pos) -> set ety pos
-        set e p
-        Safe r <- get e
-        return (r == Just p)
-
-getSetCPos :: [(RandomEntity CachePos, CachePos)] -> RandomEntity CachePos -> CachePos -> Property
-getSetCPos cs (RandomEntity e) p = monadicIO $ run f >>= assert
-  where
-    f = do
-      w :: Storage CachePos <- initStore
       runWith (W1 w) $ do
         forM_ cs $ \(RandomEntity ety, pos) -> set ety pos
         set e p
@@ -99,9 +95,7 @@ cmapVP cs (RandomEntity e) (v,p) = monadicIO $ run f >>= assert
         Safe r <- get e
         return (r == (Just $ swapV v, Just $ swapP p))
 
-
 main = do
   quickCheck getSetPos
-  quickCheck getSetCPos
   quickCheck getSetVCPos
   quickCheck cmapVP

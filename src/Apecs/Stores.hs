@@ -10,7 +10,7 @@
 module Apecs.Stores
   ( Map, Set, Flag(..), Cache, Unique,
     Global,
-    IndexTable, ToIndex(..), ByIndex(..), ByComponent(..),
+    Log(..), IOLog(..), Logger, IOLogger, getLog,
     Cachable,
   ) where
 
@@ -335,106 +335,101 @@ instance Cachable s => Store (Cache n s) where
         void$ ma (e, r)
     explCimapM_ s ma
 
--- | A component that can be hashed to a table index.
---   minBound must hash to the lowest possible value, maxBound must hash to the highest.
---   For Enums, toIndex = fromEnum
-class Bounded a => ToIndex a where
-  toIndex :: a -> Int
--- | A query to an IndexTable by an explicit index
-newtype ByIndex a     = ByIndex Int
--- | A query to an IndexTable by a reference component
-newtype ByComponent c = ByComponent c
--- | A table that keeps a hashtable of indices along with its writes.
--- TODO: Benchmark? hashing function as argument?
-data IndexTable s = IndexTable
-  { table :: VM.IOVector S.IntSet
-  , wrapped :: s
-  }
+-- | Is a function of the components in some store
+--   It is updated when a component is written or removed.
+class Log l where
+  type LogComponent l
+  logEmpty :: l
+  logOnSet :: Entity a -> Maybe (LogComponent l) -> LogComponent l -> l -> l
+  logOnDestroy :: Entity a -> LogComponent l -> l -> l
 
-instance (ToIndex (Stores s), Initializable s) => Initializable (IndexTable s) where
-  type InitArgs (IndexTable s) = InitArgs s
-  initStoreWith args = do
-    let lo = toIndex (minBound :: Stores s)
-        hi = toIndex (maxBound :: Stores s)
-        size = hi - lo + 1
-    s <- initStoreWith args
-    tab <- VM.replicate size mempty
-    return (IndexTable tab s)
+-- | An IOLog is a Log with mutable state.
+class IOLog l where
+  type IOLogComponent l
+  ioLogEmpty :: IO l
+  ioLogOnSet :: l -> Int -> Maybe (IOLogComponent l) -> IOLogComponent l -> IO ()
+  ioLogOnDestroy :: l -> Int -> IOLogComponent l -> IO ()
+  ioLogReset :: l -> IO ()
 
-instance (Cachable s, ToIndex (Stores s)) => HasMembers (IndexTable s) where
+newtype FromPure l = FromPure (IORef l)
+instance Log l => IOLog (FromPure l) where
+  type IOLogComponent (FromPure l) = LogComponent l
+  {-# INLINE ioLogEmpty #-}
+  ioLogEmpty = FromPure <$> newIORef logEmpty
+  {-# INLINE ioLogOnSet #-}
+  ioLogOnSet (FromPure lref) e old new = modifyIORef' lref (logOnSet (Entity e) old new)
+  {-# INLINE ioLogOnDestroy #-}
+  ioLogOnDestroy (FromPure lref) e c = modifyIORef' lref (logOnDestroy (Entity e) c)
+  {-# INLINE ioLogReset #-}
+  ioLogReset (FromPure lref) = writeIORef lref logEmpty
+
+-- | A Logger l of some store updates the log l with the writes and deletes to s
+type Logger l s = IOLogger (FromPure l) s
+-- | An IOLogger l of some store updates the mutable log l with the writes and deletes to s
+data IOLogger l s = IOLogger l s
+
+class HasLog s l where explGetLog :: s -> l
+instance               HasLog (IOLogger l s)  l where explGetLog (IOLogger l _) = l
+instance HasLog s l => HasLog (IOLogger la s) l where explGetLog (IOLogger _ s) = explGetLog s
+
+-- | Produces a log
+getLog :: forall w l. (HasLog (Storage (IOLogComponent l)) l, Has w (IOLogComponent l)) => System w l
+getLog = explGetLog <$> (getStore :: System w (Storage (IOLogComponent l)))
+
+
+instance (IOLog l, Cachable s) => Initializable (IOLogger l s) where
+  type InitArgs (IOLogger l s) = InitArgs s
+  initStoreWith args = IOLogger <$> ioLogEmpty <*> initStoreWith args
+
+instance (IOLogComponent l ~ Stores s, IOLog l, Cachable s) => HasMembers (IOLogger l s) where
   {-# INLINE explDestroy #-}
-  explDestroy (IndexTable tab s) ety = do
+  explDestroy (IOLogger l s) ety = do
     mc <- explGet s ety
     case mc of
-      Just c -> do
-        VM.modify tab (S.delete ety) (toIndex c)
-        explDestroy s ety
+      Just c -> ioLogOnDestroy l ety c >> explDestroy s ety
       _ -> return ()
 
   {-# INLINE explExists #-}
-  explExists  (IndexTable _ s) ety = explExists  s ety
+  explExists (IOLogger _ s) ety = explExists s ety
   {-# INLINE explMembers #-}
-  explMembers (IndexTable _ s) = explMembers s
-
+  explMembers (IOLogger _ s) = explMembers s
   {-# INLINE explReset #-}
-  explReset (IndexTable tab s) = do
-    forM_ [0 .. VM.length tab-1] $ \e -> VM.write tab e mempty
-    explReset s
-
+  explReset (IOLogger l s) = ioLogReset l >> explReset s
   {-# INLINE explImapM_ #-}
-  explImapM_ (IndexTable _ s) = explImapM_ s
-
+  explImapM_ (IOLogger _ s) = explImapM_ s
   {-# INLINE explImapM #-}
-  explImapM (IndexTable _ s) = explImapM s
+  explImapM (IOLogger _ s) = explImapM s
 
-instance (Cachable s, ToIndex (Stores s)) => Store (IndexTable s) where
-  type SafeRW (IndexTable s) = SafeRW s
-  type Stores (IndexTable s) = Stores s
+instance (IOLogComponent l ~ Stores s, IOLog l, Cachable s) => Store (IOLogger l s) where
+  type SafeRW (IOLogger l s) = SafeRW s
+  type Stores (IOLogger l s) = Stores s
+
   {-# INLINE explGetUnsafe #-}
-  explGetUnsafe (IndexTable _ s) ety = explGetUnsafe s ety
+  explGetUnsafe (IOLogger _ s) ety = explGetUnsafe s ety
   {-# INLINE explGet #-}
-  explGet (IndexTable _ s) ety = explGet s ety
+  explGet (IOLogger _ s) ety = explGet s ety
   {-# INLINE explSet #-}
-  explSet (IndexTable tab s) ety x = do
-    let indexNew = toIndex x
+  explSet (IOLogger l s) ety x = do
     mc <- explGet s ety
-    case mc of
-      Nothing -> VM.modify tab (S.insert ety) indexNew
-      Just c  -> do let indexOld = toIndex c
-                    unless (indexOld == indexNew) $ do
-                      VM.modify tab (S.delete ety) indexOld
-                      VM.modify tab (S.insert ety) indexNew
+    ioLogOnSet l ety mc x
     explSet s ety x
+
   {-# INLINE explSetMaybe #-}
-  explSetMaybe s ety Nothing = explDestroy s ety
+  explSetMaybe s ety (Nothing) = explDestroy s ety
   explSetMaybe s ety (Just x) = explSet s ety x
+
   {-# INLINE explModify #-}
-  explModify (IndexTable tab s) ety f = do
+  explModify (IOLogger l s) ety f = do
     mc <- explGet s ety
     case mc of
+      Just c -> explSet (IOLogger l s) ety (f c)
       Nothing -> return ()
-      Just c  -> do let indexOld = toIndex c
-                        x = f c
-                        indexNew = toIndex c
-                    unless (indexOld == indexNew) $ do
-                      VM.modify tab (S.delete ety) indexOld
-                      VM.modify tab (S.insert ety) indexNew
-                    explSet s ety x
 
-  explCmapM_  (IndexTable _ s) = explCmapM_  s
-  explCmapM   (IndexTable _ s) = explCmapM   s
-  explCimapM_ (IndexTable _ s) = explCimapM_ s
-  explCimapM  (IndexTable _ s) = explCimapM  s
   {-# INLINE explCmapM_ #-}
+  explCmapM_  (IOLogger _ s) = explCmapM_  s
   {-# INLINE explCmapM #-}
+  explCmapM   (IOLogger _ s) = explCmapM   s
   {-# INLINE explCimapM_ #-}
+  explCimapM_ (IOLogger _ s) = explCimapM_ s
   {-# INLINE explCimapM #-}
-
-instance (Stores s ~ c, ToIndex (Stores s)) => Query (ByComponent c) (IndexTable s) where
-  {-# INLINE explSlice #-}
-  explSlice (IndexTable tab _) (ByComponent c) = U.fromList . S.elems <$> VM.read tab (toIndex c)
-
-instance (Stores s ~ c, ToIndex (Stores s)) => Query (ByIndex c) (IndexTable s) where
-  {-# INLINE explSlice #-}
-  explSlice (IndexTable tab _) (ByIndex ix) = U.fromList . S.elems <$> VM.read tab ix
-
+  explCimapM  (IOLogger _ s) = explCimapM  s

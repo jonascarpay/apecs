@@ -10,10 +10,13 @@ module Apecs.Util (
   EntityCounter, initCounter, nextEntity, newEntity,
 
   -- * Spatial hashing
+  -- $hash
   quantize, flatten, region, inbounds,
 
   -- * Timing
   timeSystem, timeSystem_,
+
+  -- * indexTable
 
   ) where
 
@@ -21,6 +24,9 @@ import System.Mem (performMajorGC)
 import Control.Monad.Reader (liftIO)
 import Control.Applicative (liftA2)
 import System.CPUTime
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
+import qualified Data.IntSet as S
 
 import Apecs.Types
 import Apecs.Stores
@@ -67,14 +73,15 @@ newtype ConcatQueries q = ConcatQueries [q]
 instance Query q s => Query (ConcatQueries q) s where
   explSlice s (ConcatQueries qs) = mconcat <$> traverse (explSlice s) qs
 
--- | The following functions are for spatial hashing.
---   The idea is that your spatial hash is defined by two vectors;
---     - The cell size vector contains real components and dictates
---       how large each cell in your table is spatially.
---       It is used to translate from world-space to table space
---     - The field size vector contains integral components and dictates how
---       many cells your field consists of in each direction.
---       It is used to translate from table-space to a flat integer
+-- $hash
+-- The following functions are for spatial hashing.
+-- The idea is that your spatial hash is defined by two vectors;
+--   - The cell size vector contains real components and dictates
+--     how large each cell in your table is spatially.
+--     It is used to translate from world-space to table space
+--   - The field size vector contains integral components and dictates how
+--     many cells your field consists of in each direction.
+--     It is used to translate from table-space to a flat integer
 
 -- | Quantize turns a world-space coordinate into a table-space coordinate by dividing
 --   by the given cell size and round components towards negative infinity
@@ -108,7 +115,6 @@ inbounds :: (Num (v a), Ord a, Applicative v, Foldable v)
 inbounds size vec = and (liftA2 (>=) vec 0) && and (liftA2 (<=) vec size)
 
 
-
 -- | Runs a system and gives its execution time in seconds
 {-# INLINE timeSystem #-}
 timeSystem :: System w a -> System w (Double, a)
@@ -122,3 +128,20 @@ timeSystem sys = do
 -- | Runs a system, discards its output, and gives its execution time in seconds
 timeSystem_ :: System w a -> System w Double
 timeSystem_ = fmap fst . timeSystem
+
+-- | Class of values that can be hashed for a HashTable
+--   Indexing is equivalent to hashing
+--   hash must not produce values below zero or above (hash maxHash)
+class Hashable c where
+  -- | The value for which hash yields the highest value; its upper bound
+  maxHash :: c
+  -- | Hashes a component to an index in the IndexTable
+  hash  :: c -> Int
+
+type HashTable s = IOLogger (HashTable' (Stores s)) s
+newtype HashTable' c = HashTable' (VM.IOVector S.IntSet)
+
+instance Hashable c => IOLog (HashTable' c) where
+  type IOLogComponent (HashTable' c) = c
+  {-# INLINE ioLogEmpty #-}
+  ioLogEmpty = HashTable' <$> VM.replicate (hash (maxHash :: c) + 1) mempty
