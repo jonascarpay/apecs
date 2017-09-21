@@ -22,9 +22,6 @@ module Apecs (
   -- * GlobalRW wrapper functions
     readGlobal, writeGlobal, modifyGlobal,
 
-  -- * Query
-    slice, All(..),
-
   -- * Other
     runSystem, runWith,
 

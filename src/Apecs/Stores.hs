@@ -10,7 +10,7 @@
 module Apecs.Stores
   ( Map, Set, Flag(..), Cache, Unique,
     Global,
-    Log(..), IOLog(..), Logger, IOLogger, getLog,
+    Log(..), PureLog(..), FromPure(..), Logger, getLog,
     Cachable,
   ) where
 
@@ -335,83 +335,86 @@ instance Cachable s => Store (Cache n s) where
         void$ ma (e, r)
     explCimapM_ s ma
 
--- | Is a function of the components in some store
---   It is updated when a component is written or removed.
-class Log l where
-  type LogComponent l
-  logEmpty :: l
-  logOnSet :: Entity a -> Maybe (LogComponent l) -> LogComponent l -> l -> l
-  logOnDestroy :: Entity a -> LogComponent l -> l -> l
+-- | A PureLog is a piece of state @l c@ that is updated when components @c@ are written or destroyed.
+--   Note that @l :: * -> *@
+class PureLog l c where
+  logEmpty :: l c
+  logOnSet :: Entity a -> Maybe c -> c -> l c -> l c
+  logOnDestroy :: Entity a -> c -> l c -> l c
 
--- | An IOLog is a Log with mutable state.
-class IOLog l where
-  type IOLogComponent l
-  ioLogEmpty :: IO l
-  ioLogOnSet :: l -> Int -> Maybe (IOLogComponent l) -> IOLogComponent l -> IO ()
-  ioLogOnDestroy :: l -> Int -> IOLogComponent l -> IO ()
-  ioLogReset :: l -> IO ()
+-- | An Log is a PureLog with mutable state.
+class Log l c where
+  ioLogEmpty     :: IO (l c)
+  ioLogOnSet     :: l c -> Entity a -> Maybe c -> c -> IO ()
+  ioLogOnDestroy :: l c -> Entity a -> c -> IO ()
+  ioLogReset     :: l c -> IO ()
 
-newtype FromPure l = FromPure (IORef l)
-instance Log l => IOLog (FromPure l) where
-  type IOLogComponent (FromPure l) = LogComponent l
+class HasLog s l where
+  explGetLog :: s -> l (Stores s)
+
+{-instance HasLog s l => HasLog (Logger a s) l where-}
+  {-{-# INLINE explGetLog #-}-}
+  {-explGetLog (Logger _ s) = explGetLog s-}
+
+instance HasLog (Logger l s) l where
+  {-# INLINE explGetLog #-}
+  explGetLog (Logger l _) = l
+
+getLog :: forall w c l. (IsRuntime c, Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
+getLog = do s :: Storage c <- getStore
+            return (explGetLog s)
+
+
+-- | FromPure turns a PureLog into a Log
+newtype FromPure l c = FromPure (IORef (l c))
+instance PureLog l c => Log (FromPure l) c where
   {-# INLINE ioLogEmpty #-}
   ioLogEmpty = FromPure <$> newIORef logEmpty
   {-# INLINE ioLogOnSet #-}
-  ioLogOnSet (FromPure lref) e old new = modifyIORef' lref (logOnSet (Entity e) old new)
+  ioLogOnSet (FromPure lref) e old new = modifyIORef' lref (logOnSet e old new)
   {-# INLINE ioLogOnDestroy #-}
-  ioLogOnDestroy (FromPure lref) e c = modifyIORef' lref (logOnDestroy (Entity e) c)
+  ioLogOnDestroy (FromPure lref) e c = modifyIORef' lref (logOnDestroy e c)
   {-# INLINE ioLogReset #-}
   ioLogReset (FromPure lref) = writeIORef lref logEmpty
 
--- | A Logger l of some store updates the log l with the writes and deletes to s
-type Logger l s = IOLogger (FromPure l) s
--- | An IOLogger l of some store updates the mutable log l with the writes and deletes to s
-data IOLogger l s = IOLogger l s
+-- | A Logger l of some store updates the Log l with the writes and deletes to Store s
+data Logger l s = Logger (l (Stores s)) s
 
-class HasLog s l where explGetLog :: s -> l
-instance               HasLog (IOLogger l s)  l where explGetLog (IOLogger l _) = l
-instance HasLog s l => HasLog (IOLogger la s) l where explGetLog (IOLogger _ s) = explGetLog s
+instance (Log l (Stores s), Cachable s) => Initializable (Logger l s) where
+  type InitArgs (Logger l s) = InitArgs s
+  initStoreWith args = Logger <$> ioLogEmpty <*> initStoreWith args
 
--- | Produces a log
-getLog :: forall w l. (HasLog (Storage (IOLogComponent l)) l, Has w (IOLogComponent l)) => System w l
-getLog = explGetLog <$> (getStore :: System w (Storage (IOLogComponent l)))
-
-
-instance (IOLog l, Cachable s) => Initializable (IOLogger l s) where
-  type InitArgs (IOLogger l s) = InitArgs s
-  initStoreWith args = IOLogger <$> ioLogEmpty <*> initStoreWith args
-
-instance (IOLogComponent l ~ Stores s, IOLog l, Cachable s) => HasMembers (IOLogger l s) where
+instance (Log l (Stores s), Cachable s) => HasMembers (Logger l s) where
   {-# INLINE explDestroy #-}
-  explDestroy (IOLogger l s) ety = do
+  explDestroy (Logger l s) ety = do
     mc <- explGet s ety
     case mc of
-      Just c -> ioLogOnDestroy l ety c >> explDestroy s ety
+      Just c -> ioLogOnDestroy l (Entity ety) c >> explDestroy s ety
       _ -> return ()
 
   {-# INLINE explExists #-}
-  explExists (IOLogger _ s) ety = explExists s ety
+  explExists (Logger _ s) ety = explExists s ety
   {-# INLINE explMembers #-}
-  explMembers (IOLogger _ s) = explMembers s
+  explMembers (Logger _ s) = explMembers s
   {-# INLINE explReset #-}
-  explReset (IOLogger l s) = ioLogReset l >> explReset s
+  explReset (Logger l s) = ioLogReset l >> explReset s
   {-# INLINE explImapM_ #-}
-  explImapM_ (IOLogger _ s) = explImapM_ s
+  explImapM_ (Logger _ s) = explImapM_ s
   {-# INLINE explImapM #-}
-  explImapM (IOLogger _ s) = explImapM s
+  explImapM (Logger _ s) = explImapM s
 
-instance (IOLogComponent l ~ Stores s, IOLog l, Cachable s) => Store (IOLogger l s) where
-  type SafeRW (IOLogger l s) = SafeRW s
-  type Stores (IOLogger l s) = Stores s
+instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
+  type SafeRW (Logger l s) = SafeRW s
+  type Stores (Logger l s) = Stores s
 
   {-# INLINE explGetUnsafe #-}
-  explGetUnsafe (IOLogger _ s) ety = explGetUnsafe s ety
+  explGetUnsafe (Logger _ s) ety = explGetUnsafe s ety
   {-# INLINE explGet #-}
-  explGet (IOLogger _ s) ety = explGet s ety
+  explGet (Logger _ s) ety = explGet s ety
   {-# INLINE explSet #-}
-  explSet (IOLogger l s) ety x = do
+  explSet (Logger l s) ety x = do
     mc <- explGet s ety
-    ioLogOnSet l ety mc x
+    ioLogOnSet l (Entity ety) mc x
     explSet s ety x
 
   {-# INLINE explSetMaybe #-}
@@ -419,17 +422,17 @@ instance (IOLogComponent l ~ Stores s, IOLog l, Cachable s) => Store (IOLogger l
   explSetMaybe s ety (Just x) = explSet s ety x
 
   {-# INLINE explModify #-}
-  explModify (IOLogger l s) ety f = do
+  explModify (Logger l s) ety f = do
     mc <- explGet s ety
     case mc of
-      Just c -> explSet (IOLogger l s) ety (f c)
+      Just c -> explSet (Logger l s) ety (f c)
       Nothing -> return ()
 
   {-# INLINE explCmapM_ #-}
-  explCmapM_  (IOLogger _ s) = explCmapM_  s
+  explCmapM_  (Logger _ s) = explCmapM_  s
   {-# INLINE explCmapM #-}
-  explCmapM   (IOLogger _ s) = explCmapM   s
+  explCmapM   (Logger _ s) = explCmapM   s
   {-# INLINE explCimapM_ #-}
-  explCimapM_ (IOLogger _ s) = explCimapM_ s
+  explCimapM_ (Logger _ s) = explCimapM_ s
   {-# INLINE explCimapM #-}
-  explCimapM  (IOLogger _ s) = explCimapM  s
+  explCimapM  (Logger _ s) = explCimapM  s

@@ -4,7 +4,7 @@
 
 module Apecs.Util (
   -- * Utility
-  initStore, ConcatQueries(..), runGC, unEntity,
+  initStore, runGC, unEntity,
 
   -- * EntityCounter
   EntityCounter, initCounter, nextEntity, newEntity,
@@ -66,12 +66,6 @@ newEntity c = do ety <- nextEntity
 -- | Explicitly invoke the garbage collector
 runGC :: System w ()
 runGC = liftIO performMajorGC
-
--- | Sequentially performs a series of queries and concatenates their result.
---   Especially useful when iterating over an IndexTable
-newtype ConcatQueries q = ConcatQueries [q]
-instance Query q s => Query (ConcatQueries q) s where
-  explSlice s (ConcatQueries qs) = mconcat <$> traverse (explSlice s) qs
 
 -- $hash
 -- The following functions are for spatial hashing.
@@ -137,11 +131,3 @@ class Hashable c where
   maxHash :: c
   -- | Hashes a component to an index in the IndexTable
   hash  :: c -> Int
-
-type HashTable s = IOLogger (HashTable' (Stores s)) s
-newtype HashTable' c = HashTable' (VM.IOVector S.IntSet)
-
-instance Hashable c => IOLog (HashTable' c) where
-  type IOLogComponent (HashTable' c) = c
-  {-# INLINE ioLogEmpty #-}
-  ioLogEmpty = HashTable' <$> VM.replicate (hash (maxHash :: c) + 1) mempty

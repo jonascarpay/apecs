@@ -178,14 +178,6 @@ wmap' f = do sr :: Storage r <- getStore
                           r <- explGet sr e
                           explSetMaybe sw e (getSafe . f . Safe $ r)
 
-
--- | Performs a query
-{-# INLINE slice #-}
-slice :: forall w c q. (Query q (Storage c), Has w c) => q -> System w (Slice c)
-slice q = do
-  s :: Storage c <- getStore
-  liftIO$ Slice <$> explSlice s q
-
 -- | Reads a global value
 {-# INLINE readGlobal #-}
 readGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => System w c

@@ -139,17 +139,6 @@ class GlobalRW s c where
   explGlobalModify s f = do r <- explGlobalRead s
                             explGlobalWrite s (f r)
 
--- | Classes of queries @q@ that can be performed on a store @s@.
-class Query q s where
-  -- | Returns a slice of the results of the query
-  explSlice :: s -> q -> IO (U.Vector Int)
-
--- | Query that returns all members, equivalent to @members@
-data All = All
-instance HasMembers s => Query All s where
-  {-# INLINE explSlice #-}
-  explSlice s _ = explMembers s
-
 -- | Casts for entities and slices
 class Cast a b where
   cast :: a -> b
