@@ -191,3 +191,8 @@ byIndex (EnumTable vec) c
   | c < 0                  = return mempty
   | c >= VM.length vec - 1 = return mempty
   | otherwise = liftIO$ sliceFromList . S.toList <$> VM.read vec c
+
+-- | Query the @EnumTable@ by an example enum.
+--   Will not perform bound checks, so crashes if @fromEnum c < 0 && fromEnum c > fromEnum maxBound @.
+byEnum :: Enum c => EnumTable c -> c -> System w (Slice c)
+byEnum (EnumTable vec) c = liftIO$ sliceFromList . S.toList <$> VM.read vec (fromEnum c)

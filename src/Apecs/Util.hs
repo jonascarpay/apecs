@@ -119,12 +119,3 @@ timeSystem sys = do
 -- | Runs a system, discards its output, and gives its execution time in seconds
 timeSystem_ :: System w a -> System w Double
 timeSystem_ = fmap fst . timeSystem
-
--- | Class of values that can be hashed for a HashTable
---   Indexing is equivalent to hashing
---   hash must not produce values below zero or above (hash maxHash)
-class Hashable c where
-  -- | The value for which hash yields the highest value; its upper bound
-  maxHash :: c
-  -- | Hashes a component to an index in the IndexTable
-  hash  :: c -> Int
