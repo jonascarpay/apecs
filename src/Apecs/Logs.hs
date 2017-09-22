@@ -10,7 +10,6 @@ module Apecs.Logs
   ) where
 
 import Data.IORef
-import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 import qualified Data.IntSet as S
 import Control.Monad.Reader
@@ -40,6 +39,7 @@ instance HasLog (Logger l s) l where
   {-# INLINE explGetLog #-}
   explGetLog (Logger l _) = l
 
+{-# INLINE getLog #-}
 getLog :: forall w c l. (IsRuntime c, Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
 getLog = do s :: Storage c <- getStore
             return (explGetLog s)
@@ -119,29 +119,41 @@ instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
 
 newtype LVec1 l c = LVec1 (l c)
 instance Log l c => Log (LVec1 l) c where
+  {-# INLINE ioLogEmpty #-}
   ioLogEmpty = LVec1 <$> ioLogEmpty
+  {-# INLINE ioLogOnSet #-}
   ioLogOnSet     (LVec1 l) e old new = ioLogOnSet l e old new
+  {-# INLINE ioLogOnDestroy #-}
   ioLogOnDestroy (LVec1 l) e c       = ioLogOnDestroy l e c
+  {-# INLINE ioLogReset #-}
   ioLogReset     (LVec1 l)           = ioLogReset l
 
 data LVec2 l1 l2 c = LVec2 (l1 c) (l2 c)
 instance (Log l1 c, Log l2 c) => Log (LVec2 l1 l2) c where
+  {-# INLINE ioLogEmpty #-}
   ioLogEmpty = LVec2 <$> ioLogEmpty <*> ioLogEmpty
+  {-# INLINE ioLogOnSet #-}
   ioLogOnSet     (LVec2 l1 l2) e old new = ioLogOnSet l1 e old new >> ioLogOnSet l2 e old new
+  {-# INLINE ioLogOnDestroy #-}
   ioLogOnDestroy (LVec2 l1 l2) e c       = ioLogOnDestroy l1 e c >> ioLogOnDestroy l2 e c
+  {-# INLINE ioLogReset #-}
   ioLogReset     (LVec2 l1 l2)           = ioLogReset l1 >> ioLogReset l2
 
 data LVec3 l1 l2 l3 c = LVec3 (l1 c) (l2 c) (l3 c)
 instance (Log l1 c, Log l2 c, Log l3 c) => Log (LVec3 l1 l2 l3) c where
+  {-# INLINE ioLogEmpty #-}
   ioLogEmpty = LVec3 <$> ioLogEmpty <*> ioLogEmpty <*> ioLogEmpty
+  {-# INLINE ioLogOnSet #-}
   ioLogOnSet (LVec3 l1 l2 l3) e old new = do
     ioLogOnSet l1 e old new
     ioLogOnSet l2 e old new
     ioLogOnSet l3 e old new
+  {-# INLINE ioLogOnDestroy #-}
   ioLogOnDestroy (LVec3 l1 l2 l3) e c = do
     ioLogOnDestroy l1 e c
     ioLogOnDestroy l2 e c
     ioLogOnDestroy l3 e c
+  {-# INLINE ioLogReset #-}
   ioLogReset (LVec3 l1 l2 l3) = do
     ioLogReset l1
     ioLogReset l2
@@ -149,6 +161,7 @@ instance (Log l1 c, Log l2 c, Log l3 c) => Log (LVec3 l1 l2 l3) c where
 
 newtype EnumTable c = EnumTable (VM.IOVector S.IntSet)
 instance (Bounded c, Enum c) => Log EnumTable c where
+  {-# INLINE ioLogEmpty #-}
   ioLogEmpty = do
     let lo = fromEnum (minBound :: c)
         hi = fromEnum (maxBound :: c)
@@ -157,14 +170,17 @@ instance (Bounded c, Enum c) => Log EnumTable c where
        then EnumTable <$> VM.replicate (hi+1) mempty
        else error "Attempted to initialize EnumTable for a component with a non-zero minBound"
 
+  {-# INLINE ioLogOnSet #-}
   ioLogOnSet (EnumTable vec) (Entity e) old new = do
     case old of
       Nothing -> return ()
       Just c -> VM.modify vec (S.delete e) (fromEnum c)
     VM.modify vec (S.insert e) (fromEnum new)
 
+  {-# INLINE ioLogOnDestroy #-}
   ioLogOnDestroy (EnumTable vec) (Entity e) c = VM.modify vec (S.delete e) (fromEnum c)
 
+  {-# INLINE ioLogReset #-}
   ioLogReset (EnumTable vec) = forM_ [0..VM.length vec - 1] (\e -> VM.write vec e mempty)
 
 -- | Query the @EnumTable@ by an index (the result of @fromEnum@).
