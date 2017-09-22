@@ -5,8 +5,11 @@
 {-# LANGUAGE Strict #-}
 
 module Apecs.Logs
-  ( Log(..), PureLog(..), FromPure(..), Logger, getLog,
+  ( -- * Types and classes
+    Log(..), PureLog(..), FromPure(..), Logger, getLog,
     LVec1, LVec2, LVec3,
+
+    -- * EnumTable
     EnumTable, byIndex, byEnum,
   ) where
 
@@ -26,7 +29,7 @@ class PureLog l c where
   pureOnSet :: Entity a -> Maybe c -> c -> l c -> l c
   pureOnDestroy :: Entity a -> c -> l c -> l c
 
--- | An Log is a PureLog with mutable state.
+-- | A Log is a PureLog with mutable state.
 class Log l c where
   logEmpty     :: IO (l c)
   logOnSet     :: l c -> Entity a -> Maybe c -> c -> IO ()
@@ -40,6 +43,7 @@ instance HasLog (Logger l s) l where
   {-# INLINE explGetLog #-}
   explGetLog (Logger l _) = l
 
+-- | Produces the log indicated by the return type.
 {-# INLINE getLog #-}
 getLog :: forall w c l. (IsRuntime c, Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
 getLog = do s :: Storage c <- getStore
@@ -58,7 +62,7 @@ instance PureLog l c => Log (FromPure l) c where
   {-# INLINE logReset #-}
   logReset (FromPure lref) = writeIORef lref pureEmpty
 
--- | A Logger l of some store updates the Log l with the writes and deletes to Store s
+-- | A @Logger l@ of some store updates its @Log l@ with the writes and deletes to @Store s@
 data Logger l s = Logger (l (Stores s)) s
 
 instance (Log l (Stores s), Cachable s) => Initializable (Logger l s) where
@@ -118,6 +122,7 @@ instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
   {-# INLINE explCimapM #-}
   explCimapM  (Logger _ s) = explCimapM  s
 
+-- | Composite Log consisting of 1 Log
 newtype LVec1 l c = LVec1 (l c)
 instance Log l c => Log (LVec1 l) c where
   {-# INLINE logEmpty #-}
@@ -129,6 +134,7 @@ instance Log l c => Log (LVec1 l) c where
   {-# INLINE logReset #-}
   logReset     (LVec1 l)           = logReset l
 
+-- | Composite Log consisting of 2 Logs
 data LVec2 l1 l2 c = LVec2 (l1 c) (l2 c)
 instance (Log l1 c, Log l2 c) => Log (LVec2 l1 l2) c where
   {-# INLINE logEmpty #-}
@@ -140,6 +146,7 @@ instance (Log l1 c, Log l2 c) => Log (LVec2 l1 l2) c where
   {-# INLINE logReset #-}
   logReset     (LVec2 l1 l2)           = logReset l1 >> logReset l2
 
+-- | Composite Log consisting of 3 Logs
 data LVec3 l1 l2 l3 c = LVec3 (l1 c) (l2 c) (l3 c)
 instance (Log l1 c, Log l2 c, Log l3 c) => Log (LVec3 l1 l2 l3) c where
   {-# INLINE logEmpty #-}
@@ -160,6 +167,7 @@ instance (Log l1 c, Log l2 c, Log l3 c) => Log (LVec3 l1 l2 l3) c where
     logReset l2
     logReset l3
 
+-- | Hashtable that maintains buckets of entities whose @fromEnum c@ produces the same value
 newtype EnumTable c = EnumTable (VM.IOVector S.IntSet)
 instance (Bounded c, Enum c) => Log EnumTable c where
   {-# INLINE logEmpty #-}
@@ -185,7 +193,7 @@ instance (Bounded c, Enum c) => Log EnumTable c where
   logReset (EnumTable vec) = forM_ [0..VM.length vec - 1] (\e -> VM.write vec e mempty)
 
 -- | Query the @EnumTable@ by an index (the result of @fromEnum@).
---   Will return an empty slice if @index < 0@ of @index >= fromEnum (maxBound)@
+--   Will return an empty slice if @index < 0@ of @index >= fromEnum (maxBound)@.
 {-# INLINE byIndex #-}
 byIndex :: EnumTable c -> Int -> System w (Slice c)
 byIndex (EnumTable vec) c
