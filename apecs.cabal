@@ -19,6 +19,7 @@ library
     Apecs,
     Apecs.Types,
     Apecs.Stores,
+    Apecs.Logs,
     Apecs.System,
     Apecs.Slice,
     Apecs.Util

@@ -16,6 +16,7 @@ import Apecs
 import Apecs.Types
 import Apecs.Util
 import qualified Apecs.Stores as S
+import qualified Apecs.Logs as S
 
 type Vec = (Double, Double)
 
