@@ -45,9 +45,9 @@ instance Component Flag where
 
 newtype Members c = Members S.IntSet
 instance S.PureLog Members c where
-  logEmpty = Members mempty
-  logOnSet (Entity e) _ _ (Members s) = Members $ S.insert e s
-  logOnDestroy (Entity e) _ (Members s) = Members $ S.delete e s
+  pureEmpty = Members mempty
+  pureOnSet (Entity e) _ _ (Members s) = Members $ S.insert e s
+  pureOnDestroy (Entity e) _ (Members s) = Members $ S.delete e s
 
 newtype RandomEntity a = RandomEntity (Entity a) deriving (Eq, Show)
 instance Arbitrary (RandomEntity a) where
