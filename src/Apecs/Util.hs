@@ -24,9 +24,6 @@ import System.Mem (performMajorGC)
 import Control.Monad.Reader (liftIO)
 import Control.Applicative (liftA2)
 import System.CPUTime
-import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as VM
-import qualified Data.IntSet as S
 
 import Apecs.Types
 import Apecs.Stores

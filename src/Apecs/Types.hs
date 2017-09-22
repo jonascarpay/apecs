@@ -47,7 +47,8 @@ class HasMembers s where
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
 
-  -- | Removes all components. Default implementation iterates over members and calls explDestroy.
+  -- | Removes all components.
+  --   Equivalent to calling @explDestroy@ on each member
   {-# INLINE explReset #-}
   explReset :: s -> IO ()
   explReset s = do
@@ -83,13 +84,14 @@ class HasMembers s => Store s where
   explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
 
   -- | Modifies an element in the store.
+  --   Equivalent to reading a value, and then writing the result of the function application.
   {-# INLINE explModify #-}
   explModify :: s -> Int -> (Stores s -> Stores s) -> IO ()
   explModify s ety f = do etyExists <- explExists s ety
                           when etyExists $ explGetUnsafe s ety >>= explSet s ety . f
 
   -- | Maps over all elements of this store.
-  --   The default implementation can be replaced by an optimized one
+  --   Equivalent to getting a list of all entities with this component, and then explModifying each of them.
   explCmap :: s -> (Stores s -> Stores s) -> IO ()
   {-# INLINE explCmap #-}
   explCmap s f = explMembers s >>= U.mapM_ (\ety -> explModify s ety f)

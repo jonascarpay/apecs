@@ -1,16 +1,23 @@
 {-# LANGUAGE TypeFamilies, MultiParamTypeClasses, ConstraintKinds #-}
 {-# LANGUAGE ScopedTypeVariables, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE TypeFamilyDependencies, FunctionalDependencies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE Strict #-}
 
 module Apecs.Logs
   ( Log(..), PureLog(..), FromPure(..), Logger, getLog,
+    LVec1, LVec2, LVec3,
   ) where
 
 import Data.IORef
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
+import qualified Data.IntSet as S
+import Control.Monad.Reader
 
 import Apecs.Types
 import Apecs.Stores
+import Apecs.Slice
 
 -- | A PureLog is a piece of state @l c@ that is updated when components @c@ are written or destroyed.
 --   Note that @l :: * -> *@
@@ -110,5 +117,61 @@ instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
   {-# INLINE explCimapM #-}
   explCimapM  (Logger _ s) = explCimapM  s
 
-data LVec1 l c = LVec1 (l c)
-instance Log l c => Log (LVec1 l) c
+newtype LVec1 l c = LVec1 (l c)
+instance Log l c => Log (LVec1 l) c where
+  ioLogEmpty = LVec1 <$> ioLogEmpty
+  ioLogOnSet     (LVec1 l) e old new = ioLogOnSet l e old new
+  ioLogOnDestroy (LVec1 l) e c       = ioLogOnDestroy l e c
+  ioLogReset     (LVec1 l)           = ioLogReset l
+
+data LVec2 l1 l2 c = LVec2 (l1 c) (l2 c)
+instance (Log l1 c, Log l2 c) => Log (LVec2 l1 l2) c where
+  ioLogEmpty = LVec2 <$> ioLogEmpty <*> ioLogEmpty
+  ioLogOnSet     (LVec2 l1 l2) e old new = ioLogOnSet l1 e old new >> ioLogOnSet l2 e old new
+  ioLogOnDestroy (LVec2 l1 l2) e c       = ioLogOnDestroy l1 e c >> ioLogOnDestroy l2 e c
+  ioLogReset     (LVec2 l1 l2)           = ioLogReset l1 >> ioLogReset l2
+
+data LVec3 l1 l2 l3 c = LVec3 (l1 c) (l2 c) (l3 c)
+instance (Log l1 c, Log l2 c, Log l3 c) => Log (LVec3 l1 l2 l3) c where
+  ioLogEmpty = LVec3 <$> ioLogEmpty <*> ioLogEmpty <*> ioLogEmpty
+  ioLogOnSet (LVec3 l1 l2 l3) e old new = do
+    ioLogOnSet l1 e old new
+    ioLogOnSet l2 e old new
+    ioLogOnSet l3 e old new
+  ioLogOnDestroy (LVec3 l1 l2 l3) e c = do
+    ioLogOnDestroy l1 e c
+    ioLogOnDestroy l2 e c
+    ioLogOnDestroy l3 e c
+  ioLogReset (LVec3 l1 l2 l3) = do
+    ioLogReset l1
+    ioLogReset l2
+    ioLogReset l3
+
+newtype EnumTable c = EnumTable (VM.IOVector S.IntSet)
+instance (Bounded c, Enum c) => Log EnumTable c where
+  ioLogEmpty = do
+    let lo = fromEnum (minBound :: c)
+        hi = fromEnum (maxBound :: c)
+
+    if lo == 0
+       then EnumTable <$> VM.replicate (hi+1) mempty
+       else error "Attempted to initialize EnumTable for a component with a non-zero minBound"
+
+  ioLogOnSet (EnumTable vec) (Entity e) old new = do
+    case old of
+      Nothing -> return ()
+      Just c -> VM.modify vec (S.delete e) (fromEnum c)
+    VM.modify vec (S.insert e) (fromEnum new)
+
+  ioLogOnDestroy (EnumTable vec) (Entity e) c = VM.modify vec (S.delete e) (fromEnum c)
+
+  ioLogReset (EnumTable vec) = forM_ [0..VM.length vec - 1] (\e -> VM.write vec e mempty)
+
+-- | Query the @EnumTable@ by an index (the result of @fromEnum@).
+--   Will return an empty slice if @index < 0@ of @index >= fromEnum (maxBound)@
+{-# INLINE byIndex #-}
+byIndex :: EnumTable c -> Int -> System w (Slice c)
+byIndex (EnumTable vec) c
+  | c < 0                  = return mempty
+  | c >= VM.length vec - 1 = return mempty
+  | otherwise = liftIO$ sliceFromList . S.toList <$> VM.read vec c

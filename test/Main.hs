@@ -5,6 +5,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{-# OPTIONS_GHC -w #-}
+
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Control.Monad
