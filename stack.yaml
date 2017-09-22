@@ -3,4 +3,3 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-pvp-bounds: both
