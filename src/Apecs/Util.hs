@@ -16,8 +16,6 @@ module Apecs.Util (
   -- * Timing
   timeSystem, timeSystem_,
 
-  -- * indexTable
-
   ) where
 
 import System.Mem (performMajorGC)

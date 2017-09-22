@@ -288,5 +288,5 @@ I hope to have a version on hackage soon!
 There will be at least one more tutorial, on how to make things fast.
 We'll be taking a look at
   - How to cache your components for O(1) reads and writes
-  - How to use an IndexTable to add queries to your component storages
-  - How to use those IndexTables to get a free spatial hash of our positions
+  - How to use add Logs to your component storages
+  - How to use those Logs to get a free spatial hash of our positions
