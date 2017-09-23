@@ -11,16 +11,15 @@ For a general introduction to ECS, see [this talk](https://www.youtube.com/watch
 Performance is good.
 Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can keep up with specs, which was written in Rust:
 
-|     | specs | apecs |
-| --- | ----- | --- |
-| build | 699 us | 285 us | 
-| update | 34 us | 46 us |
+|        | specs  | apecs  |
+| ------ | ------ | ------ |
+| build  | 699 us | 285 us | 
+| update | 34 us  | 46 us  |
 
 ### Example
 ```haskell
 import Apecs
-import Apecs.Stores
-import Apecs.Util
+import Apecs.Stores (Cache)
 import Linear
 
 -- Component data definitions
@@ -79,4 +78,5 @@ game = do
 main :: IO ()
 main = do w <- World <$> initStore <*> initStore <*> initStore <*> initCounter
           runSystem game w
+
 ```

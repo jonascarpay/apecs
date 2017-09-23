@@ -128,7 +128,7 @@ handleEvents = do
         Dragging a _ -> writeGlobal (Dragging a (fromIntegral <$> p))
 
     handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
-      sl :: Slice Selected <- slice All
+      sl :: Slice Selected <- owners
       let r = (*3) . subtract 1 . sqrt . fromIntegral$ sliceSize sl
 
       sliceForM_ sl $ \e -> do

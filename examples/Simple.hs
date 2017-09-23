@@ -1,8 +1,7 @@
 {-# LANGUAGE DataKinds, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
 
 import Apecs
-import Apecs.Stores
-import Apecs.Util
+import Apecs.Stores (Cache)
 import Linear
 
 -- Component data definitions
