@@ -6,7 +6,7 @@
 
 module Apecs.Logs
   ( -- * Types and classes
-    Log(..), PureLog(..), FromPure(..), Logger, getLog,
+    Log(..), PureLog(..), FromPure(..), Logger, getLog, readIORef,
     LVec1, LVec2, LVec3,
 
     -- * EnumTable
@@ -202,6 +202,6 @@ byIndex (EnumTable vec) c
   | otherwise = liftIO$ sliceFromList . S.toList <$> VM.read vec c
 
 -- | Query the @EnumTable@ by an example enum.
---   Will not perform bound checks, so crashes if @fromEnum c < 0 && fromEnum c > fromEnum maxBound @.
+--   Will not perform bound checks, so crashes if `fromEnum c < 0 && fromEnum c > fromEnum maxBound `.
 byEnum :: Enum c => EnumTable c -> c -> System w (Slice c)
 byEnum (EnumTable vec) c = liftIO$ sliceFromList . S.toList <$> VM.read vec (fromEnum c)

@@ -14,9 +14,7 @@ import System.Random
 import Data.Proxy
 import SDL.Vect
 
-import Apecs as A
-import Apecs.Stores
-import Apecs.Util
+import Apecs
 
 hres, vres :: Num a => a
 hres = 1024
