@@ -36,11 +36,11 @@ instance Component Velocity where
   type Storage Velocity = S.Map Velocity
 
 
-data Flag = Flag
-instance Arbitrary Flag where arbitrary = return Flag
-instance S.Flag Flag where flag = Flag
-instance Component Flag where
-  type Storage Flag = S.Set Flag
+data TestFlag = TestFlag
+instance Arbitrary TestFlag where arbitrary = return TestFlag
+instance S.Flag TestFlag where flag = TestFlag
+instance Component TestFlag where
+  type Storage TestFlag = S.Set TestFlag
 
 
 newtype Members c = Members S.IntSet
