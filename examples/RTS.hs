@@ -15,6 +15,7 @@ import Data.Proxy
 import SDL.Vect
 
 import Apecs
+import qualified Apecs.Slice as S
 
 hres, vres :: Num a => a
 hres = 1024
@@ -129,9 +130,9 @@ handleEvents = do
 
     handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
       sl :: Slice Selected <- owners
-      let r = (*3) . subtract 1 . sqrt . fromIntegral$ sliceSize sl
+      let r = (*3) . subtract 1 . sqrt . fromIntegral$ S.size sl
 
-      sliceForM_ sl $ \e -> do
+      S.forM_ sl $ \e -> do
         dx <- liftIO$ randomRIO (-r,r)
         dy <- liftIO$ randomRIO (-r,r)
         set e (Target (V2 (fromIntegral px+dx) (fromIntegral py+dy)))

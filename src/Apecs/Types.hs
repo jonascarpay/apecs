@@ -33,17 +33,13 @@ class Component c => Has w c where
 -- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
 newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 
--- Storage types
--- | Common for every storage. Represents a container that can be initialized.
+-- | Holds components indexed by entities
 class Store s where
-  -- | The initialization argument required by this store
-  type InitArgs s
-  -- Initialize the store with its initialization arguments.
-  initStoreWith :: InitArgs s -> IO s
   -- | The type of components stored by this Store
   type Stores s
   -- | Return type for safe reads writes to the store
   type SafeRW s
+
   -- | Retrieves a component from the store
   explGet       :: s -> Int -> IO (SafeRW s)
   -- | Writes a component
@@ -59,6 +55,11 @@ class Store s where
   explGetUnsafe :: s -> Int -> IO (Stores s)
   -- | Either writes or deletes a component
   explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
+
+  -- | The initialization argument required by this store
+  type InitArgs s
+  -- Initialize the store with its initialization arguments.
+  initStoreWith :: InitArgs s -> IO s
 
   -- | Removes all components.
   --   Equivalent to calling @explDestroy@ on each member
