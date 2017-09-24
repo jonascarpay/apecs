@@ -128,7 +128,7 @@ class EntityStore s where
 type IsRuntime c = (EntityStore (Storage c), Stores (Storage c) ~ c)
 
 -- | Class of storages for global values
-class GlobalRW s c where
+class GlobalStore s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}
   explGlobalRead :: s -> IO c
   explGlobalWrite :: s -> c -> IO ()
@@ -181,7 +181,7 @@ instance (EntityStore a, EntityStore b) => EntityStore (a,b) where
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
 
-instance (GlobalRW a ca, GlobalRW b cb) => GlobalRW (a,b) (ca,cb) where
+instance (GlobalStore a ca, GlobalStore b cb) => GlobalStore (a,b) (ca,cb) where
   explGlobalRead  (sa,sb) = (,) <$> explGlobalRead sa <*> explGlobalRead sb
   explGlobalWrite (sa,sb) (wa,wb) = explGlobalWrite sa wa >> explGlobalWrite sb wb
   {-# INLINE explGlobalRead #-}
@@ -219,7 +219,7 @@ instance (EntityStore a, EntityStore b, EntityStore c) => EntityStore (a,b,c) wh
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
 
-instance (GlobalRW a ca, GlobalRW b cb, GlobalRW c cc) => GlobalRW (a,b,c) (ca,cb,cc) where
+instance (GlobalStore a ca, GlobalStore b cb, GlobalStore c cc) => GlobalStore (a,b,c) (ca,cb,cc) where
   explGlobalRead  (sa,sb,sc) = (,,) <$> explGlobalRead sa <*> explGlobalRead sb <*> explGlobalRead sc
   explGlobalWrite (sa,sb,sc) (wa,wb,wc) = explGlobalWrite sa wa >> explGlobalWrite sb wb >> explGlobalWrite sc wc
   {-# INLINE explGlobalRead #-}

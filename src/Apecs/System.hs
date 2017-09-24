@@ -180,19 +180,19 @@ wmap' f = do sr :: Storage r <- getStore
 
 -- | Reads a global value
 {-# INLINE readGlobal #-}
-readGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => System w c
+readGlobal :: forall w c. (Has w c, GlobalStore (Storage c) c) => System w c
 readGlobal = do s :: Storage c <- getStore
                 liftIO$ explGlobalRead s
 
 -- | Writes a global value
 {-# INLINE writeGlobal #-}
-writeGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => c -> System w ()
+writeGlobal :: forall w c. (Has w c, GlobalStore (Storage c) c) => c -> System w ()
 writeGlobal c = do s :: Storage c <- getStore
                    liftIO$ explGlobalWrite s c
 
 -- | Modifies a global value
 {-# INLINE modifyGlobal #-}
-modifyGlobal :: forall w c. (Has w c, GlobalRW (Storage c) c) => (c -> c) -> System w ()
+modifyGlobal :: forall w c. (Has w c, GlobalStore (Storage c) c) => (c -> c) -> System w ()
 modifyGlobal f = do s :: Storage c <- getStore
                     liftIO$ explGlobalModify s f
 

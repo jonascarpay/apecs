@@ -178,7 +178,7 @@ newtype Const c = Const c
 instance ComponentStore (Const c) where
   type InitArgs (Const c) = c
   initStoreWith c = return$ Const c
-instance GlobalRW (Const c) c where
+instance GlobalStore (Const c) c where
   explGlobalRead  (Const c) = return c
   explGlobalWrite  _ _ = return ()
   explGlobalModify _ _ = return ()
@@ -203,7 +203,7 @@ instance ComponentStore (Global c) where
   type InitArgs (Global c) = c
   initStoreWith c = Global <$> newIORef c
 
-instance GlobalRW (Global c) c where
+instance GlobalStore (Global c) c where
   explGlobalRead   (Global ref) = readIORef    ref
   explGlobalWrite  (Global ref) = writeIORef   ref
   explGlobalModify (Global ref) = modifyIORef' ref
