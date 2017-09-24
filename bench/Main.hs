@@ -7,6 +7,7 @@ import Control.Monad
 import Apecs as A
 import Apecs.Stores
 import Apecs.Util
+import Apecs.Slice as S
 
 import Linear
 
@@ -53,7 +54,7 @@ vstep :: System World ()
 vstep = cimapM_ $ \(e,(Velocity v,Position p)) -> set (cast e) (Position (p+v))
 
 explicit = do sl :: Slice (Velocity, Position) <- owners
-              sliceForMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
+              S.forMC_ sl $ \(e,Safe (Just (Velocity v), Just (Position p))) -> set (cast e) (Position $ p + v)
 
 cStep1 (Velocity p) = (Velocity (p+1))
 

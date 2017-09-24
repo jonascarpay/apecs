@@ -239,21 +239,18 @@ You can't just send them all to the same location, or they'd end up overlapping.
 For simplicity's sake, I chose to arrange them randomly in a square, with area proportional to the number of selected units.
 ```haskell
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
-  sl :: Slice Selected <- slice All
+  sl :: Slice Selected <- owners
   let r = (*3) . subtract 1 . sqrt . fromIntegral$ sliceSize sl
 
-  sliceForM_ sl $ \e -> do
+  forM_ sl $ \e -> do
     dx <- liftIO$ randomRIO (-r,r)
     dy <- liftIO$ randomRIO (-r,r)
     set e (Target (V2 (fromIntegral px+dx) (fromIntegral py+dy)))
 
 handleEvent _ = return ()
 ```
-`slice` performs a query, and returns a `Slice`, which is just a list of entities.
-The only query we can currently perform is `All`, which returns all owners of the specified component.
-Other queries can be performed by using a more elaborate `Storage` type, but that's for a later tutorial.
+`owners` is a query, and returns a `Slice`, which is just a list of entities.
 The reason we need a slice instead of a map is that we need to know the amount of selected units.
-
 There's a few more interesting functions here.
 `sliceForM_` monadically iteraters over a `Slice`.
 `set entity component` then explicitly writes a component for an entity, overwriting whatever might have been there.

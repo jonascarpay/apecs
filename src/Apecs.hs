@@ -28,9 +28,6 @@ module Apecs (
     runSystem, runWith,
     initStore, runGC, EntityCounter, initCounter, newEntity,
 
-  -- All slice functions
-  module SL,
-
   -- Reader
   asks, ask, liftIO, lift,
 ) where
@@ -39,7 +36,6 @@ import Control.Monad.Reader (asks, ask, liftIO, lift)
 
 import Apecs.Types
 import Apecs.System
-import Apecs.Slice as SL
 import Apecs.Stores
 import Apecs.Util
 

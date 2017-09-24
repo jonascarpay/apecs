@@ -20,7 +20,7 @@ import Control.Monad.Reader
 
 import Apecs.Types
 import Apecs.Stores
-import Apecs.Slice
+import qualified Apecs.Slice as Sl
 
 -- | A PureLog is a piece of state @l c@ that is updated when components @c@ are written or destroyed.
 --   Note that @l :: * -> *@
@@ -62,7 +62,7 @@ instance PureLog l c => Log (FromPure l) c where
   {-# INLINE logReset #-}
   logReset (FromPure lref) = writeIORef lref pureEmpty
 
--- | A @Logger l@ of some store updates its @Log l@ with the writes and deletes to @Store s@
+-- | A @Logger l@ of some store updates its @Log l@ with the writes and deletes to store @s@
 data Logger l s = Logger (l (Stores s)) s
 
 instance (Log l (Stores s), Cachable s) => Initializable (Logger l s) where
@@ -88,7 +88,6 @@ instance (Log l (Stores s), Cachable s) => HasMembers (Logger l s) where
   {-# INLINE explImapM #-}
   explImapM (Logger _ s) = explImapM s
 
-instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
   type SafeRW (Logger l s) = SafeRW s
   type Stores (Logger l s) = Stores s
 
@@ -199,9 +198,9 @@ byIndex :: EnumTable c -> Int -> System w (Slice c)
 byIndex (EnumTable vec) c
   | c < 0                  = return mempty
   | c >= VM.length vec - 1 = return mempty
-  | otherwise = liftIO$ sliceFromList . S.toList <$> VM.read vec c
+  | otherwise = liftIO$ Sl.fromList . S.toList <$> VM.read vec c
 
 -- | Query the @EnumTable@ by an example enum.
 --   Will not perform bound checks, so crashes if `fromEnum c < 0 && fromEnum c > fromEnum maxBound `.
 byEnum :: Enum c => EnumTable c -> c -> System w (Slice c)
-byEnum (EnumTable vec) c = liftIO$ sliceFromList . S.toList <$> VM.read vec (fromEnum c)
+byEnum (EnumTable vec) c = liftIO$ Sl.fromList . S.toList <$> VM.read vec (fromEnum c)

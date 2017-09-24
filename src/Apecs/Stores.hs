@@ -40,7 +40,6 @@ instance HasMembers (Map c) where
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
-instance Store (Map c) where
   type SafeRW (Map c) = Maybe c
   type Stores (Map c) = c
   explGetUnsafe (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
@@ -75,7 +74,7 @@ newtype Set c = Set (IORef S.IntSet)
 instance Initializable (Set c) where
   type InitArgs (Set c) = ()
   initStoreWith _ = Set <$> newIORef mempty
-instance HasMembers (Set c) where
+instance Flag c => HasMembers (Set c) where
   explDestroy (Set ref) ety = modifyIORef' ref (S.delete ety)
   explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
   explReset (Set ref) = writeIORef ref mempty
@@ -88,7 +87,6 @@ instance HasMembers (Set c) where
   {-# INLINE explReset #-}
   {-# INLINE explImapM_ #-}
   {-# INLINE explImapM #-}
-instance (Flag c) => Store (Set c) where
   type SafeRW (Set c) = Bool
   type Stores (Set c) = c
   explGetUnsafe _ _ = return flag
@@ -131,7 +129,6 @@ instance HasMembers (Unique c) where
   {-# INLINE explImapM_ #-}
   {-# INLINE explImapM #-}
 
-instance Store (Unique c) where
   type SafeRW (Unique c) = Maybe c
   type Stores (Unique c) = c
   explGetUnsafe (Unique _ cref) _ = readIORef cref
@@ -187,7 +184,6 @@ instance HasMembers (Const c) where
   explExists  _ _  = return False
   explMembers _ = return mempty
   explReset _ = return ()
-instance Store (Const c) where
   type SafeRW (Const c) = c
   type Stores (Const c) = c
   explGetUnsafe (Const c) _ = return c
@@ -218,7 +214,7 @@ instance GlobalRW (Global c) c where
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Stores s)) s
 
-class (Initializable s, HasMembers s, Store s, SafeRW s ~ Maybe (Stores s)) => Cachable s
+class (Initializable s, HasMembers s, HasMembers s, SafeRW s ~ Maybe (Stores s)) => Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
@@ -266,7 +262,6 @@ instance Cachable s => HasMembers (Cache n s) where
     as2 <- explImapM s ma
     return (as1 ++ as2)
 
-instance Cachable s => Store (Cache n s) where
   type SafeRW (Cache n s) = SafeRW s
   type Stores (Cache n s) = Stores s
 

@@ -51,7 +51,7 @@ resetStore _ = do s :: Storage c <- getStore
 -- | Gets the component for a given entity.
 --   This is a safe access, because the entity might not have the requested components.
 {-# INLINE get #-}
-get :: forall w c. (Store (Storage c), Has w c) => Entity c -> System w (Safe c)
+get :: forall w c. (HasMembers (Storage c), Has w c) => Entity c -> System w (Safe c)
 get (Entity ety) = do s :: Storage c <- getStore
                       liftIO$ Safe <$> explGet s ety
 
@@ -147,7 +147,7 @@ rmap f = do sr :: Storage r <- getStore
 
 -- | Maps a function over all entities with a @r@, and writes or deletes their @w@
 {-# INLINE rmap' #-}
-rmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
+rmap' :: forall world r w. (Has world w, Has world r, HasMembers (Storage w), IsRuntime r)
       => (r -> Safe w) -> System world ()
 rmap' f = do sr :: Storage r <- getStore
              sw :: Storage w <- getStore
@@ -169,7 +169,7 @@ wmap f = do sr :: Storage r <- getStore
 
 -- | For all entities with a @w@, this map reads their @r@ and writes or deletes their @w@
 {-# INLINE wmap' #-}
-wmap' :: forall world r w. (Has world w, Has world r, Store (Storage w), IsRuntime r)
+wmap' :: forall world r w. (Has world w, Has world r, HasMembers (Storage w), IsRuntime r)
       => (Safe r -> Safe w) -> System world ()
 wmap' f = do sr :: Storage r <- getStore
              sw :: Storage w <- getStore

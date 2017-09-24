@@ -38,6 +38,9 @@ class Initializable s where
   -- Initialize the store with its initialization arguments.
   initStoreWith :: InitArgs s -> IO s
 
+-- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
+newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
+
 -- | A store that is indexed by entities.
 class HasMembers s where
   -- | Destroys the component for the given index.
@@ -65,11 +68,6 @@ class HasMembers s where
   {-# INLINE explImapM #-}
   explImapM s ma = liftIO (explMembers s) >>= mapM ma . U.toList
 
--- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
-newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
-
--- | Class of storages that associates components with entities.
-class HasMembers s => Store s where
   -- | Return type for safe reads writes to the store
   type SafeRW s
   -- | The type of components stored by this Store
@@ -128,7 +126,7 @@ class HasMembers s => Store s where
 
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
 --   This will almost always be the case, but it _might_ not be so we need this constraint.
-type IsRuntime c = (Store (Storage c), Stores (Storage c) ~ c)
+type IsRuntime c = (HasMembers (Storage c), Stores (Storage c) ~ c)
 
 -- | Class of storages for global values
 class GlobalRW s c where
@@ -173,7 +171,6 @@ instance (HasMembers a, HasMembers b) => HasMembers (a,b) where
   {-# INLINE explDestroy #-}
   {-# INLINE explExists #-}
 
-instance (Store a, Store b) => Store (a, b) where
   type SafeRW (a, b) = (SafeRW a, SafeRW b)
   type Stores (a, b) = (Stores a, Stores b)
   explGetUnsafe  (sa,sb) ety = (,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety
@@ -212,7 +209,6 @@ instance (HasMembers a, HasMembers b, HasMembers c) => HasMembers (a,b,c) where
   {-# INLINE explDestroy #-}
   {-# INLINE explExists #-}
 
-instance (Store a, Store b, Store c) => Store (a, b, c) where
   type SafeRW (a, b, c) = (SafeRW a, SafeRW b, SafeRW c)
   type Stores (a, b, c) = (Stores a, Stores b, Stores c)
   explGetUnsafe  (sa,sb,sc) ety = (,,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety <*> explGetUnsafe sc ety
