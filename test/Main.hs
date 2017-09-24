@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 
 {-# OPTIONS_GHC -w #-}
 
@@ -22,13 +23,15 @@ import qualified Apecs.Logs as S
 
 type Vec = (Double, Double)
 
+---
+
 newtype Position = Position Vec deriving (Arbitrary, Eq, Show)
 instance Component Position where
   type Storage Position = S.Logger (S.FromPure Members) (S.Map Position)
 
 newtype CachePos = CachePos Vec deriving (Arbitrary, Eq, Show)
 instance Component CachePos where
-  type Storage CachePos = S.Map CachePos
+  type Storage CachePos = S.Cache 3 (S.Map CachePos)
 
 
 newtype Velocity = Velocity Vec deriving (Arbitrary, Eq, Show)
@@ -51,7 +54,7 @@ instance S.PureLog Members c where
 
 newtype RandomEntity a = RandomEntity (Entity a) deriving (Eq, Show)
 instance Arbitrary (RandomEntity a) where
-  arbitrary = RandomEntity . Entity <$> arbitrary
+  arbitrary = RandomEntity . Entity . abs <$> arbitrary
 
 newtype W1 c = W1 {w1c1 :: (Storage c)}
 instance Component c => Has (W1 c) c where getStore = System $ asks w1c1
@@ -59,6 +62,17 @@ instance Component c => Has (W1 c) c where getStore = System $ asks w1c1
 data W2 a b = W2 { w2c1 :: Storage a , w2c2 :: Storage b }
 instance (Component a, Component b) => Has (W2 a b) a where getStore = System $ asks w2c1
 instance (Component a, Component b) => Has (W2 a b) b where getStore = System $ asks w2c2
+
+counter :: [CachePos] -> CachePos -> Property
+counter cs c = monadicIO $ run f >>= assert
+  where
+    f = do
+      w :: W2 CachePos EntityCounter <- W2 <$> initStore <*> initCounter
+      runWith w $ do
+        forM_ cs newEntity
+        e <- newEntity c
+        Safe r <- get e
+        return (r == Just c)
 
 getSetPos :: [(RandomEntity Position, Position)] -> RandomEntity Position -> Position -> Property
 getSetPos cs (RandomEntity e) p = monadicIO $ run f >>= assert
@@ -105,3 +119,4 @@ main = do
   quickCheck getSetPos
   quickCheck getSetVCPos
   quickCheck cmapVP
+  quickCheck counter
