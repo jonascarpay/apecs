@@ -43,12 +43,24 @@ newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 
 -- | A store that is indexed by entities.
 class HasMembers s where
+  -- | Return type for safe reads writes to the store
+  type SafeRW s
+  -- | The type of components stored by this Store
+  type Stores s
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns whether there is a component for the given index
   explExists  :: s -> Int -> IO Bool
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
+  -- | Unsafe index to the store. Undefined if the component does not exist
+  explGetUnsafe :: s -> Int -> IO (Stores s)
+  -- | Retrieves a component from the store
+  explGet       :: s -> Int -> IO (SafeRW s)
+  -- | Writes a component
+  explSet       :: s -> Int -> Stores s -> IO ()
+  -- | Either writes or deletes a component
+  explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
 
   -- | Removes all components.
   --   Equivalent to calling @explDestroy@ on each member
@@ -67,19 +79,6 @@ class HasMembers s where
   explImapM :: MonadIO m => s -> (Int -> m a) -> m [a]
   {-# INLINE explImapM #-}
   explImapM s ma = liftIO (explMembers s) >>= mapM ma . U.toList
-
-  -- | Return type for safe reads writes to the store
-  type SafeRW s
-  -- | The type of components stored by this Store
-  type Stores s
-  -- | Unsafe index to the store. Undefined if the component does not exist
-  explGetUnsafe :: s -> Int -> IO (Stores s)
-  -- | Retrieves a component from the store
-  explGet       :: s -> Int -> IO (SafeRW s)
-  -- | Writes a component
-  explSet       :: s -> Int -> Stores s -> IO ()
-  -- | Either writes or deletes a component
-  explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
 
   -- | Modifies an element in the store.
   --   Equivalent to reading a value, and then writing the result of the function application.

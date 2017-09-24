@@ -25,6 +25,11 @@ import Data.Proxy
 
 import Apecs.Types
 
+{-# INLINE defaultSetMaybe #-}
+defaultSetMaybe :: (HasMembers s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (Stores s) -> IO ()
+defaultSetMaybe s e Nothing  = explDestroy s e
+defaultSetMaybe s e (Just c) = explSet s e c
+
 -- | A map from Data.Intmap.Strict. O(n log(n)) for most operations.
 --   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
@@ -45,8 +50,7 @@ instance HasMembers (Map c) where
   explGetUnsafe (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
   explGet       (Map ref) ety = M.lookup ety <$> readIORef ref
   explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
-  explSetMaybe  s ety Nothing = explDestroy s ety
-  explSetMaybe  s ety (Just x) = explSet s ety x
+  explSetMaybe = defaultSetMaybe
   explModify    (Map ref) ety f = modifyIORef' ref $ M.adjust f ety
   explCmap      (Map ref) f = modifyIORef' ref $ M.map f
   explCmapM_    (Map ref) ma = liftIO (readIORef ref) >>= mapM_ ma
@@ -137,8 +141,7 @@ instance HasMembers (Unique c) where
     if e == ety then Just <$> readIORef cref else return Nothing
 
   explSet       (Unique eref cref) ety x = writeIORef eref ety >> writeIORef cref x
-  explSetMaybe  s ety Nothing = explDestroy s ety
-  explSetMaybe  s ety (Just x) = explSet s ety x
+  explSetMaybe = defaultSetMaybe
   explCmap      (Unique _    cref) f = modifyIORef' cref f
   explModify    (Unique eref cref) ety f = do
     e <- readIORef eref
@@ -292,8 +295,7 @@ instance Cachable s => HasMembers (Cache n s) where
     VM.unsafeWrite cache index x
 
   {-# INLINE explSetMaybe #-}
-  explSetMaybe c ety Nothing  = explDestroy c ety
-  explSetMaybe c ety (Just x) = explSet c ety x
+  explSetMaybe = defaultSetMaybe
 
   {-# INLINE explCmap #-}
   explCmap (Cache n tags cache s) f = do
