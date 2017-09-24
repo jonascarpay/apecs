@@ -67,6 +67,7 @@ data Logger l s = Logger (l (Stores s)) s
 
 instance (Log l (Stores s), Cachable s) => ComponentStore (Logger l s) where
   type InitArgs (Logger l s) = InitArgs s
+  type Stores (Logger l s) = Stores s
   initStoreWith args = Logger <$> logEmpty <*> initStoreWith args
 
 instance (Log l (Stores s), Cachable s) => EntityStore (Logger l s) where
@@ -89,7 +90,6 @@ instance (Log l (Stores s), Cachable s) => EntityStore (Logger l s) where
   explImapM (Logger _ s) = explImapM s
 
   type SafeRW (Logger l s) = SafeRW s
-  type Stores (Logger l s) = Stores s
 
   {-# INLINE explGetUnsafe #-}
   explGetUnsafe (Logger _ s) ety = explGetUnsafe s ety

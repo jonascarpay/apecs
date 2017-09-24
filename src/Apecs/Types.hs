@@ -37,6 +37,8 @@ class ComponentStore s where
   type InitArgs s
   -- Initialize the store with its initialization arguments.
   initStoreWith :: InitArgs s -> IO s
+  -- | The type of components stored by this Store
+  type Stores s
 
 -- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
 newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
@@ -45,8 +47,6 @@ newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 class EntityStore s where
   -- | Return type for safe reads writes to the store
   type SafeRW s
-  -- | The type of components stored by this Store
-  type Stores s
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns whether there is a component for the given index
@@ -128,7 +128,7 @@ class EntityStore s where
 type IsRuntime c = (EntityStore (Storage c), Stores (Storage c) ~ c)
 
 -- | Class of storages for global values
-class GlobalStore s c where
+class ComponentStore s => GlobalStore s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}
   explGlobalRead :: s -> IO c
   explGlobalWrite :: s -> c -> IO ()
@@ -158,6 +158,7 @@ instance (Has w a, Has w b) => Has w (a,b) where
 
 instance (ComponentStore a, ComponentStore b) => ComponentStore (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
+  type Stores (a, b) = (Stores a, Stores b)
   initStoreWith (aa, ab) = (,) <$> initStoreWith aa <*> initStoreWith ab
 
 instance (EntityStore a, EntityStore b) => EntityStore (a,b) where
@@ -171,7 +172,6 @@ instance (EntityStore a, EntityStore b) => EntityStore (a,b) where
   {-# INLINE explExists #-}
 
   type SafeRW (a, b) = (SafeRW a, SafeRW b)
-  type Stores (a, b) = (Stores a, Stores b)
   explGetUnsafe  (sa,sb) ety = (,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety
   explGet        (sa,sb) ety = (,) <$> explGet sa ety <*> explGet sb ety
   explSet        (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
@@ -196,6 +196,7 @@ instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
 
 instance (ComponentStore a, ComponentStore b, ComponentStore c) => ComponentStore (a,b,c) where
   type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
+  type Stores (a, b, c) = (Stores a, Stores b, Stores c)
   initStoreWith (aa, ab, ac) = (,,) <$> initStoreWith aa <*> initStoreWith ab <*> initStoreWith ac
 
 instance (EntityStore a, EntityStore b, EntityStore c) => EntityStore (a,b,c) where
@@ -209,7 +210,6 @@ instance (EntityStore a, EntityStore b, EntityStore c) => EntityStore (a,b,c) wh
   {-# INLINE explExists #-}
 
   type SafeRW (a, b, c) = (SafeRW a, SafeRW b, SafeRW c)
-  type Stores (a, b, c) = (Stores a, Stores b, Stores c)
   explGetUnsafe  (sa,sb,sc) ety = (,,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety <*> explGetUnsafe sc ety
   explGet        (sa,sb,sc) ety = (,,) <$> explGet sa ety <*> explGet sb ety <*> explGet sc ety
   explSet        (sa,sb,sc) ety (wa,wb,wc) = explSet sa ety wa >> explSet sb ety wb >> explSet sc ety wc

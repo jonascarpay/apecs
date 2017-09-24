@@ -35,6 +35,7 @@ defaultSetMaybe s e (Just c) = explSet s e c
 newtype Map c = Map (IORef (M.IntMap c))
 instance ComponentStore (Map c) where
   type InitArgs (Map c) = ()
+  type Stores (Map c) = c
   initStoreWith _ = Map <$> newIORef mempty
 instance EntityStore (Map c) where
   explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
@@ -46,7 +47,6 @@ instance EntityStore (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
   type SafeRW (Map c) = Maybe c
-  type Stores (Map c) = c
   explGetUnsafe (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
   explGet       (Map ref) ety = M.lookup ety <$> readIORef ref
   explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
@@ -77,6 +77,7 @@ class Flag c where
 newtype Set c = Set (IORef S.IntSet)
 instance ComponentStore (Set c) where
   type InitArgs (Set c) = ()
+  type Stores (Set c) = c
   initStoreWith _ = Set <$> newIORef mempty
 instance Flag c => EntityStore (Set c) where
   explDestroy (Set ref) ety = modifyIORef' ref (S.delete ety)
@@ -92,7 +93,6 @@ instance Flag c => EntityStore (Set c) where
   {-# INLINE explImapM_ #-}
   {-# INLINE explImapM #-}
   type SafeRW (Set c) = Bool
-  type Stores (Set c) = c
   explGetUnsafe _ _ = return flag
   explGet (Set ref) ety = S.member ety <$> readIORef ref
   explSet (Set ref) ety _ = modifyIORef' ref $ S.insert ety
@@ -116,6 +116,7 @@ instance Flag c => EntityStore (Set c) where
 data Unique c = Unique (IORef Int) (IORef c)
 instance ComponentStore (Unique c) where
   type InitArgs (Unique c) = ()
+  type Stores (Unique c) = c
   initStoreWith _ = Unique <$> newIORef (-1) <*> newIORef undefined
 instance EntityStore (Unique c) where
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
@@ -134,7 +135,6 @@ instance EntityStore (Unique c) where
   {-# INLINE explImapM #-}
 
   type SafeRW (Unique c) = Maybe c
-  type Stores (Unique c) = c
   explGetUnsafe (Unique _ cref) _ = readIORef cref
   explGet       (Unique eref cref) ety = do
     e <- readIORef eref
@@ -177,6 +177,7 @@ instance EntityStore (Unique c) where
 newtype Const c = Const c
 instance ComponentStore (Const c) where
   type InitArgs (Const c) = c
+  type Stores (Const c) = c
   initStoreWith c = return$ Const c
 instance GlobalStore (Const c) c where
   explGlobalRead  (Const c) = return c
@@ -188,7 +189,6 @@ instance EntityStore (Const c) where
   explMembers _ = return mempty
   explReset _ = return ()
   type SafeRW (Const c) = c
-  type Stores (Const c) = c
   explGetUnsafe (Const c) _ = return c
   explGet       (Const c) _ = return c
   explSet       _ _ _ = return ()
@@ -201,6 +201,7 @@ instance EntityStore (Const c) where
 newtype Global c = Global (IORef c)
 instance ComponentStore (Global c) where
   type InitArgs (Global c) = c
+  type Stores   (Global c) = c
   initStoreWith c = Global <$> newIORef c
 
 instance GlobalStore (Global c) c where
@@ -223,6 +224,7 @@ instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
 instance (KnownNat n, Cachable s) => ComponentStore (Cache n s) where
   type InitArgs (Cache n s) = (InitArgs s)
+  type Stores (Cache n s) = Stores s
   initStoreWith args = do
     let n = fromIntegral$ natVal (Proxy @n)
     tags <- UM.replicate n (-1)
@@ -266,7 +268,6 @@ instance Cachable s => EntityStore (Cache n s) where
     return (as1 ++ as2)
 
   type SafeRW (Cache n s) = SafeRW s
-  type Stores (Cache n s) = Stores s
 
   {-# INLINE explGetUnsafe #-}
   explGetUnsafe (Cache n tags cache s) ety = do
