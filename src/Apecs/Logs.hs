@@ -45,7 +45,7 @@ instance HasLog (Logger l s) l where
 
 -- | Produces the log indicated by the return type.
 {-# INLINE getLog #-}
-getLog :: forall w c l. (EntityStore (Storage c), Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
+getLog :: forall w c l. (Store (Storage c), Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
 getLog = do s :: Storage c <- getStore
             return (explGetLog s)
 
@@ -65,12 +65,11 @@ instance PureLog l c => Log (FromPure l) c where
 -- | A @Logger l@ of some store updates its @Log l@ with the writes and deletes to store @s@
 data Logger l s = Logger (l (Stores s)) s
 
-instance (Log l (Stores s), Cachable s) => ComponentStore (Logger l s) where
+instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
   type InitArgs (Logger l s) = InitArgs s
   type Stores (Logger l s) = Stores s
   initStoreWith args = Logger <$> logEmpty <*> initStoreWith args
 
-instance (Log l (Stores s), Cachable s) => EntityStore (Logger l s) where
   {-# INLINE explDestroy #-}
   explDestroy (Logger l s) ety = do
     mc <- explGet s ety

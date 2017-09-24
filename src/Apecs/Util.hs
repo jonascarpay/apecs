@@ -28,7 +28,7 @@ import Apecs.Stores
 import Apecs.System
 
 -- | Initializes a store with (), useful since most stores have () as their initialization argument
-initStore :: (ComponentStore s, InitArgs s ~ ()) => IO s
+initStore :: (Store s, InitArgs s ~ ()) => IO s
 initStore = initStoreWith ()
 
 unEntity :: Entity a -> Int
@@ -52,7 +52,7 @@ nextEntity = do EntityCounter n <- readGlobal
 
 -- | Writes the given components to a new entity, and yields that entity
 {-# INLINE newEntity #-}
-newEntity :: (EntityStore (Storage c), Has w c, Has w EntityCounter)
+newEntity :: (Store (Storage c), Has w c, Has w EntityCounter)
           => c -> System w (Entity c)
 newEntity c = do ety <- nextEntity
                  set ety c

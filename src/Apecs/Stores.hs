@@ -26,18 +26,17 @@ import Data.Proxy
 import Apecs.Types
 
 {-# INLINE defaultSetMaybe #-}
-defaultSetMaybe :: (EntityStore s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (Stores s) -> IO ()
+defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (Stores s) -> IO ()
 defaultSetMaybe s e Nothing  = explDestroy s e
 defaultSetMaybe s e (Just c) = explSet s e c
 
 -- | A map from Data.Intmap.Strict. O(n log(n)) for most operations.
 --   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
-instance ComponentStore (Map c) where
+instance Store (Map c) where
   type InitArgs (Map c) = ()
   type Stores (Map c) = c
   initStoreWith _ = Map <$> newIORef mempty
-instance EntityStore (Map c) where
   explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
   explMembers (Map ref)     = U.fromList . M.keys <$> readIORef ref
   explExists  (Map ref) ety = M.member ety <$> readIORef ref
@@ -75,11 +74,10 @@ class Flag c where
 -- | A store that keeps membership, but holds no values.
 --   Produces @flag@ runtime values.
 newtype Set c = Set (IORef S.IntSet)
-instance ComponentStore (Set c) where
+instance Flag c => Store (Set c) where
   type InitArgs (Set c) = ()
   type Stores (Set c) = c
   initStoreWith _ = Set <$> newIORef mempty
-instance Flag c => EntityStore (Set c) where
   explDestroy (Set ref) ety = modifyIORef' ref (S.delete ety)
   explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
   explReset (Set ref) = writeIORef ref mempty
@@ -114,11 +112,10 @@ instance Flag c => EntityStore (Set c) where
 -- | A Unique contains exactly one component belonging to some entity.
 --   Writing to it overwrites both the previous component and its owner.
 data Unique c = Unique (IORef Int) (IORef c)
-instance ComponentStore (Unique c) where
+instance Store (Unique c) where
   type InitArgs (Unique c) = ()
   type Stores (Unique c) = c
   initStoreWith _ = Unique <$> newIORef (-1) <*> newIORef undefined
-instance EntityStore (Unique c) where
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
   explMembers (Unique eref _) = U.singleton <$> readIORef eref
   explReset   (Unique eref _) = writeIORef eref (-1)
@@ -175,12 +172,10 @@ instance EntityStore (Unique c) where
 
 -- | Constant value. Not very practical, but fun to write.
 newtype Const c = Const c
-instance ComponentStore (Const c) where
+instance Store (Const c) where
   type InitArgs (Const c) = c
   type Stores (Const c) = c
   initStoreWith c = return$ Const c
-instance GlobalStore (Const c) where
-instance EntityStore (Const c) where
   explDestroy _ _ = return ()
   explExists  _ _  = return False
   explMembers _ = return mempty
@@ -192,18 +187,17 @@ instance EntityStore (Const c) where
   explSetMaybe  _ _ _ = return ()
   explModify    _ _ _ = return ()
   explCmap       _ _ = return ()
+instance GlobalStore (Const c) where
 
 -- | Global value.
 --   Must be given an initial value upon construction.
 newtype Global c = Global (IORef c)
-instance ComponentStore (Global c) where
+instance GlobalStore (Global c) where
+instance Store (Global c) where
   type InitArgs (Global c) = c
   type Stores   (Global c) = c
   initStoreWith c = Global <$> newIORef c
 
-instance GlobalStore (Global c) where
-
-instance EntityStore (Global c) where
   type SafeRW (Global c) = c
   explDestroy _ _ = return ()
   explExists _ _ = return False
@@ -220,11 +214,11 @@ instance EntityStore (Global c) where
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Stores s)) s
 
-class (ComponentStore s, EntityStore s, EntityStore s, SafeRW s ~ Maybe (Stores s)) => Cachable s
+class (Store s, SafeRW s ~ Maybe (Stores s)) => Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
-instance (KnownNat n, Cachable s) => ComponentStore (Cache n s) where
+instance (KnownNat n, Cachable s) => Store (Cache n s) where
   type InitArgs (Cache n s) = (InitArgs s)
   type Stores (Cache n s) = Stores s
   initStoreWith args = do
@@ -234,7 +228,6 @@ instance (KnownNat n, Cachable s) => ComponentStore (Cache n s) where
     child <- initStoreWith args
     return (Cache n tags cache child)
 
-instance Cachable s => EntityStore (Cache n s) where
   {-# INLINE explDestroy #-}
   explDestroy (Cache n tags _ s) ety = do
     tag <- UM.unsafeRead tags (ety `mod` n)
