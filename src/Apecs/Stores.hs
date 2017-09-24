@@ -179,10 +179,7 @@ instance ComponentStore (Const c) where
   type InitArgs (Const c) = c
   type Stores (Const c) = c
   initStoreWith c = return$ Const c
-instance GlobalStore (Const c) c where
-  explGlobalRead  (Const c) = return c
-  explGlobalWrite  _ _ = return ()
-  explGlobalModify _ _ = return ()
+instance GlobalStore (Const c) where
 instance EntityStore (Const c) where
   explDestroy _ _ = return ()
   explExists  _ _  = return False
@@ -204,13 +201,7 @@ instance ComponentStore (Global c) where
   type Stores   (Global c) = c
   initStoreWith c = Global <$> newIORef c
 
-instance GlobalStore (Global c) c where
-  explGlobalRead   (Global ref) = readIORef    ref
-  explGlobalWrite  (Global ref) = writeIORef   ref
-  explGlobalModify (Global ref) = modifyIORef' ref
-  {-# INLINE explGlobalRead #-}
-  {-# INLINE explGlobalWrite #-}
-  {-# INLINE explGlobalModify #-}
+instance GlobalStore (Global c) where
 
 instance EntityStore (Global c) where
   type SafeRW (Global c) = c

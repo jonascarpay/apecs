@@ -124,15 +124,7 @@ class EntityStore s where
       sys (ety,x)
 
 -- | Class of storages for global values
-class (SafeRW s ~ c, EntityStore s) => GlobalStore s c where
-  {-# MINIMAL explGlobalRead, explGlobalWrite #-}
-  explGlobalRead  :: s -> IO c
-  explGlobalWrite :: s -> c -> IO ()
-
-  {-# INLINE explGlobalModify #-}
-  explGlobalModify :: s -> (c -> c) -> IO ()
-  explGlobalModify s f = do r <- explGlobalRead s
-                            explGlobalWrite s (f r)
+class (SafeRW s ~ Stores s, EntityStore s) => GlobalStore s where
 
 -- | Casts for entities and slices
 class Cast a b where
@@ -177,11 +169,7 @@ instance (EntityStore a, EntityStore b) => EntityStore (a,b) where
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
 
-instance (GlobalStore a ca, GlobalStore b cb) => GlobalStore (a,b) (ca,cb) where
-  explGlobalRead  (sa,sb) = (,) <$> explGlobalRead sa <*> explGlobalRead sb
-  explGlobalWrite (sa,sb) (wa,wb) = explGlobalWrite sa wa >> explGlobalWrite sb wb
-  {-# INLINE explGlobalRead #-}
-  {-# INLINE explGlobalWrite #-}
+instance (GlobalStore a, GlobalStore b) => GlobalStore (a,b) where
 
 -- (,,)
 instance (Component a, Component b, Component c) => Component (a,b,c) where
@@ -215,8 +203,4 @@ instance (EntityStore a, EntityStore b, EntityStore c) => EntityStore (a,b,c) wh
   {-# INLINE explSet #-}
   {-# INLINE explSetMaybe #-}
 
-instance (GlobalStore a ca, GlobalStore b cb, GlobalStore c cc) => GlobalStore (a,b,c) (ca,cb,cc) where
-  explGlobalRead  (sa,sb,sc) = (,,) <$> explGlobalRead sa <*> explGlobalRead sb <*> explGlobalRead sc
-  explGlobalWrite (sa,sb,sc) (wa,wb,wc) = explGlobalWrite sa wa >> explGlobalWrite sb wb >> explGlobalWrite sc wc
-  {-# INLINE explGlobalRead #-}
-  {-# INLINE explGlobalWrite #-}
+instance (GlobalStore a, GlobalStore b, GlobalStore c) => GlobalStore (a,b,c) where
