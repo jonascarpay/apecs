@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
 
+-- | This module is designed to be imported with qualified
 module Apecs.Slice where
 
 import qualified Data.Vector.Unboxed as U

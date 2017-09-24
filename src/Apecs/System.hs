@@ -43,6 +43,7 @@ destroy (Entity n) = do s :: Storage c <- getStore
                         liftIO$ explDestroy s n
 
 -- | Removes all components. Equivalent to manually iterating and deleting, but usually optimized.
+{-# INLINE resetStore #-}
 resetStore :: forall w c p. Has w c => p c -> System w ()
 resetStore _ = do s :: Storage c <- getStore
                   liftIO$ explReset s
@@ -63,6 +64,7 @@ set (Entity ety) x = do
   liftIO$ explSet s ety x
 
 -- | Same as @set@, but uses Safe to possibly delete a component
+{-# INLINE set' #-}
 set' :: forall w c. Has w c => Entity c -> Safe c -> System w ()
 set' (Entity ety) (Safe c) = do
   s :: Storage c <- getStore
@@ -121,6 +123,7 @@ cimapM sys = do s :: Storage c <- getStore
                 explCimapM s (\(e,c) -> sys (Entity e,c))
 
 -- | Maps a function that might delete its components
+{-# INLINE cmap' #-}
 cmap' :: forall world c. Has world c => (c -> Safe c) -> System world ()
 cmap' f = do s :: Storage c <- getStore
              liftIO$ do sl <- explMembers s

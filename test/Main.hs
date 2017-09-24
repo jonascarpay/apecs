@@ -31,7 +31,7 @@ instance Component Position where
 
 newtype CachePos = CachePos Vec deriving (Arbitrary, Eq, Show)
 instance Component CachePos where
-  type Storage CachePos = S.Cache 3 (S.Map CachePos)
+  type Storage CachePos = S.Cache 1 (S.Map CachePos)
 
 
 newtype Velocity = Velocity Vec deriving (Arbitrary, Eq, Show)
