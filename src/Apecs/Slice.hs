@@ -52,7 +52,7 @@ forM (Slice vec) ma = traverse (ma . Entity) (U.toList vec)
 
 -- | Iterates over a slice, and reads the components of the Slice's type argument.
 {-# INLINE forMC #-}
-forMC :: forall w c a. (HasMembers (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w [a]
+forMC :: forall w c a. (EntityStore (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w [a]
 forMC (Slice vec) sys = do
   s :: Storage c <- getStore
   for (U.toList vec) $ \e -> do
@@ -61,7 +61,7 @@ forMC (Slice vec) sys = do
 
 -- | Iterates over a slice, and reads the components of the Slice's type argument.
 {-# INLINE forMC_ #-}
-forMC_ :: forall w c a. (HasMembers (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
+forMC_ :: forall w c a. (EntityStore (Storage c), Has w c) => Slice c -> ((Entity c,Safe c) -> System w a) -> System w ()
 forMC_ (Slice vec) sys = do
   s :: Storage c <- getStore
   U.forM_ vec $ \e -> do
@@ -80,7 +80,7 @@ mapM ma (Slice vec) = traverse (ma . Entity) (U.toList vec)
 
 -- | Iterates over a slice, and reads the components of the Slice's type argument.
 {-# INLINE mapMC #-}
-mapMC :: forall w c a. (HasMembers (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w [a]
+mapMC :: forall w c a. (EntityStore (Storage c), Has w c) => ((Entity c,Safe c) -> System w a) -> Slice c -> System w [a]
 mapMC sys (Slice vec) = do
   s :: Storage c <- getStore
   for (U.toList vec) $ \e -> do
@@ -89,6 +89,6 @@ mapMC sys (Slice vec) = do
 
 -- | Iterates over a slice, and reads the components of the Slice's type argument.
 {-# INLINE mapMC_ #-}
-mapMC_ :: forall w c a. (HasMembers (Storage c), Has w c) => ((Entity c, Safe c) -> System w a) -> Slice c -> System w ()
+mapMC_ :: forall w c a. (EntityStore (Storage c), Has w c) => ((Entity c, Safe c) -> System w a) -> Slice c -> System w ()
 mapMC_ sys vec = forMC_ vec sys
 

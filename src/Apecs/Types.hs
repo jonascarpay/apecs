@@ -22,8 +22,8 @@ newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Mona
 
 -- | A component is defined by the type of its storage
 --   The storage in turn supplies runtime types for the component.
---   For the component to be valid, its Storage must be in instance of Initializable.
-class Initializable (Storage c) => Component c where
+--   For the component to be valid, its Storage must be in instance of ComponentStore.
+class ComponentStore (Storage c) => Component c where
   type Storage c = s | s -> c
 
 -- | A world `Has` a component if it can produce its Storage
@@ -32,7 +32,7 @@ class Component c => Has w c where
 
 -- Storage types
 -- | Common for every storage. Represents a container that can be initialized.
-class Initializable s where
+class ComponentStore s where
   -- | The initialization argument required by this store
   type InitArgs s
   -- Initialize the store with its initialization arguments.
@@ -42,7 +42,7 @@ class Initializable s where
 newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 
 -- | A store that is indexed by entities.
-class HasMembers s where
+class EntityStore s where
   -- | Return type for safe reads writes to the store
   type SafeRW s
   -- | The type of components stored by this Store
@@ -125,7 +125,7 @@ class HasMembers s where
 
 -- | A constraint that indicates that the runtime representation of @c@ is @c@
 --   This will almost always be the case, but it _might_ not be so we need this constraint.
-type IsRuntime c = (HasMembers (Storage c), Stores (Storage c) ~ c)
+type IsRuntime c = (EntityStore (Storage c), Stores (Storage c) ~ c)
 
 -- | Class of storages for global values
 class GlobalRW s c where
@@ -156,11 +156,11 @@ instance (Has w a, Has w b) => Has w (a,b) where
   {-# INLINE getStore #-}
   getStore = (,) <$> getStore <*> getStore
 
-instance (Initializable a, Initializable b) => Initializable (a,b) where
+instance (ComponentStore a, ComponentStore b) => ComponentStore (a,b) where
   type InitArgs (a, b) = (InitArgs a, InitArgs b)
   initStoreWith (aa, ab) = (,) <$> initStoreWith aa <*> initStoreWith ab
 
-instance (HasMembers a, HasMembers b) => HasMembers (a,b) where
+instance (EntityStore a, EntityStore b) => EntityStore (a,b) where
   explMembers (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
   explReset   (sa,sb) = explReset sa >> explReset sb
   explDestroy (sa,sb) ety = explDestroy sa ety >> explDestroy sb ety
@@ -194,11 +194,11 @@ instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
   {-# INLINE getStore #-}
   getStore = (,,) <$> getStore <*> getStore <*> getStore
 
-instance (Initializable a, Initializable b, Initializable c) => Initializable (a,b,c) where
+instance (ComponentStore a, ComponentStore b, ComponentStore c) => ComponentStore (a,b,c) where
   type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
   initStoreWith (aa, ab, ac) = (,,) <$> initStoreWith aa <*> initStoreWith ab <*> initStoreWith ac
 
-instance (HasMembers a, HasMembers b, HasMembers c) => HasMembers (a,b,c) where
+instance (EntityStore a, EntityStore b, EntityStore c) => EntityStore (a,b,c) where
   explMembers (sa,sb,sc) = explMembers sa >>= U.filterM (explExists sb) >>= U.filterM (explExists sc)
   explReset   (sa,sb,sc) = explReset sa >> explReset sb >> explReset sc
   explDestroy (sa,sb,sc) ety = explDestroy sa ety >> explDestroy sb ety >> explDestroy sc ety
