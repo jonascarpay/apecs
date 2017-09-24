@@ -212,6 +212,17 @@ instance GlobalStore (Global c) c where
   {-# INLINE explGlobalWrite #-}
   {-# INLINE explGlobalModify #-}
 
+instance EntityStore (Global c) where
+  type SafeRW (Global c) = c
+  explDestroy _ _ = return ()
+  explExists _ _ = return False
+  explGetUnsafe (Global ref) _ = readIORef ref
+  explGet (Global ref) _ = readIORef ref
+  explSet (Global ref) _ c = writeIORef ref c
+  explSetMaybe = explSet
+  explMembers = return mempty
+
+
 -- | A cache around another store.
 --   The wrapped store must produce safe representations using Maybe.
 --   Note that iterating over a cache is linear in its size, so large, sparsely populated caches will actually decrease performance.

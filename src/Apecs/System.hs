@@ -57,20 +57,20 @@ get (Entity ety) = do s :: Storage c <- getStore
 
 -- | Writes a component to a given entity. Will overwrite existing components.
 {-# INLINE set #-}
-set :: forall w c e. (IsRuntime c, Has w c) => Entity e -> c -> System w ()
+set :: forall w c e. (EntityStore (Storage c), Has w c) => Entity e -> c -> System w ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
   liftIO$ explSet s ety x
 
 -- | Same as @set@, but uses Safe to possibly delete a component
-set' :: forall w c. (IsRuntime c, Has w c) => Entity c -> Safe c -> System w ()
+set' :: forall w c. (EntityStore (Storage c), Has w c) => Entity c -> Safe c -> System w ()
 set' (Entity ety) (Safe c) = do
   s :: Storage c <- getStore
   liftIO$ explSetMaybe s ety c
 
 -- | Applies a function if possible. Equivalent to reading, mapping, and writing, but stores can provide optimized implementations.
 {-# INLINE modify #-}
-modify :: forall w c. (IsRuntime c, Has w c) => Entity c -> (c -> c) -> System w ()
+modify :: forall w c. (EntityStore (Storage c), Has w c) => Entity c -> (c -> c) -> System w ()
 modify (Entity ety) f = do
   s :: Storage c <- getStore
   liftIO$ explModify s ety f
@@ -93,40 +93,40 @@ imapM sys = do s :: Storage c <- getStore
 
 -- | Maps a pure function over all components
 {-# INLINE cmap #-}
-cmap :: forall world c. (IsRuntime c, Has world c) => (c -> c) -> System world ()
+cmap :: forall world c. (EntityStore (Storage c), Has world c) => (c -> c) -> System world ()
 cmap f = do s :: Storage c <- getStore
             liftIO$ explCmap s f
 
 -- | mapM_ version of cmap
 {-# INLINE cmapM_ #-}
-cmapM_ :: forall w c. (Has w c, IsRuntime c)
+cmapM_ :: forall w c. (Has w c, EntityStore (Storage c))
        => (c -> System w ()) -> System w ()
 cmapM_ sys = do s :: Storage c <- getStore
                 explCmapM_ s sys
 
 -- | indexed cmapM_, also gives the current entity.
 {-# INLINE cimapM_ #-}
-cimapM_ :: forall w c. (Has w c, IsRuntime c)
+cimapM_ :: forall w c. (Has w c, EntityStore (Storage c))
         => ((Entity c, c) -> System w ()) -> System w ()
 cimapM_ sys = do s :: Storage c <- getStore
                  explCimapM_ s (\(e,c) -> sys (Entity e,c))
 
 -- | mapM version of cmap. Can be used to get a list of entities
 {-# INLINE cmapM #-}
-cmapM :: forall w c a. (Has w c, IsRuntime c)
+cmapM :: forall w c a. (Has w c, EntityStore (Storage c))
       => (c -> System w a) -> System w [a]
 cmapM sys = do s :: Storage c <- getStore
                explCmapM s sys
 
 -- | indexed cmapM, also gives the current entity.
 {-# INLINE cimapM #-}
-cimapM :: forall w c a. (Has w c, IsRuntime c)
+cimapM :: forall w c a. (Has w c, EntityStore (Storage c))
        => ((Entity c, c) -> System w a) -> System w [a]
 cimapM sys = do s :: Storage c <- getStore
                 explCimapM s (\(e,c) -> sys (Entity e,c))
 
 -- | Maps a function that might delete its components
-cmap' :: forall world c. (Has world c, IsRuntime c)
+cmap' :: forall world c. (Has world c, EntityStore (Storage c))
       => (c -> Safe c) -> System world ()
 cmap' f = do s :: Storage c <- getStore
              liftIO$ do sl <- explMembers s
@@ -136,7 +136,7 @@ cmap' f = do s :: Storage c <- getStore
 
 -- | Maps a function over all entities with a @r@, and writes their @w@
 {-# INLINE rmap #-}
-rmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
+rmap :: forall world r w. (Has world w, Has world r, EntityStore (Storage r), EntityStore (Storage w))
       => (r -> w) -> System world ()
 rmap f = do sr :: Storage r <- getStore
             sc :: Storage w <- getStore
@@ -147,7 +147,7 @@ rmap f = do sr :: Storage r <- getStore
 
 -- | Maps a function over all entities with a @r@, and writes or deletes their @w@
 {-# INLINE rmap' #-}
-rmap' :: forall world r w. (Has world w, Has world r, EntityStore (Storage w), IsRuntime r)
+rmap' :: forall world r w. (Has world w, Has world r, EntityStore (Storage r), EntityStore (Storage w))
       => (r -> Safe w) -> System world ()
 rmap' f = do sr :: Storage r <- getStore
              sw :: Storage w <- getStore
@@ -158,7 +158,7 @@ rmap' f = do sr :: Storage r <- getStore
 
 -- | For all entities with a @w@, this map reads their @r@ and writes their @w@
 {-# INLINE wmap #-}
-wmap :: forall world r w. (Has world w, Has world r, IsRuntime w, IsRuntime r)
+wmap :: forall world r w. (Has world w, Has world r, EntityStore (Storage r), EntityStore (Storage w))
      => (Safe r -> w) -> System world ()
 wmap f = do sr :: Storage r <- getStore
             sw :: Storage w <- getStore
@@ -169,7 +169,7 @@ wmap f = do sr :: Storage r <- getStore
 
 -- | For all entities with a @w@, this map reads their @r@ and writes or deletes their @w@
 {-# INLINE wmap' #-}
-wmap' :: forall world r w. (Has world w, Has world r, EntityStore (Storage w), IsRuntime r)
+wmap' :: forall world r w. (Has world w, Has world r, EntityStore (Storage r), EntityStore (Storage w))
       => (Safe r -> Safe w) -> System world ()
 wmap' f = do sr :: Storage r <- getStore
              sw :: Storage w <- getStore
@@ -182,17 +182,17 @@ wmap' f = do sr :: Storage r <- getStore
 {-# INLINE readGlobal #-}
 readGlobal :: forall w c. (Has w c, GlobalStore (Storage c) c) => System w c
 readGlobal = do s :: Storage c <- getStore
-                liftIO$ explGlobalRead s
+                liftIO$ explGet s 0
 
 -- | Writes a global value
 {-# INLINE writeGlobal #-}
 writeGlobal :: forall w c. (Has w c, GlobalStore (Storage c) c) => c -> System w ()
 writeGlobal c = do s :: Storage c <- getStore
-                   liftIO$ explGlobalWrite s c
+                   liftIO$ explSet s 0 c
 
 -- | Modifies a global value
 {-# INLINE modifyGlobal #-}
 modifyGlobal :: forall w c. (Has w c, GlobalStore (Storage c) c) => (c -> c) -> System w ()
 modifyGlobal f = do s :: Storage c <- getStore
-                    liftIO$ explGlobalModify s f
+                    liftIO$ explModify s 0 f
 

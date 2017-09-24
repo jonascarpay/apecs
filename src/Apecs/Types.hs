@@ -23,7 +23,7 @@ newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Mona
 -- | A component is defined by the type of its storage
 --   The storage in turn supplies runtime types for the component.
 --   For the component to be valid, its Storage must be in instance of ComponentStore.
-class ComponentStore (Storage c) => Component c where
+class (Stores (Storage c) ~ c, ComponentStore (Storage c)) => Component c where
   type Storage c = s | s -> c
 
 -- | A world `Has` a component if it can produce its Storage
@@ -123,14 +123,10 @@ class EntityStore s where
       x :: Stores s <- liftIO$ explGetUnsafe s ety
       sys (ety,x)
 
--- | A constraint that indicates that the runtime representation of @c@ is @c@
---   This will almost always be the case, but it _might_ not be so we need this constraint.
-type IsRuntime c = (EntityStore (Storage c), Stores (Storage c) ~ c)
-
 -- | Class of storages for global values
-class ComponentStore s => GlobalStore s c where
+class (SafeRW s ~ c, EntityStore s) => GlobalStore s c where
   {-# MINIMAL explGlobalRead, explGlobalWrite #-}
-  explGlobalRead :: s -> IO c
+  explGlobalRead  :: s -> IO c
   explGlobalWrite :: s -> c -> IO ()
 
   {-# INLINE explGlobalModify #-}

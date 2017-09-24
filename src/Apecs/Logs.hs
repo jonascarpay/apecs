@@ -45,7 +45,7 @@ instance HasLog (Logger l s) l where
 
 -- | Produces the log indicated by the return type.
 {-# INLINE getLog #-}
-getLog :: forall w c l. (IsRuntime c, Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
+getLog :: forall w c l. (EntityStore (Storage c), Has w c, HasLog (Storage c) l, Log l c) => System w (l c)
 getLog = do s :: Storage c <- getStore
             return (explGetLog s)
 

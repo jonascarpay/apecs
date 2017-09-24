@@ -52,7 +52,7 @@ nextEntity = do EntityCounter n <- readGlobal
 
 -- | Writes the given components to a new entity, and yields that entity
 {-# INLINE newEntity #-}
-newEntity :: (IsRuntime c, Has w c, Has w EntityCounter)
+newEntity :: (EntityStore (Storage c), Has w c, Has w EntityCounter)
           => c -> System w (Entity c)
 newEntity c = do ety <- nextEntity
                  set ety c
