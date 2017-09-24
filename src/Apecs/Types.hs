@@ -30,6 +30,9 @@ class (Stores (Storage c) ~ c, ComponentStore (Storage c)) => Component c where
 class Component c => Has w c where
   getStore :: System w (Storage c)
 
+-- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
+newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
+
 -- Storage types
 -- | Common for every storage. Represents a container that can be initialized.
 class ComponentStore s where
@@ -40,25 +43,23 @@ class ComponentStore s where
   -- | The type of components stored by this Store
   type Stores s
 
--- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
-newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
-
 -- | A store that is indexed by entities.
 class EntityStore s where
   -- | Return type for safe reads writes to the store
   type SafeRW s
+  -- | Retrieves a component from the store
+  explGet       :: s -> Int -> IO (SafeRW s)
+  -- | Writes a component
+  explSet       :: s -> Int -> Stores s -> IO ()
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns whether there is a component for the given index
   explExists  :: s -> Int -> IO Bool
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
+
   -- | Unsafe index to the store. Undefined if the component does not exist
   explGetUnsafe :: s -> Int -> IO (Stores s)
-  -- | Retrieves a component from the store
-  explGet       :: s -> Int -> IO (SafeRW s)
-  -- | Writes a component
-  explSet       :: s -> Int -> Stores s -> IO ()
   -- | Either writes or deletes a component
   explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
 
