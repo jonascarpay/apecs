@@ -140,7 +140,7 @@ There's also a mutable equivalent called `Log l c`.
 `Logger` only accepts `Logs`, you can turn a `PureLog` into a `Log` using `FromPure`.
 You can basically slap a Log onto anything that can be cached.
 
-A log is a piece of data that is updated when data is changed.
+A log is a piece of data that is updated when the underlying store is changed.
 `onSet` takes the entity in question, maybe its previous value, and its new value, and updates the log.
 `onDestroy` is the corresponding function for when an entity is destroyed.
 With just these functions, you can track many interesting pieces of game state for only the cost of incremental updates.
@@ -179,7 +179,7 @@ That's it!
 You can now use `region` and `byComponent` to query a piece of the game world.
 
 #### Conclusion
-That concludes our tour of the apecs internals.
+That concludes our tour of the apecs internals and performance tips.
 One final performance tip is that it can often help to compile your program with `-fllvm -optlo-O3` if you can.
 This does require a working `llvm` installation, which is outside the scope of this tutorial.
 
