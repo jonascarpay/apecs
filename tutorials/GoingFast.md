@@ -60,10 +60,10 @@ A store is mostly expected to do 5 things:
 5. `explMembers` yields a list of all members.
 
 All systems are expressed in terms of these functions.
-It might seem like I'm going a little far into the details here, after all, this mostly comes down to that Stores behave like maps/dictionaries/sets*, but I want to take a quick look at how these functions are composed, and the performance implications.
+It might seem like I'm going a little far into the details here, after all, this mostly comes down to that Stores behave like maps/dictionaries/sets*, but understanding the way these functions compose is useful for understanding performance and writing your own `Stores`.
 
 #### Tuples
-The first case is Store instances for tuples.
+Tuples have `Component` instances (see other tutorials) because tuples have `Store` instances.
 These mostly behave as you'd expect:
 ```haskell
 explSet (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
@@ -176,7 +176,14 @@ instance Enum Position where
 ```
 That's it!
 `unsafeFlatten` and `quantize` are two of a number of helper functions for spatial hashing found in `Apecs.Util`.
+You can now use `region` and `byComponent` to query a piece of the game world.
 
 #### Conclusion
 That concludes our tour of the apecs internals.
-Let me know if there's anything that you would like me to cover in more detail.
+One final performance tip is that it can often help to compile your program with `-fllvm -optlo-O3` if you can.
+This does require a working `llvm` installation, which is outside the scope of this tutorial.
+
+I hope I have answered any other performance related questions you might have had.
+If not, let me know, and I'll see if I can cover it in more detail.
+
+Contributions to apecs in the form of criticism/issues/pull requests are very welcome.
