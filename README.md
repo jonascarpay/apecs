@@ -1,5 +1,5 @@
 # apecs
-##### [hackage](https://hackage.haskell.org/package/apecs) | [documentation](https://hackage.haskell.org/package/apecs-0.2.0.2/docs/Apecs.html) | [tutorials](https://github.com/jonascarpay/apecs/blob/master/tutorials/)
+##### [hackage](https://hackage.haskell.org/package/apecs) | [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html) | [tutorials](https://github.com/jonascarpay/apecs/blob/master/tutorials/)
 
 apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 It exposes a DSL that translates to fast storage operations, resulting in expressivity without sacrificing performance or safety.
