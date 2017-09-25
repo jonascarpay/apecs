@@ -53,7 +53,7 @@ Almost every `expl` function has a user-facing version, like `explGet` and `get 
 Not all of the code is important for now.
 A store is mostly expected to do 5 things:
 
-1. `explGet` takes an index (the ID of some entity) and maybe returns a component a component for that index.
+1. `explGet` takes an index (the ID of some entity) and maybe returns a component for that index.
 2. `explSet` takes an index and a component, and then stores that component somewhere.
 3. `explDestroy` removes a component for some index if it held one.
 4. `explExists` returns whether the store has a component for some index.
