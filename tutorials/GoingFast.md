@@ -158,7 +158,7 @@ You can get your log out of the game world using `getLog`.
 
 Now, let's cheat a little.
 In games with physics, you often want to keep a spatial hash of your entities.
-A spatial hash divides the space into regions, and tracks what entities are in that region.
+A spatial hash divides the space into regions, and tracks what entities are in what region.
 This allows you to perform spatial queries, which comes up _a lot_ in collision detection.
 Without a spatial hash, you often have no choice but to test the collisions for every possible pair of entities.
 
@@ -176,7 +176,7 @@ instance Enum Position where
 ```
 That's it!
 `unsafeFlatten` and `quantize` are two of a number of helper functions for spatial hashing found in `Apecs.Util`.
-You can now use `region` and `byComponent` to query a piece of the game world.
+You can now use `region` and `byComponent` to get a list of all `Positions` in a certain area.
 
 #### Conclusion
 That concludes our tour of the apecs internals and performance tips.
