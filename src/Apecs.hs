@@ -9,13 +9,11 @@ module Apecs (
     Map, Set, Unique, Global, Flag(..),
 
 
-  -- * Initializable
+  -- * Store wrapper functions
     initStoreWith,
 
-  -- ** HasMembers wrapper functions
     destroy, exists, owners, resetStore,
 
-  -- ** Store wrapper functions
     get, set, set', modify,
     cmap, cmapM, cmapM_, cimapM, cimapM_,
     rmap', rmap, wmap, wmap', cmap',

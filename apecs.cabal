@@ -33,7 +33,6 @@ library
   ghc-options:
     -Wall
     -Odph
-    -fno-warn-unused-top-binds
 
 test-suite apecs-test
   type:

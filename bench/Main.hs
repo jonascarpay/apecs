@@ -4,13 +4,12 @@
 import Criterion
 import qualified Criterion.Main as C
 import Control.Monad
+import Linear
 
 import Apecs as A
 import Apecs.Stores
 import Apecs.Util
 import qualified Apecs.Slice as S
-
-import Linear
 
 data Group w1 w2 = Group
   { groupName :: String

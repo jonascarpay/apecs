@@ -30,7 +30,7 @@ defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (
 defaultSetMaybe s e Nothing  = explDestroy s e
 defaultSetMaybe s e (Just c) = explSet s e c
 
--- | A map from Data.Intmap.Strict. O(n log(n)) for most operations.
+-- | A map from Data.Intmap.Strict. O(log(n)) for most operations.
 --   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
 instance Store (Map c) where

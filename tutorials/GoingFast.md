@@ -18,7 +18,7 @@ ECS are still _really_ fast, and I suspect for most use cases their benefits far
 All I want to say is this: the bar for apecs to be fast is not as high as you might think.
 
 Second, Haskell turns out to be particularly suited for writing an ECS in.
-This might surprise you, as Haskell is garbage collected, functional, and only has immutable values.
+This might surprise you, as Haskell is garbage collected, functional, lazy by default, pure, and only has immutable values.
 The reason Haskell gets to be fast is that Haskell's type system allows an ECS to be defined in terms of small primitive functions and corresponding semantics.
 This is good, first of all, because GHC is really good at turning compositions of small functions into fast code.
 The second reason is that this means that we can compose Stores, as long as we promise to preserve those semantics.
@@ -180,8 +180,11 @@ You can now use `region` and `byComponent` to get a list of all `Positions` in a
 
 #### Conclusion
 That concludes our tour of the apecs internals and performance tips.
-One final performance tip is that it can often help to compile your program with `-fllvm -optlo-O3` if you can.
-This does require a working `llvm` installation, which is outside the scope of this tutorial.
+Some final tips:
+
+1. If you can, compile your program with `-fllvm -optlo-O3` for an extra 10-30% performance boost
+2. You probably want to call runGC before or after every frame.
+   This makes sure we don't build up too much garbage, and keeps frame times consistent.
 
 I hope I have answered any other performance related questions you might have had.
 If not, let me know, and I'll see if I can cover it in more detail.

@@ -33,7 +33,6 @@ newtype CachePos = CachePos Vec deriving (Arbitrary, Eq, Show)
 instance Component CachePos where
   type Storage CachePos = S.Cache 1 (S.Map CachePos)
 
-
 newtype Velocity = Velocity Vec deriving (Arbitrary, Eq, Show)
 instance Component Velocity where
   type Storage Velocity = S.Map Velocity
@@ -56,7 +55,7 @@ newtype RandomEntity a = RandomEntity (Entity a) deriving (Eq, Show)
 instance Arbitrary (RandomEntity a) where
   arbitrary = RandomEntity . Entity . abs <$> arbitrary
 
-newtype W1 c = W1 {w1c1 :: (Storage c)}
+newtype W1 c = W1 {w1c1 :: Storage c}
 instance Component c => Has (W1 c) c where getStore = System $ asks w1c1
 
 data W2 a b = W2 { w2c1 :: Storage a , w2c2 :: Storage b }
