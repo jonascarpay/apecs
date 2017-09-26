@@ -21,13 +21,12 @@ Second, Haskell turns out to be particularly suited for writing an ECS in.
 This might surprise you, as Haskell is garbage collected, functional, lazy by default, pure, and only has immutable values.
 The reason Haskell gets to be fast is that Haskell's type system allows an ECS to be defined in terms of small primitive functions and corresponding semantics.
 This is good, first of all, because GHC is really good at turning compositions of small functions into fast code.
-The second reason is that this means that we can compose Stores, as long as we promise to preserve those semantics.
-This is where things like caches come from.
-The final reason is that we can define common operations in terms of generic storage operations.
-Stores can then provide optimized versions of those operations, provided they follow the same semantics, and the compiler will then pick those optimized versions at compile time.
+The second reason is that we can generically define common operations in terms of those primitives.
+Stores can then provide optimized versions of those operations, provided they are functionally equivalent, and the compiler will then pick those optimized versions at compile time.
+The final reason is that this means that we can compose Stores, as long as we promise to preserve their semantics, which is where caches come from.
 
-All of this means that a lot of the infrastructure that I mentioned previously gets generated at compile time, and then optimized into fast specialized code.
-Add a bit of monad magic and voilà, stateful imperative programming in Haskell.
+All of this means that a lot of the infrastructure I mentioned previously gets generated at compile time, and then optimized into fast specialized code.
+Add a bit of monad magic and voilà, fast stateful imperative programming in Haskell.
 
 #### Stores
 Let's take a look under the hood.
