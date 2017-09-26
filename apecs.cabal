@@ -22,6 +22,7 @@ library
     Apecs.Logs,
     Apecs.System,
     Apecs.Slice,
+    Apecs.TH,
     Apecs.Util
   default-language:
     Haskell2010
@@ -29,6 +30,7 @@ library
     base >= 4.7 && < 5,
     containers,
     mtl,
+    template-haskell,
     vector
   ghc-options:
     -Wall

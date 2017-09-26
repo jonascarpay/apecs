@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 import Apecs
+import Apecs.TH
 import Apecs.Stores (Cache)
 import Linear
 
@@ -22,12 +24,16 @@ instance Component Enemy where
   -- Because enemy is just a flag, we can use a set
   type Storage Enemy = Set Enemy
 
+makeWorld "World2" [''Position]
+
 -- Define your world as containing the storages of your components
 data World = World
   { positions     :: Storage Position
   , velocities    :: Storage Velocity
   , enemies       :: Storage Enemy
   , entityCounter :: Storage EntityCounter }
+
+
 
 -- Define Has instances for components to allow type-driven access to their storages
 instance World `Has` Position      where getStore = System $ asks positions
