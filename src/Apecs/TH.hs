@@ -1,57 +1,35 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Apecs.TH where
+module Apecs.TH
+  ( makeWorld, makeWorldWithCounter
+  )where
 
-import Control.Monad.Reader
 import Language.Haskell.TH
 
-import Apecs.Types (Has(..))
-import Debug.Trace
+import Apecs.Util (EntityCounter)
 
-curryN :: Int -> Q Exp
-curryN n = do
-  f <- newName "f"
-  xs <- replicateM n (newName "x")
-  let args = map VarP (f:xs)
-      ntup = TupE (map VarE xs)
+genName :: String -> Q Name
+genName s = mkName . show <$> newName s
 
-  return $ LamE args (AppE (VarE f) ntup)
+{-|
 
-genCurries :: Int -> Q [Dec]
-genCurries n = forM [1..n] mkCurryDec
-  where
-    mkCurryDec ith = do
-      cury <- curryN ith
-      let name = mkName $ "curry" ++ show ith
-      return $ FunD name [Clause [] (NormalB cury) []]
+> makeWorld "WorldName" [''Component1, ''Component2]
 
-{-mapN :: Int -> Q Dec-}
-{-mapN n-}
-  {-| n >= 1 = funD name [cl1, cl2]-}
-  {-| otherwise = fail "AAAA"-}
-  {-where-}
-    {-name = mkName $ "map" ++ show n-}
-    {-cl1 = do-}
-      {-f <- newName "f"-}
-      {-xs <- replicateM n (newName "x")-}
-      {-ys <- replicateM n (newName "ys")-}
-      {-let argPatts = varP f : consPatts-}
-          {-consPatts = [ [p| $(varP x) : $(varP ys) |] | (x,ys) <- zip xs ys]-}
-          {-apply = foldl (\ f x -> [| $f $(varE x) |])-}
-          {-first = apply (varE f) xs-}
-          {-rest = apply (varE name) (f:ys)-}
-      {-clause argPatts (normalB [| $first : $rest |]) []-}
-    {-cl2 = clause (replicate (n+1) wildP) (normalB (conE '[])) []-}
+turns into
 
+> data WorldName = WorldName ...
+> instance WorldName `Has` Component1 where ...
+> instance WorldName `Has` Component2 where ...
+
+|-}
 makeWorld :: String -> [Name] -> Q [Dec]
 makeWorld worldName cTypes = do
-
-  cTypesNames <- mapM (\t -> do rec <- newName "rec"; return (ConT t, rec)) cTypes
+  cTypesNames <- mapM (\t -> do rec <- genName "rec"; return (ConT t, rec)) cTypes
 
   let wld = mkName worldName
       has = mkName "Has"
       sys = mkName "System"
-      wdecl = DataD [] wld [] Nothing [RecC wld records] []
+      wldDecl = DataD [] wld [] Nothing [RecC wld records] []
 
       makeRecord (t,n) = (n, Bang NoSourceUnpackedness SourceStrict, ConT (mkName "Storage") `AppT` t)
       records = makeRecord <$> cTypesNames
@@ -65,4 +43,8 @@ makeWorld worldName cTypes = do
 
       hasDecl = makeInstance <$> cTypesNames
 
-  return $ wdecl : hasDecl
+  return $ wldDecl : hasDecl
+
+-- | Same as 'makeWorld', but adds an 'EntityCounter'
+makeWorldWithCounter :: String -> [Name] -> Q [Dec]
+makeWorldWithCounter worldName cTypes = makeWorld worldName (cTypes ++ [''EntityCounter])
