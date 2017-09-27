@@ -19,64 +19,48 @@ Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchma
 ### Example
 ```haskell
 import Apecs
+import Apecs.TH (makeWorld)
 import Apecs.Stores (Cache)
 import Linear
 
--- Component data definitions
-newtype Velocity = Velocity (V2 Double) deriving (Eq, Show)
-newtype Position = Position (V2 Double) deriving (Eq, Show)
-data Enemy = Enemy -- A single constructor for tagging entites as enemies
+newtype Position = Position (V2 Double) deriving Show
+-- Turn Position into a component by specifiying the type of its Storage
+instance Component Position where
+  -- The simplest store is a Map
+  type Storage Position = Map Position
 
--- Define Velocity as a component by giving it a storage type
+newtype Velocity = Velocity (V2 Double)
 instance Component Velocity where
-  -- Store velocities in a cached map
+  -- We can add a Cache for faster access
   type Storage Velocity = Cache 100 (Map Velocity)
 
-instance Component Position where
-  type Storage Position = Cache 100 (Map Position)
+data Player = Player -- A single constructor component for tagging the player
+instance Component Player where
+  -- Unique contains at most one component. See the Stores module.
+  type Storage Player = Unique Player
 
-instance Flag Enemy where flag = Enemy
-instance Component Enemy where
-  -- Because enemy is just a flag, we can use a set
-  type Storage Enemy = Set Enemy
+-- Generate a world type and instances
+makeWorld "World" [''Position, ''Velocity, ''Player]
 
--- Define your world as containing the storages of your components
-data World = World
-  { positions     :: Storage Position
-  , velocities    :: Storage Velocity
-  , enemies       :: Storage Enemy
-  , entityCounter :: Storage EntityCounter }
-
--- Define Has instances for components to allow type-driven access to their storages
-instance World `Has` Position      where getStore = System $ asks positions
-instance World `Has` Velocity      where getStore = System $ asks velocities
-instance World `Has` Enemy         where getStore = System $ asks enemies
-instance World `Has` EntityCounter where getStore = System $ asks entityCounter
-
-type System' a = System World a
-
-game :: System' ()
+game :: System World ()
 game = do
   -- Create new entities
   ety <- newEntity (Position 0)
   -- Components can be composed using tuples
   newEntity (Position 0, Velocity 1)
-  -- Tagging one as an enemy is a matter of adding the constructor
-  newEntity (Position 1, Velocity 1, Enemy)
+  newEntity (Position 1, Velocity 1, Player)
+
+  -- set (over)writes components
+  set ety (Velocity 2)
 
   -- Side effects
   liftIO$ putStrLn "Stepping velocities"
   -- rmap maps a pure function over all entities in its domain
   rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  -- Set can be used to (over)write components
-  set ety (Position 2, Enemy)
-
-  -- Print the positions of all enemies
-  cmapM_ $ \(Enemy, Position p) -> liftIO (print p)
+  -- Print all positions
+  cmapM_ $ \(Position p) -> liftIO (print p)
 
 main :: IO ()
-main = do w <- World <$> initStore <*> initStore <*> initStore <*> initCounter
-          runSystem game w
-
+main = initWorld >>= runSystem game
 ```
