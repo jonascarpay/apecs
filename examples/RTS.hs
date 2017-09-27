@@ -4,6 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Main where
 
@@ -15,6 +16,7 @@ import Data.Proxy
 import SDL.Vect
 
 import Apecs
+import Apecs.TH
 import qualified Apecs.Slice as S
 
 hres, vres :: Num a => a
@@ -41,18 +43,7 @@ instance Monoid MouseState where
 instance Component MouseState where
   type Storage MouseState = Global MouseState
 
-data World = World
-  { positions     :: Storage Position
-  , targets       :: Storage Target
-  , selected      :: Storage Selected
-  , mouseState    :: Storage MouseState
-  , entityCounter :: Storage EntityCounter
-  }
-instance World `Has` Position      where getStore = System $ asks positions
-instance World `Has` Target        where getStore = System $ asks targets
-instance World `Has` Selected      where getStore = System $ asks selected
-instance World `Has` MouseState    where getStore = System $ asks mouseState
-instance World `Has` EntityCounter where getStore = System $ asks entityCounter
+makeWorld "World" [''Position, ''Target, ''Selected, ''MouseState]
 
 type System' a = System World a
 
