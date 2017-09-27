@@ -5,6 +5,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Apecs.Types where
 
@@ -138,62 +139,11 @@ instance Cast (Slice a) (Slice b) where
 
 -- Tuple Instances
 -- (,)
-instance (Component a, Component b) => Component (a,b) where
-  type Storage (a,b) = (Storage a, Storage b)
-
-instance (Has w a, Has w b) => Has w (a,b) where
-  {-# INLINE getStore #-}
-  getStore = (,) <$> getStore <*> getStore
-
-instance (Store a, Store b) => Store (a,b) where
-  type Stores (a, b) = (Stores a, Stores b)
-  initStore = (,) <$> initStore <*> initStore
-
-  explMembers (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
-  explReset   (sa,sb) = explReset sa >> explReset sb
-  explDestroy (sa,sb) ety = explDestroy sa ety >> explDestroy sb ety
-  explExists  (sa,sb) ety = (&&) <$> explExists sa ety <*> explExists sb ety
-  {-# INLINE explMembers #-}
-  {-# INLINE explReset #-}
-  {-# INLINE explDestroy #-}
-  {-# INLINE explExists #-}
-
-  type SafeRW (a, b) = (SafeRW a, SafeRW b)
-  explGetUnsafe  (sa,sb) ety = (,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety
-  explGet        (sa,sb) ety = (,) <$> explGet sa ety <*> explGet sb ety
-  explSet        (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
-  explSetMaybe   (sa,sb) ety (wa,wb) = explSetMaybe sa ety wa >> explSetMaybe sb ety wb
-  {-# INLINE explGetUnsafe #-}
-  {-# INLINE explGet #-}
-  {-# INLINE explSet #-}
-  {-# INLINE explSetMaybe #-}
+tupleInstances 2
 
 instance (GlobalStore a, GlobalStore b) => GlobalStore (a,b) where
 
--- (,,)
+-- I left the hand-written version of (,) for documentation reasons, but the rest is TH-generated
 tupleInstances 3
-
-instance (Store a, Store b, Store c) => Store (a,b,c) where
-  type Stores (a, b, c) = (Stores a, Stores b, Stores c)
-  initStore = (,,) <$> initStore <*> initStore <*> initStore
-
-  explMembers (sa,sb,sc) = explMembers sa >>= U.filterM (explExists sb) >>= U.filterM (explExists sc)
-  explReset   (sa,sb,sc) = explReset sa >> explReset sb >> explReset sc
-  explDestroy (sa,sb,sc) ety = explDestroy sa ety >> explDestroy sb ety >> explDestroy sc ety
-  explExists  (sa,sb,sc) ety = and <$> sequence [explExists sa ety, explExists sb ety, explExists sc ety]
-  {-# INLINE explMembers #-}
-  {-# INLINE explReset #-}
-  {-# INLINE explDestroy #-}
-  {-# INLINE explExists #-}
-
-  type SafeRW (a, b, c) = (SafeRW a, SafeRW b, SafeRW c)
-  explGetUnsafe  (sa,sb,sc) ety = (,,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety <*> explGetUnsafe sc ety
-  explGet        (sa,sb,sc) ety = (,,) <$> explGet sa ety <*> explGet sb ety <*> explGet sc ety
-  explSet        (sa,sb,sc) ety (wa,wb,wc) = explSet sa ety wa >> explSet sb ety wb >> explSet sc ety wc
-  explSetMaybe   (sa,sb,sc) ety (wa,wb,wc) = explSetMaybe sa ety wa >> explSetMaybe sb ety wb >> explSetMaybe sc ety wc
-  {-# INLINE explGetUnsafe #-}
-  {-# INLINE explGet #-}
-  {-# INLINE explSet #-}
-  {-# INLINE explSetMaybe #-}
 
 instance (GlobalStore a, GlobalStore b, GlobalStore c) => GlobalStore (a,b,c) where
