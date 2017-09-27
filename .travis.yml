@@ -16,4 +16,4 @@ install:
 script:
 - stack --no-terminal test  --haddock --no-haddock-deps
 # I don't know how to llvm
-# - stack --no-terminal bench --haddock --no-haddock-deps
+- stack --no-terminal bench --haddock --no-haddock-deps --ghc-options="-fasm"
