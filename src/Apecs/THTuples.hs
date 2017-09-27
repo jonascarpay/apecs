@@ -5,6 +5,8 @@ module Apecs.THTuples where
 import Language.Haskell.TH
 import qualified Data.Vector.Unboxed as U
 
+-- | Generate tuple instances for the following tuple sizes.
+makeInstances :: [Int] -> Q [Dec]
 makeInstances is = concat <$> traverse tupleInstances is
 
 {--
@@ -45,7 +47,6 @@ tupleInstances n = do
       varTuple = tupleUpT vars
       tuplN = tupleDataName n
       tuplE = ConE tuplN
-      pureTuplE = AppE (VarE (mkName "pure")) tuplE
 
       compN = mkName "Component"
       compT var = ConT compN `AppT` var
