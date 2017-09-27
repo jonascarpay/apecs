@@ -12,6 +12,10 @@ extra-source-files:  README.md, tutorials/RTS.md
 synopsis:            A fast ECS for game engine programming
 description:         A fast ECS for game engine programming
 
+source-repository head
+  type:     git
+  location: git://github.com/jonascarpay/apecs.git
+
 library
   hs-source-dirs:
     src
