@@ -5,7 +5,7 @@ module Apecs.THTuples where
 import Language.Haskell.TH
 import qualified Data.Vector.Unboxed as U
 
-import Control.Monad
+makeInstances is = concat <$> traverse tupleInstances is
 
 {--
 instance (Component a, Component b) => Component (a,b) where

@@ -13,7 +13,7 @@ import Control.Monad.Reader
 import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
 
-import Apecs.THTuples
+import qualified Apecs.THTuples as T
 
 -- | An Entity is really just an Int. The type variable is used to keep track of reads and writes, but can be freely cast.
 newtype Entity c = Entity Int deriving (Eq, Ord, Show)
@@ -138,12 +138,7 @@ instance Cast (Slice a) (Slice b) where
   cast (Slice vec) = Slice vec
 
 -- Tuple Instances
--- (,)
-tupleInstances 2
+T.makeInstances [2..6]
 
 instance (GlobalStore a, GlobalStore b) => GlobalStore (a,b) where
-
--- I left the hand-written version of (,) for documentation reasons, but the rest is TH-generated
-tupleInstances 3
-
 instance (GlobalStore a, GlobalStore b, GlobalStore c) => GlobalStore (a,b,c) where
