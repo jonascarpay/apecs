@@ -173,6 +173,8 @@ before_install:
   fi
 
 install:
+# Remove the -fllvm ghc option
+- sed -i.orig '/llvm/d' apecs.cabal
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
 - if [ -f configure.ac ]; then autoreconf -i; fi
 - |
