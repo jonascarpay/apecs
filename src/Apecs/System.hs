@@ -1,9 +1,6 @@
 {-# LANGUAGE Strict #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
-{-# LANGUAGE ConstraintKinds #-}
 
 module Apecs.System where
 

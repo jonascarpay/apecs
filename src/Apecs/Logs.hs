@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeFamilies, MultiParamTypeClasses, ConstraintKinds #-}
 {-# LANGUAGE ScopedTypeVariables, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE Strict #-}
 

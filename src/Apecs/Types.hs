@@ -1,11 +1,9 @@
-{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
-{-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE LambdaCase #-}
 
 module Apecs.Types where
 
@@ -28,7 +26,7 @@ newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Mona
 --   The storage in turn supplies runtime types for the component.
 --   For the component to be valid, its Storage must be in instance of Store.
 class (Stores (Storage c) ~ c, Store (Storage c)) => Component c where
-  type Storage c = s | s -> c
+  type Storage c
 
 -- | A world `Has` a component if it can produce its Storage
 class Component c => Has w c where

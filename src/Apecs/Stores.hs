@@ -1,9 +1,9 @@
 {-# LANGUAGE Strict #-}
-{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
-{-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE ConstraintKinds, DataKinds, KindSignatures #-}
+{-# LANGUAGE DataKinds, KindSignatures #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Apecs.Stores
