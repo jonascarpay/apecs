@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Apecs.TH
-  ( makeWorld, makeWorldWithCounter
+  ( makeWorldNoEC, makeWorld
   )where
 
 import Language.Haskell.TH
@@ -12,19 +12,9 @@ import Apecs.Util (EntityCounter)
 genName :: String -> Q Name
 genName s = mkName . show <$> newName s
 
-{-|
-
-> makeWorld "WorldName" [''Component1, ''Component2]
-
-turns into
-
-> data WorldName = WorldName ...
-> instance WorldName `Has` Component1 where ...
-> instance WorldName `Has` Component2 where ...
-
-|-}
-makeWorld :: String -> [Name] -> Q [Dec]
-makeWorld worldName cTypes = do
+-- | Same as 'makeWorld', but has no 'EntityCounter'
+makeWorldNoEC :: String -> [Name] -> Q [Dec]
+makeWorldNoEC worldName cTypes = do
   cTypesNames <- mapM (\t -> do rec <- genName "rec"; return (ConT t, rec)) cTypes
 
   let wld = mkName worldName
@@ -50,9 +40,25 @@ makeWorld worldName cTypes = do
 
   return $ wldDecl : initDecl : hasDecl
 
--- | Same as 'makeWorld', but adds an 'EntityCounter'
-makeWorldWithCounter :: String -> [Name] -> Q [Dec]
-makeWorldWithCounter worldName cTypes = makeWorld worldName (cTypes ++ [''EntityCounter])
+{-|
+
+> makeWorld "WorldName" [''Component1, ''Component2, ...]
+
+turns into
+
+> data WorldName = WorldName ...
+> instance WorldName `Has` Component1 where ...
+> instance WorldName `Has` Component2 where ...
+> ...
+>
+> instance WorldName `Has` EntityCounter where ...
+>
+> initWorldName :: IO WorldName
+> initWorldName = WorldName <$> initStore <*> ...
+
+|-}
+makeWorld :: String -> [Name] -> Q [Dec]
+makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])
 
 tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do

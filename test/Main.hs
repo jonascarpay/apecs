@@ -37,7 +37,6 @@ newtype Velocity = Velocity Vec deriving (Arbitrary, Eq, Show)
 instance Component Velocity where
   type Storage Velocity = S.Map Velocity
 
-
 data TestFlag = TestFlag
 instance Arbitrary TestFlag where arbitrary = return TestFlag
 instance S.Flag TestFlag where flag = TestFlag
@@ -55,12 +54,6 @@ newtype RandomEntity a = RandomEntity (Entity a) deriving (Eq, Show)
 instance Arbitrary (RandomEntity a) where
   arbitrary = RandomEntity . Entity . abs <$> arbitrary
 
-newtype W1 c = W1 {w1c1 :: Storage c}
-instance Component c => Has (W1 c) c where getStore = System $ asks w1c1
-
-data W2 a b = W2 { w2c1 :: Storage a , w2c2 :: Storage b }
-instance (Component a, Component b) => Has (W2 a b) a where getStore = System $ asks w2c1
-instance (Component a, Component b) => Has (W2 a b) b where getStore = System $ asks w2c2
 
 counter :: [CachePos] -> CachePos -> Property
 counter cs c = monadicIO $ run f >>= assert
