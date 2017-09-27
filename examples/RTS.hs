@@ -35,6 +35,9 @@ instance Component Selected where
   type Storage Selected = Set Selected
 
 data MouseState = Dragging !(V2 Double) !(V2 Double) | Rest
+instance Monoid MouseState where
+  mempty = Rest
+  mappend = undefined
 instance Component MouseState where
   type Storage MouseState = Global MouseState
 
@@ -154,5 +157,5 @@ cleanup (window, renderer) = liftIO$ do
 
 main :: IO ()
 main = do
-  w <- World <$> initStore <*> initStore <*> initStore <*> initStoreWith Rest <*> initCounter
+  w <- World <$> initStore <*> initStore <*> initStore <*> initStore <*> initStore
   runSystem game w

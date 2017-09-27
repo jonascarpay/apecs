@@ -34,9 +34,8 @@ defaultSetMaybe s e (Just c) = explSet s e c
 --   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
 instance Store (Map c) where
-  type InitArgs (Map c) = ()
   type Stores (Map c) = c
-  initStoreWith _ = Map <$> newIORef mempty
+  initStore = Map <$> newIORef mempty
   explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
   explMembers (Map ref)     = U.fromList . M.keys <$> readIORef ref
   explExists  (Map ref) ety = M.member ety <$> readIORef ref
@@ -75,9 +74,8 @@ class Flag c where
 --   Produces @flag@ runtime values.
 newtype Set c = Set (IORef S.IntSet)
 instance Flag c => Store (Set c) where
-  type InitArgs (Set c) = ()
   type Stores (Set c) = c
-  initStoreWith _ = Set <$> newIORef mempty
+  initStore = Set <$> newIORef mempty
   explDestroy (Set ref) ety = modifyIORef' ref (S.delete ety)
   explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
   explReset (Set ref) = writeIORef ref mempty
@@ -113,9 +111,8 @@ instance Flag c => Store (Set c) where
 --   Writing to it overwrites both the previous component and its owner.
 data Unique c = Unique (IORef Int) (IORef c)
 instance Store (Unique c) where
-  type InitArgs (Unique c) = ()
   type Stores (Unique c) = c
-  initStoreWith _ = Unique <$> newIORef (-1) <*> newIORef undefined
+  initStore = Unique <$> newIORef (-1) <*> newIORef undefined
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
   explMembers (Unique eref _) = U.singleton <$> readIORef eref
   explReset   (Unique eref _) = writeIORef eref (-1)
@@ -171,11 +168,11 @@ instance Store (Unique c) where
 
 
 -- | Constant value. Not very practical, but fun to write.
+--   Contains `mempty`
 newtype Const c = Const c
-instance Store (Const c) where
-  type InitArgs (Const c) = c
+instance Monoid c => Store (Const c) where
   type Stores (Const c) = c
-  initStoreWith c = return$ Const c
+  initStore = return$ Const mempty
   explDestroy _ _ = return ()
   explExists  _ _  = return False
   explMembers _ = return mempty
@@ -187,16 +184,15 @@ instance Store (Const c) where
   explSetMaybe  _ _ _ = return ()
   explModify    _ _ _ = return ()
   explCmap       _ _ = return ()
-instance GlobalStore (Const c) where
+instance Monoid c => GlobalStore (Const c) where
 
 -- | Global value.
---   Must be given an initial value upon construction.
+--   Initialized with 'mempty'
 newtype Global c = Global (IORef c)
-instance GlobalStore (Global c) where
-instance Store (Global c) where
-  type InitArgs (Global c) = c
+instance Monoid c => GlobalStore (Global c) where
+instance Monoid c => Store (Global c) where
   type Stores   (Global c) = c
-  initStoreWith c = Global <$> newIORef c
+  initStore = Global <$> newIORef mempty
 
   type SafeRW (Global c) = c
   explDestroy _ _ = return ()
@@ -219,13 +215,12 @@ instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
 instance (KnownNat n, Cachable s) => Store (Cache n s) where
-  type InitArgs (Cache n s) = (InitArgs s)
   type Stores (Cache n s) = Stores s
-  initStoreWith args = do
+  initStore = do
     let n = fromIntegral$ natVal (Proxy @n)
     tags <- UM.replicate n (-1)
     cache <- VM.new n
-    child <- initStoreWith args
+    child <- initStore
     return (Cache n tags cache child)
 
   {-# INLINE explDestroy #-}

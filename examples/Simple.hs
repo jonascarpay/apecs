@@ -64,5 +64,5 @@ game = do
   cmapM_ $ \(Enemy, Position p) -> liftIO (print p)
 
 main :: IO ()
-main = do w <- World <$> initStore <*> initStore <*> initStore <*> initCounter
+main = do w <- World <$> initStore <*> initStore <*> initStore <*> initStore
           runSystem game w

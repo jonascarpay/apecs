@@ -10,10 +10,8 @@ module Apecs (
 
 
   -- * Store wrapper functions
-    initStoreWith,
-
+    initStore,
     destroy, exists, owners, resetStore,
-
     get, set, set', modify,
     cmap, cmapM, cmapM_, cimapM, cimapM_,
     rmap', rmap, wmap, wmap', cmap',
@@ -24,7 +22,7 @@ module Apecs (
 
   -- * Other
     runSystem, runWith,
-    initStore, runGC, EntityCounter, initCounter, newEntity,
+    runGC, EntityCounter, newEntity,
 
   -- Reader
   asks, ask, liftIO, lift,

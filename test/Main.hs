@@ -66,7 +66,7 @@ counter :: [CachePos] -> CachePos -> Property
 counter cs c = monadicIO $ run f >>= assert
   where
     f = do
-      w :: W2 CachePos EntityCounter <- W2 <$> initStore <*> initCounter
+      w :: W2 CachePos EntityCounter <- W2 <$> initStore <*> initStore
       runWith w $ do
         forM_ cs newEntity
         e <- newEntity c
