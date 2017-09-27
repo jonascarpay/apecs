@@ -56,10 +56,8 @@ class Store s where
   -- | Either writes or deletes a component
   explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
 
-  -- | The initialization argument required by this store
-  type InitArgs s
   -- Initialize the store with its initialization arguments.
-  initStoreWith :: InitArgs s -> IO s
+  initStore :: IO s
 
   -- | Removes all components.
   --   Equivalent to calling @explDestroy@ on each member
@@ -145,9 +143,8 @@ instance (Has w a, Has w b) => Has w (a,b) where
   getStore = (,) <$> getStore <*> getStore
 
 instance (Store a, Store b) => Store (a,b) where
-  type InitArgs (a, b) = (InitArgs a, InitArgs b)
   type Stores (a, b) = (Stores a, Stores b)
-  initStoreWith (aa, ab) = (,) <$> initStoreWith aa <*> initStoreWith ab
+  initStore = (,) <$> initStore <*> initStore
 
   explMembers (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
   explReset   (sa,sb) = explReset sa >> explReset sb
@@ -178,9 +175,8 @@ instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
   getStore = (,,) <$> getStore <*> getStore <*> getStore
 
 instance (Store a, Store b, Store c) => Store (a,b,c) where
-  type InitArgs (a, b, c) = (InitArgs a, InitArgs b, InitArgs c)
   type Stores (a, b, c) = (Stores a, Stores b, Stores c)
-  initStoreWith (aa, ab, ac) = (,,) <$> initStoreWith aa <*> initStoreWith ab <*> initStoreWith ac
+  initStore = (,,) <$> initStore <*> initStore <*> initStore
 
   explMembers (sa,sb,sc) = explMembers sa >>= U.filterM (explExists sb) >>= U.filterM (explExists sc)
   explReset   (sa,sb,sc) = explReset sa >> explReset sb >> explReset sc

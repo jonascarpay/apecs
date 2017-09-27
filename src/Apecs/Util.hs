@@ -7,7 +7,7 @@ module Apecs.Util (
   initStore, runGC, unEntity,
 
   -- * EntityCounter
-  EntityCounter, initCounter, nextEntity, newEntity,
+  EntityCounter, nextEntity, newEntity,
 
   -- * Spatial hashing
   -- $hash
@@ -22,33 +22,27 @@ import System.Mem (performMajorGC)
 import Control.Monad.Reader (liftIO)
 import Control.Applicative (liftA2)
 import System.CPUTime
+import Data.Monoid
 
 import Apecs.Types
 import Apecs.Stores
 import Apecs.System
 
--- | Initializes a store with (), useful since most stores have () as their initialization argument
-initStore :: (Store s, InitArgs s ~ ()) => IO s
-initStore = initStoreWith ()
-
 unEntity :: Entity a -> Int
 unEntity (Entity e) = e
 
 -- | Secretly just an int in a newtype
-newtype EntityCounter = EntityCounter Int deriving (Num, Eq, Show)
+newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Num, Eq, Show)
+
 instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
-
--- | Initialize an EntityCounter
-initCounter :: IO (Storage EntityCounter)
-initCounter = initStoreWith (EntityCounter 0)
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity ())
-nextEntity = do EntityCounter n <- readGlobal
-                writeGlobal (EntityCounter (n+1))
-                return (Entity n)
+nextEntity = do n <- readGlobal
+                writeGlobal (n+1)
+                return (Entity . getSum . getCounter $ n)
 
 -- | Writes the given components to a new entity, and yields that entity
 {-# INLINE newEntity #-}

@@ -66,9 +66,8 @@ instance PureLog l c => Log (FromPure l) c where
 data Logger l s = Logger (l (Stores s)) s
 
 instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
-  type InitArgs (Logger l s) = InitArgs s
   type Stores (Logger l s) = Stores s
-  initStoreWith args = Logger <$> logEmpty <*> initStoreWith args
+  initStore = Logger <$> logEmpty <*> initStore
 
   {-# INLINE explDestroy #-}
   explDestroy (Logger l s) ety = do
