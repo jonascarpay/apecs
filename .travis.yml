@@ -49,24 +49,6 @@ matrix:
   include:
   # We grab the appropriate GHC and cabal-install versions from hvr's PPA. See:
   # https://github.com/hvr/multi-ghc-travis
-  #- env: BUILD=cabal GHCVER=7.0.4 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
-  #  compiler: ": #GHC 7.0.4"
-  #  addons: {apt: {packages: [cabal-install-1.16,ghc-7.0.4,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  #- env: BUILD=cabal GHCVER=7.2.2 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
-  #  compiler: ": #GHC 7.2.2"
-  #  addons: {apt: {packages: [cabal-install-1.16,ghc-7.2.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  #- env: BUILD=cabal GHCVER=7.4.2 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
-  #  compiler: ": #GHC 7.4.2"
-  #  addons: {apt: {packages: [cabal-install-1.16,ghc-7.4.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=7.6.3 CABALVER=1.16 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.6.3"
-    addons: {apt: {packages: [cabal-install-1.16,ghc-7.6.3,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=7.8.4 CABALVER=1.18 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.8.4"
-    addons: {apt: {packages: [cabal-install-1.18,ghc-7.8.4,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=7.10.3 CABALVER=1.22 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.10.3"
-    addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.3,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=8.0.2 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 8.0.2"
     addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
@@ -81,19 +63,6 @@ matrix:
   # variable, such as using --stack-yaml to point to a different file.
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default"
-    addons: {apt: {packages: [libgmp-dev]}}
-
-  # Too old to support
-  #- env: BUILD=stack ARGS="--resolver lts-2"
-  #  compiler: ": #stack 7.8.4"
-  #  addons: {apt: {packages: [libgmp-dev]}}
-
-  - env: BUILD=stack ARGS="--resolver lts-3"
-    compiler: ": #stack 7.10.2"
-    addons: {apt: {packages: [libgmp-dev]}}
-
-  - env: BUILD=stack ARGS="--resolver lts-6"
-    compiler: ": #stack 7.10.3"
     addons: {apt: {packages: [libgmp-dev]}}
 
   - env: BUILD=stack ARGS="--resolver lts-7"
@@ -118,14 +87,6 @@ matrix:
   #- env: BUILD=stack ARGS="--resolver lts-2"
   #  compiler: ": #stack 7.8.4 osx"
   #  os: osx
-
-  - env: BUILD=stack ARGS="--resolver lts-3"
-    compiler: ": #stack 7.10.2 osx"
-    os: osx
-
-  - env: BUILD=stack ARGS="--resolver lts-6"
-    compiler: ": #stack 7.10.3 osx"
-    os: osx
 
   - env: BUILD=stack ARGS="--resolver lts-7"
     compiler: ": #stack 8.0.1 osx"
