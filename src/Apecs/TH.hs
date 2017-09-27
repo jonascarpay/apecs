@@ -42,9 +42,13 @@ makeWorld worldName cTypes = do
             [] ]
           ]
 
+      initDecl = FunD (mkName $ "init" ++ worldName) [Clause []
+        (NormalB$ iterate (\wE -> AppE (AppE (VarE $ mkName "(<*>)") wE) (VarE $ mkName "initStore")) (AppE (VarE $ mkName "return") (ConE wld)) !! length records)
+        [] ]
+
       hasDecl = makeInstance <$> cTypesNames
 
-  return $ wldDecl : hasDecl
+  return $ wldDecl : initDecl : hasDecl
 
 -- | Same as 'makeWorld', but adds an 'EntityCounter'
 makeWorldWithCounter :: String -> [Name] -> Q [Dec]
@@ -54,6 +58,6 @@ tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do
   vars <- replicateM n (newName "x")
   let strgT var = ConT (mkName "Storage") `AppT` VarT var
-      storageInst = InstanceD Nothing (strgT <$> vars) 
+      storageInst = InstanceD Nothing (strgT <$> vars)
   undefined
 
