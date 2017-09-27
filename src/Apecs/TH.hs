@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Apecs.TH
-  ( makeWorldNoEC, makeWorld
+  ( makeWorld, makeWorldNoEC
   )where
 
 import Language.Haskell.TH
@@ -33,7 +33,7 @@ makeWorldNoEC worldName cTypes = do
           ]
 
       initDecl = FunD (mkName $ "init" ++ worldName) [Clause []
-        (NormalB$ iterate (\wE -> AppE (AppE (VarE $ mkName "(<*>)") wE) (VarE $ mkName "initStore")) (AppE (VarE $ mkName "return") (ConE wld)) !! length records)
+        (NormalB$ iterate (\wE -> AppE (AppE (VarE $ mkName "<*>") wE) (VarE $ mkName "initStore")) (AppE (VarE $ mkName "return") (ConE wld)) !! length records)
         [] ]
 
       hasDecl = makeInstance <$> cTypesNames

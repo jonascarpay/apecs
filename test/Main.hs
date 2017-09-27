@@ -5,6 +5,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {-# OPTIONS_GHC -w #-}
 
@@ -17,6 +18,7 @@ import Data.IORef
 
 import Apecs
 import Apecs.Types
+import Apecs.TH
 import Apecs.Util
 import qualified Apecs.Stores as S
 import qualified Apecs.Logs as S
@@ -54,24 +56,27 @@ newtype RandomEntity a = RandomEntity (Entity a) deriving (Eq, Show)
 instance Arbitrary (RandomEntity a) where
   arbitrary = RandomEntity . Entity . abs <$> arbitrary
 
+makeWorld "Counter" [''CachePos]
 
 counter :: [CachePos] -> CachePos -> Property
 counter cs c = monadicIO $ run f >>= assert
   where
     f = do
-      w :: W2 CachePos EntityCounter <- W2 <$> initStore <*> initStore
+      w <- initCounter
       runWith w $ do
         forM_ cs newEntity
         e <- newEntity c
         Safe r <- get e
         return (r == Just c)
 
+makeWorld "GetSetPos" [''Position]
+
 getSetPos :: [(RandomEntity Position, Position)] -> RandomEntity Position -> Position -> Property
 getSetPos cs (RandomEntity e) p = monadicIO $ run f >>= assert
   where
     f = do
-      w :: Storage Position <- initStore
-      runWith (W1 w) $ do
+      w <- initGetSetPos
+      runWith w $ do
         forM_ cs $ \(RandomEntity ety, pos) -> set ety pos
         set e p
         Safe r <- get e
@@ -80,27 +85,28 @@ getSetPos cs (RandomEntity e) p = monadicIO $ run f >>= assert
         Members set <- liftIO$ readIORef ref
         return (r == Just p && sl1 == U.fromList (S.toList set))
 
+makeWorld "GetSetVCPos" [''Velocity, ''CachePos]
+
 getSetVCPos :: [(RandomEntity (Velocity, CachePos), (Velocity, CachePos))] -> RandomEntity (Velocity, CachePos) -> (Velocity, CachePos) -> Property
 getSetVCPos cs (RandomEntity e) (v,p) = monadicIO $ run f >>= assert
   where
     f = do
-      wp :: Storage CachePos <- initStore
-      wv :: Storage Velocity <- initStore
-      runWith (W2 wp wv) $ do
+      w <- initGetSetVCPos
+      runWith w $ do
         forM_ cs $ \(RandomEntity ety, pos) -> set ety pos
         set e (v,p)
         Safe r <- get e
         return (r == (Just v, Just p))
 
+makeWorld "CmapVP" [''Velocity, ''CachePos]
 cmapVP :: [(RandomEntity (Velocity, CachePos), (Velocity, CachePos))] -> RandomEntity (Velocity, CachePos) -> (Velocity, CachePos) -> Property
 cmapVP cs (RandomEntity e) (v,p) = monadicIO $ run f >>= assert
   where
     f = do
       let swapP (CachePos (x,y)) = CachePos (y,x)
           swapV (Velocity (x,y)) = Velocity (y,x)
-      wp :: Storage CachePos <- initStore
-      wv :: Storage Velocity <- initStore
-      runWith (W2 wp wv) $ do
+      w <- initCmapVP
+      runWith w $ do
         forM_ cs $ \(RandomEntity ety, pos) -> set ety pos
         set e (v,p)
         cmap $ \(v,p) -> (swapV v, swapP p)
