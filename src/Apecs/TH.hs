@@ -5,7 +5,6 @@ module Apecs.TH
   )where
 
 import Language.Haskell.TH
-import Control.Monad
 
 import Apecs.Util (EntityCounter)
 
@@ -59,11 +58,4 @@ turns into
 |-}
 makeWorld :: String -> [Name] -> Q [Dec]
 makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])
-
-tupleInstances :: Int -> Q [Dec]
-tupleInstances n = do
-  vars <- replicateM n (newName "x")
-  let strgT var = ConT (mkName "Storage") `AppT` VarT var
-      storageInst = InstanceD Nothing (strgT <$> vars)
-  undefined
 

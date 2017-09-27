@@ -4,12 +4,15 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Apecs.Types where
 
 import Control.Monad.Reader
 import Data.Traversable (for)
 import qualified Data.Vector.Unboxed as U
+
+import Apecs.THTuples
 
 -- | An Entity is really just an Int. The type variable is used to keep track of reads and writes, but can be freely cast.
 newtype Entity c = Entity Int deriving (Eq, Ord, Show)
@@ -136,7 +139,7 @@ instance Cast (Slice a) (Slice b) where
 -- Tuple Instances
 -- (,)
 instance (Component a, Component b) => Component (a,b) where
-  type Storage (a, b) = (Storage a, Storage b)
+  type Storage (a,b) = (Storage a, Storage b)
 
 instance (Has w a, Has w b) => Has w (a,b) where
   {-# INLINE getStore #-}
@@ -168,11 +171,7 @@ instance (Store a, Store b) => Store (a,b) where
 instance (GlobalStore a, GlobalStore b) => GlobalStore (a,b) where
 
 -- (,,)
-instance (Component a, Component b, Component c) => Component (a,b,c) where
-  type Storage (a, b, c) = (Storage a, Storage b, Storage c)
-instance (Has w a, Has w b, Has w c) => Has w (a,b,c) where
-  {-# INLINE getStore #-}
-  getStore = (,,) <$> getStore <*> getStore <*> getStore
+tupleInstances 3
 
 instance (Store a, Store b, Store c) => Store (a,b,c) where
   type Stores (a, b, c) = (Stores a, Stores b, Stores c)
