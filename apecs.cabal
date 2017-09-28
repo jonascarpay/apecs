@@ -81,5 +81,6 @@ benchmark apecs-bench
     -fllvm
     -optlo-O3
     -threaded
+    -with-rtsopts=-N
     -funfolding-use-threshold1000
     -funfolding-keeness-factor1000
