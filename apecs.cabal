@@ -25,6 +25,7 @@ library
     Apecs.Stores,
     Apecs.Logs,
     Apecs.System,
+    Apecs.Concurrent,
     Apecs.Slice,
     Apecs.TH,
     Apecs.Util
@@ -37,6 +38,7 @@ library
     containers,
     mtl,
     template-haskell,
+    async,
     vector
   ghc-options:
     -Wall
@@ -78,5 +80,6 @@ benchmark apecs-bench
     -Odph
     -fllvm
     -optlo-O3
+    -threaded
     -funfolding-use-threshold1000
     -funfolding-keeness-factor1000
