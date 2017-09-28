@@ -16,6 +16,8 @@ Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchma
 | build  | 699 us | 285 us | 
 | update | 34 us  | 46 us  |
 
+There is a performance guide [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
+
 ### Example
 ```haskell
 import Apecs
@@ -53,10 +55,14 @@ game = do
   -- set (over)writes components
   set ety (Velocity 2)
 
+  let stepVelocity (Position p, Velocity v) = Position (v+p)
+
   -- Side effects
   liftIO$ putStrLn "Stepping velocities"
   -- rmap maps a pure function over all entities in its domain
-  rmap $ \(Position p, Velocity v) -> Position (v+p)
+  rmap stepVelocity
+  -- prmap n does the same, but in parallel
+  prmap 2 stepVelocity
 
   -- Print all positions
   cmapM_ $ \(Position p) -> liftIO (print p)
