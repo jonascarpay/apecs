@@ -16,7 +16,7 @@ Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchma
 | build  | 699 us | 285 us | 
 | update | 34 us  | 46 us  |
 
-There is a performance guide [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
+There is a performance guide [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md).
 
 ### Example
 ```haskell
