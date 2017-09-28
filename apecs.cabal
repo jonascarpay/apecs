@@ -1,5 +1,5 @@
 name:                apecs
-version:             0.2.3.0
+version:             0.2.4.0
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -25,6 +25,7 @@ library
     Apecs.Stores,
     Apecs.Logs,
     Apecs.System,
+    Apecs.Concurrent,
     Apecs.Slice,
     Apecs.TH,
     Apecs.Util
@@ -37,6 +38,7 @@ library
     containers,
     mtl,
     template-haskell,
+    async,
     vector
   ghc-options:
     -Wall
@@ -76,6 +78,9 @@ benchmark apecs-bench
   ghc-options:
     -Wall
     -Odph
+    -fllvm
     -optlo-O3
+    -threaded
+    -with-rtsopts=-N
     -funfolding-use-threshold1000
     -funfolding-keeness-factor1000

@@ -122,6 +122,17 @@ Even a small cache can provide a big performance boost, so don't obsess to find 
 
 Note that only `Maps` and other `Caches` can be cached.
 
+#### Parallelism
+Parallelism comes in two flavors.
+
+1) `pcmap n` is a parallel version of `cmap`.
+   This is achieved by getting a slice of all members, splitting it into pieces of `n` each, and handing each to a separate thread.
+   This is a safe and easy way of achieving parallelism.
+   Note that actually splitting the list and scheduling threads costs time, so generally only use this function it the mapped function takes a lot of time.
+
+2) `concurrently` runs a list of systems in parallel, and waits for them to finish.
+   There is no protection against race conditions, so use with caution.
+
 #### Logs
 The final key to performance is the correct use of `Logs`.
 This map is logged by an `EnumTable`:
