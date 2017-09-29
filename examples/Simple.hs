@@ -4,6 +4,7 @@
 import Apecs
 import Apecs.TH (makeWorld)
 import Apecs.Stores (Cache)
+import Apecs.Concurrent (prmap)
 import Linear
 
 newtype Position = Position (V2 Double) deriving Show
