@@ -4,7 +4,7 @@
 
 module Apecs.Util (
   -- * Utility
-  initStore, runGC, unEntity,
+  initStore, runGC,
 
   -- * EntityCounter
   EntityCounter, nextEntity, newEntity,
@@ -15,6 +15,9 @@ module Apecs.Util (
 
   -- * Timing
   timeSystem, timeSystem_,
+
+  -- * List functions
+  listAllE, listAllC, listAllEC,
 
   ) where
 
@@ -27,9 +30,6 @@ import Data.Monoid
 import Apecs.Types
 import Apecs.Stores
 import Apecs.System
-
-unEntity :: Entity a -> Int
-unEntity (Entity e) = e
 
 -- | Secretly just an int in a newtype
 newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Num, Eq, Show)
@@ -55,6 +55,18 @@ newEntity c = do ety <- nextEntity
 -- | Explicitly invoke the garbage collector
 runGC :: System w ()
 runGC = liftIO performMajorGC
+
+-- | imapM return
+listAllE :: Has w c => System w [Entity c]
+listAllE = imapM return
+
+-- | cmapM return
+listAllC :: Has w c => System w [c]
+listAllC = cmapM return
+
+-- | cimapM return
+listAllEC :: Has w c => System w [(Entity c, c)]
+listAllEC = cimapM return
 
 -- $hash
 -- The following functions are for spatial hashing.

@@ -6,7 +6,6 @@ module Apecs.Concurrent (
   pcmap, prmap, pwmap, pcmap', prmap', pwmap',
 ) where
 
-
 import qualified Control.Concurrent.Async as A
 import Control.Monad.Reader
 import qualified Data.Vector.Unboxed as U
@@ -15,7 +14,7 @@ import Apecs.Types
 import Apecs.System
 
 -- | Executes a list of systems concurrently, and blocks until all have finished.
---   Provides zero protection against race conditions, so use with caution.
+--   Provides zero protection against race conditions and other hazards, so use with caution.
 concurrently :: [System w ()] -> System w ()
 concurrently ss = do w <- System ask
                      liftIO . A.mapConcurrently_ (runWith w) $ ss
@@ -89,4 +88,3 @@ pwmap' grainSize f =
      sw :: Storage w <- getStore
      liftIO$ do sl <- explMembers sr
                 parallelize grainSize (\e -> explGet sr e >>= explSetMaybe sw e . getSafe . f . Safe) sl
-

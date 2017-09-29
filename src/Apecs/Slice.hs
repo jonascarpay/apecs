@@ -93,3 +93,5 @@ mapMC sys (Slice vec) = do
 mapMC_ :: forall w c a. Has w c => ((Entity c, Safe c) -> System w a) -> Slice c -> System w ()
 mapMC_ sys vec = forMC_ vec sys
 
+toList :: Slice a -> [Entity a]
+toList (Slice sl) = Entity <$> U.toList sl

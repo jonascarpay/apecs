@@ -20,6 +20,8 @@ import Apecs.Types
 import Apecs.TH
 import Apecs.Stores
 import Apecs.Logs
+import Apecs.Util
+import qualified Apecs.Slice as Sl
 
 type Vec = (Double, Double)
 
@@ -69,6 +71,14 @@ setGetPropC scr (RandomEntity re) rw = assertSys initSetGetCI $ do
   Safe r :: Safe CacheInt <- get re
   return (r == Just rw)
 
+listMembersIsSlice :: Scramble CacheInt -> Property
+listMembersIsSlice scr = assertSys initSetGetCI $ do
+  scramble scr
+  es :: [Entity CacheInt] <- listAllE
+  sl :: Slice CacheInt <- owners
+  return (S.fromList (unEntity <$> es) == S.fromList (unEntity <$> Sl.toList sl))
+
+
 -- Tests basic tuple functionality
 newtype T1 = T1 Int deriving (Eq, Show, Arbitrary)
 newtype T2 = T2 Int deriving (Eq, Show, Arbitrary)
@@ -109,8 +119,10 @@ loggerProp s = assertSys initLoggerProp $ do
   return (sl == U.fromList (S.toList set))
 
 
+
 main = do
   quickCheck setGetProp
   quickCheck setGetTuple
   quickCheck setGetPropC
   quickCheck loggerProp
+  quickCheck listMembersIsSlice
