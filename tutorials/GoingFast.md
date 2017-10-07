@@ -169,7 +169,7 @@ You can get your log out of the game world using `getLog`.
 Now, let's cheat a little.
 In games with physics, you often want to keep a spatial hash of your entities.
 A spatial hash divides the space into regions, and tracks what entities are in what region.
-This allows you to perform spatial queries, which comes up _a lot_ in collision detection.
+This allows you to perform spatial queries, which comes up a lot in things like collision detection.
 Without a spatial hash, you often have no choice but to test the collisions for every possible pair of entities.
 
 Here's how we make one in apecs:
@@ -182,10 +182,10 @@ instance Bounded Position where
   minBound = Position 0
   maxBound = Position 1
 instance Enum Position where
-  fromEnum (Position p) = unsafeFlatten 100 . quantize 0.01 $ p
+  fromEnum (Position p) = flatten' 100 . quantize 0.01 $ p
 ```
 That's it!
-`unsafeFlatten` and `quantize` are two of a number of helper functions for spatial hashing found in `Apecs.Util`.
+`flatten'` and `quantize` are two of a number of helper functions for spatial hashing found in `Apecs.Util`.
 You can now use `region` and `byComponent` to get a list of all `Positions` in a certain area.
 
 #### Conclusion
@@ -194,7 +194,7 @@ Some final tips:
 
 1. If you can, compile your program with `-fllvm -optlo-O3` for an extra 10-30% performance boost
 2. You probably want to call runGC before or after every frame.
-   This makes sure we don't build up too much garbage, and keeps frame times consistent.
+   This makes sure you don't build up unnecessary garbage, and keeps frame times consistent.
 
 I hope I have answered any other performance related questions you might have had.
 If not, let me know, and I'll see if I can cover it in more detail.

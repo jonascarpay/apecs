@@ -11,7 +11,7 @@ module Apecs.Util (
 
   -- * Spatial hashing
   -- $hash
-  quantize, flatten, inbounds, region, unsafeFlatten,
+  quantize, flatten, inbounds, region, flatten',
 
   -- * Timing
   timeSystem, timeSystem_,
@@ -98,7 +98,7 @@ quantize cell vec = floor <$> vec/cell
 flatten :: (Applicative v, Integral a, Foldable v)
         => v a -- Field size vector
         -> v a -> Maybe a
-flatten size vec = if inbounds size vec then Just (unsafeFlatten size vec) else Nothing
+flatten size vec = if inbounds size vec then Just (flatten' size vec) else Nothing
 
 -- | Tests whether a vector is in the region given by 0 and the size vector (inclusive)
 {-# INLINE inbounds #-}
@@ -116,15 +116,14 @@ region :: (Enum a, Applicative v, Traversable v)
        -> [v a]
 region a b = sequence $ liftA2 enumFromTo a b
 
--- | Unsafe version of flatten. Yields garbage for out-of-bounds queries.
-{-# INLINE unsafeFlatten #-}
-unsafeFlatten :: (Applicative v, Integral a, Foldable v)
-              => v a -- Field size vector
-              -> v a -> a
-unsafeFlatten size vec = foldr (\(n,x) acc -> n*acc + x) 0 (liftA2 (,) size vec)
+-- | flatten, but yields garbage for out-of-bounds vectors.
+{-# INLINE flatten' #-}
+flatten' :: (Applicative v, Integral a, Foldable v)
+            => v a -- Field size vector
+            -> v a -> a
+flatten' size vec = foldr (\(n,x) acc -> n*acc + x) 0 (liftA2 (,) size vec)
 
 -- | Runs a system and gives its execution time in seconds
-{-# INLINE timeSystem #-}
 timeSystem :: System w a -> System w (Double, a)
 timeSystem sys = do
   s <- liftIO getCPUTime
@@ -132,7 +131,6 @@ timeSystem sys = do
   t <- liftIO getCPUTime
   return (fromIntegral (t-s)/1e12, a)
 
-{-# INLINE timeSystem_ #-}
 -- | Runs a system, discards its output, and gives its execution time in seconds
 timeSystem_ :: System w a -> System w Double
 timeSystem_ = fmap fst . timeSystem
