@@ -95,25 +95,26 @@ cmap :: forall world c. Has world c => (c -> c) -> System world ()
 cmap f = do s :: Storage c <- getStore
             liftIO$ explCmap s f
 
--- | mapM_ version of cmap
+-- | 'mapM_' version of 'cmap'
 {-# INLINE cmapM_ #-}
 cmapM_ :: forall w c. Has w c => (c -> System w ()) -> System w ()
 cmapM_ sys = do s :: Storage c <- getStore
                 explCmapM_ s sys
 
--- | indexed cmapM_, also gives the current entity.
+-- | indexed 'cmapM_', also gives the current entity.
 {-# INLINE cimapM_ #-}
 cimapM_ :: forall w c. Has w c => ((Entity c, c) -> System w ()) -> System w ()
 cimapM_ sys = do s :: Storage c <- getStore
                  explCimapM_ s (\(e,c) -> sys (Entity e,c))
 
 -- | mapM version of cmap. Can be used to get a list of entities
+--   As the type signature implies, and unlike 'cmap', the return value is not written to the component store.
 {-# INLINE cmapM #-}
 cmapM :: forall w c a. Has w c => (c -> System w a) -> System w [a]
 cmapM sys = do s :: Storage c <- getStore
                explCmapM s sys
 
--- | indexed cmapM, also gives the current entity.
+-- | indexed 'cmapM', also gives the current entity.
 {-# INLINE cimapM #-}
 cimapM :: forall w c a. Has w c => ((Entity c, c) -> System w a) -> System w [a]
 cimapM sys = do s :: Storage c <- getStore

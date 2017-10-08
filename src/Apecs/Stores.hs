@@ -108,14 +108,16 @@ instance Flag c => Store (Set c) where
   {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
--- | A Unique contains exactly one component belonging to some entity.
+-- | A Unique contains at most one component.
 --   Writing to it overwrites both the previous component and its owner.
 data Unique c = Unique (IORef Int) (IORef c)
 instance Store (Unique c) where
   type Stores (Unique c) = c
+  type SafeRW (Unique c) = Maybe c
   initStore = Unique <$> newIORef (-1) <*> newIORef undefined
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
-  explMembers (Unique eref _) = U.singleton <$> readIORef eref
+
+  explMembers (Unique eref _) = readIORef eref >>= \e -> return $ if e == -1 then mempty else (U.singleton e)
   explReset   (Unique eref _) = writeIORef eref (-1)
   explExists  (Unique eref _) ety = (==ety) <$> readIORef eref
   explImapM_  (Unique eref _) ma = do e <- liftIO (readIORef eref); when (e /= -1) (void$ ma e)
@@ -129,18 +131,17 @@ instance Store (Unique c) where
   {-# INLINE explImapM_ #-}
   {-# INLINE explImapM #-}
 
-  type SafeRW (Unique c) = Maybe c
   explGetUnsafe (Unique _ cref) _ = readIORef cref
   explGet       (Unique eref cref) ety = do
     e <- readIORef eref
-    if e == ety then Just <$> readIORef cref else return Nothing
+    if e == ety && e /= -1 then Just <$> readIORef cref else return Nothing
 
   explSet       (Unique eref cref) ety x = writeIORef eref ety >> writeIORef cref x
   explSetMaybe = defaultSetMaybe
-  explCmap      (Unique _    cref) f = modifyIORef' cref f
+  explCmap      (Unique eref cref) f = readIORef eref >>= \e -> unless (e == -1) $ modifyIORef' cref f
   explModify    (Unique eref cref) ety f = do
     e <- readIORef eref
-    when (e==ety) (modifyIORef' cref f)
+    when (e==ety && e /= -1) (modifyIORef' cref f)
 
   explCmapM (Unique eref cref) ma = do
     e <- liftIO$ readIORef eref

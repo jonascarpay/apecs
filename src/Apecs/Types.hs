@@ -53,7 +53,7 @@ class Store s where
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
 
-  -- | Unsafe index to the store. Undefined if the component does not exist
+  -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
   explGetUnsafe :: s -> Int -> IO (Stores s)
   -- | Either writes or deletes a component
   explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
