@@ -198,7 +198,7 @@ instance Monoid c => Store (Global c) where
 
   type SafeRW (Global c) = c
   explDestroy _ _ = return ()
-  explExists _ _ = return False
+  explExists _ _ = return True
   explGetUnsafe (Global ref) _ = readIORef ref
   explGet (Global ref) _ = readIORef ref
   explSet (Global ref) _ c = writeIORef ref c
