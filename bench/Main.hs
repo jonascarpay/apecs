@@ -33,12 +33,5 @@ main = C.defaultMain
   [ bgroup "ecs_bench"
     [ bench "init" $ whnfIO (initECSB >>= runSystem ecsbInit)
     , bench "step" $ whnfIO (initECSB >>= runSystem (ecsbInit >> rmap stepVel))
-    , bgroup "concurrent" $
-      [ bench "grain 10"  $ whnfIO (initECSB >>= runSystem (ecsbInit >> prmap 10  stepVel))
-      , bench "grain 100" $ whnfIO (initECSB >>= runSystem (ecsbInit >> prmap 100 stepVel))
-      , bench "grain 125" $ whnfIO (initECSB >>= runSystem (ecsbInit >> prmap 125 stepVel))
-      , bench "grain 500" $ whnfIO (initECSB >>= runSystem (ecsbInit >> prmap 500 stepVel))
-      , bench "grain 1000" $ whnfIO (initECSB >>= runSystem (ecsbInit >> prmap 1000 stepVel))
-      ]
     ]
   ]
