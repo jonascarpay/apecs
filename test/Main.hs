@@ -119,6 +119,19 @@ loggerProp s = assertSys initLoggerProp $ do
   return (sl == U.fromList (S.toList set))
 
 
+newtype G = G Bool deriving (Eq, Show)
+instance Monoid G where
+  mempty = G False
+  mappend (G x) (G y) = G (x || y)
+instance Component G where
+  type Storage G = Global G
+
+makeWorld "GProp" [''G]
+
+gProp = assertSys initGProp $ do
+  modifyGlobal $ \(G x) -> G (not x)
+  G x <- readGlobal
+  return $ x == True
 
 main = do
   quickCheck setGetProp
@@ -126,3 +139,4 @@ main = do
   quickCheck setGetPropC
   quickCheck loggerProp
   quickCheck listMembersIsSlice
+  quickCheck gProp
