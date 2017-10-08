@@ -50,6 +50,10 @@ class Store s where
   explDestroy :: s -> Int -> IO ()
   -- | Returns whether there is a component for the given index
   explExists  :: s -> Int -> IO Bool
+  explExists s n = do
+    mems <- explMembers s
+    return $ U.elem n mems
+
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
 

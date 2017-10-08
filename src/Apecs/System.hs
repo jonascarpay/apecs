@@ -188,6 +188,5 @@ writeGlobal c = do s :: Storage c <- getStore
 -- | Modifies a global value
 {-# INLINE modifyGlobal #-}
 modifyGlobal :: forall w c. (Has w c, GlobalStore (Storage c)) => (c -> c) -> System w ()
-modifyGlobal f = do s :: Storage c <- getStore
-                    liftIO$ explModify s 0 f
+modifyGlobal f = readGlobal >>= writeGlobal . f
 
