@@ -39,7 +39,6 @@ makeWorldNoEC worldName cTypes = do
 
       hasDecl = makeInstance <$> cTypesNames
 
-  
   return $ wldDecl : initSig : initDecl : hasDecl
 
 {-|
@@ -48,15 +47,14 @@ makeWorldNoEC worldName cTypes = do
 
 turns into
 
-> data WorldName = WorldName ...
+> data WorldName = WorldName Component1 Component2 ... EntityCounter
 > instance WorldName `Has` Component1 where ...
 > instance WorldName `Has` Component2 where ...
 > ...
->
 > instance WorldName `Has` EntityCounter where ...
 >
 > initWorldName :: IO WorldName
-> initWorldName = WorldName <$> initStore <*> ...
+> initWorldName = WorldName <$> initStore <*> initStore <*> ... <*> initCounter
 
 |-}
 makeWorld :: String -> [Name] -> Q [Dec]

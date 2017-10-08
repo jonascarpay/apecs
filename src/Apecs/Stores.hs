@@ -75,6 +75,7 @@ class Flag c where
 newtype Set c = Set (IORef S.IntSet)
 instance Flag c => Store (Set c) where
   type Stores (Set c) = c
+  type SafeRW (Set c) = Bool
   initStore = Set <$> newIORef mempty
   explDestroy (Set ref) ety = modifyIORef' ref (S.delete ety)
   explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
@@ -88,7 +89,7 @@ instance Flag c => Store (Set c) where
   {-# INLINE explReset #-}
   {-# INLINE explImapM_ #-}
   {-# INLINE explImapM #-}
-  type SafeRW (Set c) = Bool
+
   explGetUnsafe _ _ = return flag
   explGet (Set ref) ety = S.member ety <$> readIORef ref
   explSet (Set ref) ety _ = modifyIORef' ref $ S.insert ety
@@ -96,10 +97,10 @@ instance Flag c => Store (Set c) where
   explSetMaybe s ety True  = explSet s ety flag
   explCmap _ _ = return ()
   explModify _ _ _ = return ()
-  explCmapM   = error "Iterating over set"
-  explCmapM_  = error "Iterating over set"
-  explCimapM  = error "Iterating over set"
-  explCimapM_ = error "Iterating over set"
+  explCmapM   s m = explImapM  s (m . const flag)
+  explCmapM_  s m = explImapM_ s (m . const flag)
+  explCimapM  s m = explImapM  s (m . flip  (,) flag)
+  explCimapM_ s m = explImapM_ s (m . flip  (,) flag)
   {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
