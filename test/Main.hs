@@ -52,8 +52,8 @@ newtype MapInt = MapInt Int deriving (Eq, Show, Arbitrary)
 instance Component MapInt where type Storage MapInt = Map MapInt
 makeWorld "SetGetMI" [''MapInt]
 
-setGetProp :: Scramble MapInt -> RandomEntity MapInt -> MapInt -> Property
-setGetProp scr (RandomEntity re) rw = assertSys initSetGetMI $ do
+prop_setGet :: Scramble MapInt -> RandomEntity MapInt -> MapInt -> Property
+prop_setGet scr (RandomEntity re) rw = assertSys initSetGetMI $ do
   scramble scr
   set re rw
   Safe r :: Safe MapInt <- get re
@@ -64,15 +64,15 @@ newtype CacheInt = CacheInt Int deriving (Eq, Show, Arbitrary)
 instance Component CacheInt where type Storage CacheInt = Cache 2 (Map CacheInt)
 makeWorld "SetGetCI" [''CacheInt]
 
-setGetPropC :: Scramble CacheInt -> RandomEntity CacheInt -> CacheInt -> Property
-setGetPropC scr (RandomEntity re) rw = assertSys initSetGetCI $ do
+prop_setGetCached :: Scramble CacheInt -> RandomEntity CacheInt -> CacheInt -> Property
+prop_setGetCached scr (RandomEntity re) rw = assertSys initSetGetCI $ do
   scramble scr
   set re rw
   Safe r :: Safe CacheInt <- get re
   return (r == Just rw)
 
-listMembersIsSlice :: Scramble CacheInt -> Property
-listMembersIsSlice scr = assertSys initSetGetCI $ do
+prop_sliceIsMembersLog :: Scramble CacheInt -> Property
+prop_sliceIsMembersLog scr = assertSys initSetGetCI $ do
   scramble scr
   es :: [Entity CacheInt] <- listAllE
   sl :: Slice CacheInt <- owners
@@ -89,8 +89,8 @@ instance Component T3 where type Storage T3 = Map T3
 
 makeWorld "Tuples" [''T1, ''T2, ''T3]
 
-setGetTuple :: (T1, T2, T3) -> Inserts (T1, T2, T3) -> Property
-setGetTuple w@(T1 n1, T2 n2, T3 n3) ws = assertSys initTuples $ do
+prop_setGetTuple :: (T1, T2, T3) -> Inserts (T1, T2, T3) -> Property
+prop_setGetTuple w@(T1 n1, T2 n2, T3 n3) ws = assertSys initTuples $ do
   e <- newEntity w
   insertAll ws
   cmap $ \(T1 n) -> T1 (n+1)
@@ -110,8 +110,8 @@ instance Component Logged where type Storage Logged = Logger (FromPure Members) 
 
 makeWorld "LoggerProp" [''Logged]
 
-loggerProp :: Scramble Logged -> Property
-loggerProp s = assertSys initLoggerProp $ do
+prop_logger :: Scramble Logged -> Property
+prop_logger s = assertSys initLoggerProp $ do
   scramble s
   Slice sl :: Slice Logged <- owners
   FromPure ref :: FromPure Members Logged <- getLog
@@ -128,15 +128,10 @@ instance Component G where
 
 makeWorld "GProp" [''G]
 
-gProp = assertSys initGProp $ do
+prop_global = assertSys initGProp $ do
   modifyGlobal $ \(G x) -> G (not x)
   G x <- readGlobal
   return $ x == True
 
-main = do
-  quickCheck setGetProp
-  quickCheck setGetTuple
-  quickCheck setGetPropC
-  quickCheck loggerProp
-  quickCheck listMembersIsSlice
-  quickCheck gProp
+return []
+main = $quickCheckAll
