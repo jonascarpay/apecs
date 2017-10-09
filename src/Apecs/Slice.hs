@@ -20,6 +20,16 @@ foldM_ f seed (Slice sl) = U.foldM'_ ((.Entity) . f) seed sl
 size :: Slice a -> Int
 size (Slice vec) = U.length vec
 
+-- | Checks whether an entity is in a slice
+{-# INLINE elem #-}
+elem :: Entity c -> Slice c -> Bool
+elem = elem'
+
+-- | More polymorphic version of 'elem'
+{-# INLINE elem' #-}
+elem' :: Entity a -> Slice b -> Bool
+elem' (Entity e) (Slice sl) = U.elem e sl
+
 -- | Tests whether a slice is empty (O(1))
 {-# INLINE null #-}
 null :: Slice a -> Bool
