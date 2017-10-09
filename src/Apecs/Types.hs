@@ -42,14 +42,17 @@ class Store s where
   -- | Return type for safe reads writes to the store
   type SafeRW s
 
+  -- Initialize the store with its initialization arguments.
+  initStore :: IO s
+
   -- | Retrieves a component from the store
-  explGet       :: s -> Int -> IO (SafeRW s)
+  explGet :: s -> Int -> IO (SafeRW s)
   -- | Writes a component
-  explSet       :: s -> Int -> Stores s -> IO ()
+  explSet :: s -> Int -> Stores s -> IO ()
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns whether there is a component for the given index
-  explExists  :: s -> Int -> IO Bool
+  explExists :: s -> Int -> IO Bool
   explExists s n = do
     mems <- explMembers s
     return $ U.elem n mems
@@ -60,10 +63,7 @@ class Store s where
   -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
   explGetUnsafe :: s -> Int -> IO (Stores s)
   -- | Either writes or deletes a component
-  explSetMaybe  :: s -> Int -> SafeRW s -> IO ()
-
-  -- Initialize the store with its initialization arguments.
-  initStore :: IO s
+  explSetMaybe :: s -> Int -> SafeRW s -> IO ()
 
   -- | Removes all components.
   --   Equivalent to calling @explDestroy@ on each member

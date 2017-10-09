@@ -12,8 +12,8 @@ Apecs' performance is competitive with that of ECS implementations in Rust.
 The reason for this is twofold:
 
 First, ECS are a bad fit for most programming languages.
-What I mean by that is that they require a lot of infrastructure between the DSL and the actual component storages, which makes them slow (and often verbose).
-I don't mean to disparage any piece of software, I just mean that I know of no implementation that can yet approach the speed of handwritten Rust.
+What I mean by that is that they require a lot of runtime infrastructure between the DSL and the actual component storages, which makes them slow (and often verbose).
+I don't mean to disparage any piece of software, I just mean that I know of no implementation that can yet approach the speed of handwritten C/C++/Rust.
 ECS are still _really_ fast, and I suspect for most use cases their benefits far outweigh their costs.
 All I want to say is this: the bar for apecs to be fast is not as high as you might think.
 
@@ -23,14 +23,14 @@ The reason Haskell gets to be fast is that Haskell's type system allows an ECS t
 This is good, first of all, because GHC is really good at turning compositions of small functions into fast code.
 The second reason is that we can generically define common operations in terms of those primitives.
 Stores can then provide optimized versions of those operations, provided they are functionally equivalent, and the compiler will then pick those optimized versions at compile time.
-The final reason is that this means that we can compose Stores, as long as we promise to preserve their semantics, which is where caches come from.
+The final reason is that we can compose Stores, as long as we promise to preserve their semantics, which is where caches come from.
 
 All of this means that a lot of the infrastructure I mentioned previously gets generated at compile time, and then optimized into fast specialized code.
 Add a bit of monad magic and voilà, fast stateful imperative programming in Haskell.
 
 #### Stores
 Let's take a look under the hood.
-This is the `Store` class:
+This is the `Store` class minimal complete definition:
 ```haskell
 class Store s where
   type InitArgs s
@@ -40,7 +40,6 @@ class Store s where
   explGet     :: s -> Int -> IO (SafeRW s)
   explSet     :: s -> Int -> Stores s -> IO ()
   explDestroy :: s -> Int -> IO ()
-  explExists  :: s -> Int -> IO Bool
   explMembers :: s -> IO (U.Vector Int)
 
   explGetUnsafe :: s -> Int -> IO (Stores s)
@@ -50,15 +49,14 @@ class Store s where
 ```
 Almost every `expl` function has a user-facing version, like `explGet` and `get :: Entity c -> System w (Safe c)`.
 Not all of the code is important for now.
-A store is mostly expected to do 5 things:
+A store is mostly expected to do 4 things:
 
 1. `explGet` takes an index (the ID of some entity) and maybe returns a component for that index.
 2. `explSet` takes an index and a component, and then stores that component somewhere.
 3. `explDestroy` removes a component for some index if it held one.
-4. `explExists` returns whether the store has a component for some index.
-5. `explMembers` yields a list of all members.
+4. `explMembers` yields a list of all members.
 
-All systems are expressed in terms of these functions.
+All systems are/can be expressed in terms of these functions.
 It might seem like I'm going a little far into the details here, after all, this mostly comes down to that Stores behave like maps/dictionaries/sets*, but understanding the way these functions compose is useful for understanding performance and writing your own `Stores`.
 
 #### Tuples
@@ -72,7 +70,7 @@ But where it gets interesting is iterating over a tuple:
 explMembers (sa,sb) = explMembers sa >>= filterM (explExists sb)
 ```
 When we iterate over a tuple, we take a list of all members of the first store, and filter out the elements that are not in the second.
-The reason this matters is that it means that `cmap (f :: (Player, Position) -> (Player, Position))` is faster than `cmap (f :: (Position, Player) -> (Position, Player))` if there is only a single `Player`, but many entities with a `Position`
+The reason this matters is that it means that `cmap (f :: (Player, Position) -> (Player, Position))` is faster than `cmap (f :: (Position, Player) -> (Position, Player))` if there is only a single `Player`, but many entities with a `Position`.
 The first example, internally, retrieves the player, checks if he has a position, and then applies the function.
 The second example iterates over all positions, checks if they have a player, and applies the function.
 When using tuples, just make sure that the rarest component is in the first position, and you're good.
@@ -117,6 +115,7 @@ Caches is are what make apecs Stores fast.
 
 The `100` type literal indicates the cache size (note that you need -XDataKinds for this).
 The larger the cache, the less often the collisions above will occur.
+
 Don't make your caches excessively large however, as iterating over a cache takes time proportional to the cache size.
 Even a small cache can provide a big performance boost, so don't obsess to find the perfect cache size.
 
@@ -137,7 +136,7 @@ Parallelism comes in two flavors.
 The final key to performance is the correct use of `Logs`.
 This map is logged by an `EnumTable`:
 ```
-Logger EnumTable (Map UnitType)
+type Storage UnitType = Logger EnumTable (Map UnitType)
 ```
 A pure log is defined by the following functions:
 ```haskell
