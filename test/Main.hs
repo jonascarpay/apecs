@@ -14,6 +14,7 @@ import Test.QuickCheck.Monadic
 import qualified Data.IntSet as S
 import qualified Data.Vector.Unboxed as U
 import Data.IORef
+import Data.List (sort)
 
 import Apecs
 import Apecs.Types
@@ -96,6 +97,25 @@ prop_setGetTuple w@(T1 n1, T2 n2, T3 n3) ws = assertSys initTuples $ do
   cmap $ \(T1 n) -> T1 (n+1)
   Safe (r1, r2, r3) <- get e
   return $ r1 == Just (T1 $ n1+1) && r2 == Just (T2 n2) && r3 == Just (T3 n3)
+
+prop_flipTuple :: Scramble T1 -> Scramble T2 -> Scramble T3 -> Scramble (T1,T2,T3) -> Property
+prop_flipTuple s1 s2 s3 s = assertSys initTuples $ do
+  scramble s1; scramble s2; scramble s3; scramble s
+  s1 :: Slice (T1,T2) <- owners
+  s2 :: Slice (T2,T1) <- owners
+  let sorted = sort . fmap unEntity . Sl.toList
+  return$ sorted s1 == sorted s2
+
+prop_membership :: Int -> Scramble T1 -> Scramble T2 -> Scramble T3 -> Scramble (T1,T2,T3) -> Property
+prop_membership ety s1 s2 s3 s = assertSys initTuples $ do
+  scramble s1; scramble s2; scramble s3; scramble s
+  let e1   = (Entity ety :: Entity T1)
+      e123 = (Entity ety :: Entity (T1, T2, T3))
+  sl1 <- owners
+  ex1 <- exists e1
+  sl123 <- owners
+  ex123 <- exists e123
+  return$ Sl.elem e1 sl1 == ex1 && Sl.elem e123 sl123 == ex123
 
 -- This Log should be able to track the members of the underlying store
 newtype Members c = Members S.IntSet
