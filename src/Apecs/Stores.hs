@@ -117,7 +117,9 @@ instance Store (Unique c) where
   initStore = Unique <$> newIORef (-1) <*> newIORef undefined
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
 
-  explMembers (Unique eref _) = readIORef eref >>= \e -> return $ if e == -1 then mempty else (U.singleton e)
+  explMembers (Unique eref _) = f <$> readIORef eref
+    where f (-1) = mempty
+          f x    = U.singleton x
   explReset   (Unique eref _) = writeIORef eref (-1)
   explExists  (Unique eref _) ety = (==ety) <$> readIORef eref
   explImapM_  (Unique eref _) ma = do e <- liftIO (readIORef eref); when (e /= -1) (void$ ma e)
