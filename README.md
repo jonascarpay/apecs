@@ -9,12 +9,17 @@ For a general introduction to ECS, see [this talk](https://www.youtube.com/watch
 
 ### Performance
 Performance is good.
-Running the [ecs-bench](https://github.com/lschmierer/ecs_bench) pos_vel benchmark shows that we can keep up with specs, which was written in Rust:
+Running [ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest Rust ECS frameworks.
 
-|        | specs  | apecs  |
-| ------ | ------ | ------ |
-| build  | 699 us | 285 us | 
-| update | 34 us  | 46 us  |
+|               | pos_vel build | pos_vel step | parallel build | parallel step |
+| ------------- | ------------- | ------------ | -------------- | ------------- |
+| apecs         | 239           | 34           | 777            | 371           |
+| calx          | 261           | 21           | 442            | 72            |
+| constellation | 306           | 10           | 567            | 256           |
+| froggy        | 594           | 13           | 1565           | 97            |
+| specs         | 753           | 38           | 1016           | 205           |
+
+![Benchmarks](/bench/chart.png)
 
 There is a performance guide [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md).
 

@@ -170,7 +170,6 @@ instance Store (Unique c) where
   {-# INLINE explCmap #-}
   {-# INLINE explModify #-}
 
-
 -- | Constant value. Not very practical, but fun to write.
 --   Contains `mempty`
 newtype Const c = Const c
@@ -229,14 +228,14 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
 
   {-# INLINE explDestroy #-}
   explDestroy (Cache n tags _ s) ety = do
-    tag <- UM.unsafeRead tags (ety `mod` n)
+    tag <- UM.unsafeRead tags (ety `rem` n)
     if tag == ety
-       then UM.unsafeWrite tags (ety `mod` n) (-1)
+       then UM.unsafeWrite tags (ety `rem` n) (-1)
        else explDestroy s ety
 
   {-# INLINE explExists #-}
   explExists (Cache n tags _ s) ety = do
-    tag <- UM.unsafeRead tags (ety `mod` n)
+    tag <- UM.unsafeRead tags (ety `rem` n)
     if tag == ety then return True else explExists s ety
 
   {-# INLINE explMembers #-}
@@ -265,7 +264,7 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
 
   {-# INLINE explGetUnsafe #-}
   explGetUnsafe (Cache n tags cache s) ety = do
-    let index = ety `mod` n
+    let index = ety `rem` n
     tag <- UM.unsafeRead tags index
     if tag == ety
        then VM.unsafeRead cache index
@@ -273,7 +272,7 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
 
   {-# INLINE explGet #-}
   explGet (Cache n tags cache s) ety = do
-    let index = ety `mod` n
+    let index = ety `rem` n
     tag <- UM.unsafeRead tags index
     if tag == ety
        then Just <$> VM.unsafeRead cache index
@@ -281,7 +280,7 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
 
   {-# INLINE explSet #-}
   explSet (Cache n tags cache s) ety x = do
-    let index = ety `mod` n
+    let index = ety `rem` n
     tag <- UM.unsafeRead tags index
     when (tag /= (-1) && tag /= ety) $ do
       cached <- VM.unsafeRead cache index
@@ -301,7 +300,7 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
 
   {-# INLINE explModify #-}
   explModify (Cache n tags cache s) ety f = do
-    let index = ety `mod` n
+    let index = ety `rem` n
     tag <- UM.read tags index
     if tag == ety
        then VM.modify cache f ety
