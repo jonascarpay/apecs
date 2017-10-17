@@ -43,10 +43,14 @@ instance (Store a, Store b) => Store (a,b) where
 tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do
   let vars = [ VarT . mkName $ "t_" ++ show i | i <- [0..n-1]]
+      tupleUpT :: [Type] -> Type
       tupleUpT = foldl AppT (TupleT n)
+      varTuple :: Type
       varTuple = tupleUpT vars
-      tuplN = tupleDataName n
-      tuplE = ConE tuplN
+      tupleName :: Name
+      tupleName = tupleDataName n
+      tuplE :: Exp
+      tuplE = ConE tupleName
 
       compN = mkName "Component"
       compT var = ConT compN `AppT` var
@@ -82,13 +86,13 @@ tupleInstances n = do
       safeT var = ConT safeN `AppT` var
 
       sNs = [ mkName $ "s_" ++ show i | i <- [0..n-1]]
-      sPat = ConP tuplN (VarP <$> sNs)
+      sPat = ConP tupleName (VarP <$> sNs)
       sEs = VarE <$> sNs
       etyN = mkName "ety"
       etyE = VarE etyN
       etyPat = VarP etyN
       wNs = [ mkName $ "w_" ++ show i | i <- [0..n-1]]
-      wPat = ConP tuplN (VarP <$> wNs)
+      wPat = ConP tupleName (VarP <$> wNs)
       wEs = VarE <$> wNs
 
       explGetN       = mkName "explGet"
