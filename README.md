@@ -9,7 +9,7 @@ For a general introduction to ECS, see [this talk](https://www.youtube.com/watch
 
 ### Performance
 Performance is good.
-Running [ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest rust ECS frameworks.
+Running [ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest Rust ECS frameworks.
 
 |               | pos_vel build | pos_vel step | parallel build | parallel step |
 | ------------- | ------------- | ------------ | -------------- | ------------- |
