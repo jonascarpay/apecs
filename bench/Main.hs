@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 import Criterion
+import Criterion.Types
 import qualified Criterion.Main as C
 import Control.Monad
 import Linear
@@ -29,7 +30,7 @@ ecsbInit = do replicateM_ 1000 (newEntity (ECSPos 0, ECSVel 1))
 stepVel (ECSVel v, ECSPos p) = ECSPos (p+v)
 
 main :: IO ()
-main = C.defaultMain
+main = C.defaultMainWith (C.defaultConfig {timeLimit = 10})
   [ bgroup "ecs_bench"
     [ bench "init" $ whnfIO (initECSB >>= runSystem ecsbInit)
     , bench "step" $ whnfIO (initECSB >>= runSystem (ecsbInit >> rmap stepVel))
