@@ -28,7 +28,7 @@ instance Has World Player where getStore = System $ asks players
 instance Has World EntityCounter where getStore = System $ asks ec
 type System' a = System World a
 
-w <- World <$> initStore <*> initStore <*> initStore <*> initCounter
+w <- World <$> initStore <*> initStore <*> initStore <*> initStore
 run = runWith w
 
 printPositions = run$ (cimapM_ (\(e,p :: Position) -> liftIO $ print (e,p)) :: System' ())

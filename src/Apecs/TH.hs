@@ -54,7 +54,7 @@ turns into
 > instance WorldName `Has` EntityCounter where ...
 >
 > initWorldName :: IO WorldName
-> initWorldName = WorldName <$> initStore <*> initStore <*> ... <*> initCounter
+> initWorldName = WorldName <$> initStore <*> initStore <*> ... <*> initStore
 
 |-}
 makeWorld :: String -> [Name] -> Q [Dec]
