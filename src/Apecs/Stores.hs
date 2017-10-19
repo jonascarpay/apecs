@@ -209,7 +209,7 @@ instance Monoid c => Store (Global c) where
 
 -- | A cache around another store.
 --   The wrapped store must produce safe representations using Maybe.
---   Note that iterating over a cache is linear in its size, so large, sparsely populated caches will actually decrease performance.
+--   Note that iterating over a cache is linear in its size, so large, sparsely populated caches might actually decrease performance.
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Stores s)) s
 
