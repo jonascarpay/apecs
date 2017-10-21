@@ -70,14 +70,18 @@ instance Component MouseState where
   type Storage MouseState = Global MouseState
 ```
 
-We'll probably look into the `Storage` type in more detail in a future tutorial.
-Using the right storage type is important when optimizing performance, but for now these will do just fine.
+Different `Storage` types have different performance characteristics, but in general, these will do just fine.
 In fact, in this example SDL will become a bottleneck before game logic will.
+For more information, check out [this performance guide](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md) and the [Stores module documentation](https://hackage.haskell.org/package/apecs-0.2.4.3/docs/Apecs-Stores.html).
 
 #### The game world
 Defining your game world is straightforward.
-The only extra thing to look out for is the `EntityCounter`.
-Adding an `EntityCounter` means we can use `newEntity` to add entities to our game world, which is nice.
+This is generally automated with `makeWorld`, but it's useful to know what's being generated.
+
+`World` holds the stores for each component.
+Or, to be more precise, it holds immutable references to mutable storage containers for each of your components.
+
+Adding an `EntityCounter` component allows us to use `newEntity` to add entities to our game world, which is nice.
 ```haskell
 data World = World
   { positions     :: Storage Position
@@ -87,19 +91,7 @@ data World = World
   , entityCounter :: Storage EntityCounter
   }
 ```
-`World` simply holds the storages of each component.
-Or, to be more precise, it holds immutable references to mutable storage containers for each of your components.
-When actually executing the game, we produce a world in the IO monad:
-```haskell
-initWorld = do
-  positions  <- initStore -- initStore = initStoreWith (), used to initialize most stores
-  targets    <- initStore
-  selected   <- initStore
-  mouseState <- initStoreWith Rest -- A global needs to be initialized with a value
-  counter    <- initCounter
-  return $ World positions targets selected counter
-```
-One last thing is to make sure we can access each of these at the type level by defining instances for `Has`:
+We then make sure we can access each of these at the type level by defining instances for `Has`, using `asks` from `ReaderT`:
 ```haskell
 instance World `Has` Position      where getStore = System $ asks positions
 instance World `Has` Target        where getStore = System $ asks targets
@@ -107,24 +99,33 @@ instance World `Has` Selected      where getStore = System $ asks selected
 instance World `Has` MouseState    where getStore = System $ asks mouseState
 instance World `Has` EntityCounter where getStore = System $ asks entityCounter
 ```
-The boilerplate ends here, you will never need to touch your `World` or the `Has` class again.
-In the future, this might be automated using Template Haskell, but it's still good to at least know what's being generated.
+When actually executing the game, we produce a world in the IO monad like this:
+```haskell
+initWorld = do
+  positions  <- initStore -- initStore = initStoreWith (), used to initialize most stores
+  targets    <- initStore
+  selected   <- initStore
+  mouseState <- initStore -- A global needs to be initialized with a value
+  counter    <- initStore
+  return $ World positions targets selected counter
+```
+
 
 #### Systems
 Most of your code takes place in the `System` monad.
-If you want to know, a `System w` is a `ReaderT w IO`, but it doesn't really matter.
-All that matters is the System allows for access to the World's underlying component stores.
-Just add this alias for convenience' sake:
+If you want to know, a `System w a` is a newtype for `ReaderT w IO a`, but it doesn't really matter if you don't know what that means.
+All that matters is that a `System world` allows for access to the `world`'s underlying component stores.
+After defining the world, I like to add this alias for convenience' sake:
 ```haskell
 type System' a = System World a
 ```
-and remember that IO looks like:
+
+Here's a system to get you started:
 ```haskell
 helloWorld :: System' ()
 helloWorld = liftIO $ putStrLn "Hello World!"
 ```
-
-Here's a system to get you started:
+`liftIO` is also used to make render calls. Here's another system:
 ```haskell
 newGuy :: System' ()
 newGuy = newEntity (Position (V2 0 0))
@@ -135,7 +136,7 @@ Here's another:
 newGuy2 :: System' ()
 newGuy2 = newEntity (Player, Position (V2 0 0), Velocity (V2 0 0))
 ```
-That's right; components can be tupled up and used as if they were a single component.
+As you can see, components can be tupled up and used as if they were a single component.
 
 And now for something more practical:
 ```haskell
@@ -152,24 +153,30 @@ That would look like this:
 ```haskell
 cmap $ \(Position p) -> Position (p+1)
 ```
-`cmap` takes a pure function and maps it over all components in the domain of the function.
+`cmap :: (c -> c) -> System world ()` takes a pure function and maps it over all components in the domain of the function.
 
-`cmap'` is analogous, but takes a function of `c -> Safe c`.
+`cmap'` is analogous, but takes a function of type `c -> Safe c`.
 A `Safe` value comes up when performing a read that might fail, or a write that might delete.
 At runtime, it looks like e.g. `Safe (Just (Position p), Nothing) :: Safe (Position, Target)` when reading an entity that has a position but no target.
 In the case of `cmap'`, it means that the function might delete the component it's mapped over.
 
-There's also `rmap`, of type `(r -> w) -> System world ()`.
+Note that while the lefthand side of `::` has `Just` and `Nothing`, there is no `Maybe` on the righthand side.
+This is because the `Safe` representation is determined by the `Store`'s `SafeRW` type.
+For a `Map c`, that's `Maybe c`, but a `Set c`, for instance, has `Bool`.
+Don't worry, if you mess up, GHC will happily and verbosely let you know where and how.
+
+Continuing with the mapping functions, we also have `rmap`, of type `(r -> w) -> System world ()`.
 It still iterates over the components in the domain, but instead of mapping to those same components, it writes the result to a different component (creating one if none exists).
 This can be used to write something like `rmap $ \(Position p, Velocity v) -> Position (p+v)` to step positions, or `rmap $ \ Player -> Selected` to add the `Selected` tag to the player.
+Note that `rmap` is a more general version of `cmap`, and you are free to use it wherever you could have used `cmap`.
 
-Finally, there's these mapping functions, whose effect you can see from the type signature:
+These are the rest of the mapping functions, whose effect you can infer from their type signature:
 ```haskell
 rmap' :: (r -> Safe w) -> System world ()
 wmap  :: (Safe r -> w) -> System world ()
 wmap' :: (Safe r -> Safe w) -> System world ()
 ```
-Note that `wmap` has a `Safe` argument in its function.
+Note that `wmap` has a `Safe` _argument_ in its function.
 `wmap` iterates over the entities/components in the codomain of its function.
 Those entities are not guaranteed to have an `r` component, so we need `Safe` here.
 
@@ -187,6 +194,7 @@ step = do
 ```
 There's a lot there.
 First try to understand what `stepPosition`'s type signature means, then what the body means, and then what it means to `cmap'` that function.
+It performs a step of size `speed` in the direction of `Target`, until it reaches its target at which point the `Target` component is deleted. 
 Once an entity loses its `Target` component, it will no longer be affected by the function above, because it's no longer in the domain of `stepPosition`.
 
 This is the second part of the game loop:
@@ -210,7 +218,7 @@ We can do this using `rmap'`.
 `f` looks at every `Position`, and returns `Safe True` if the position was inside the selection box.
 
 ### Events
-Handling events is unpacking SDL Event types and matching them to a piece of game logic:
+Handling events is unpacking SDL `Event`s and matching them to a piece of game logic:
 
 Here we start tracking the mouse when the left button is pressed, and stop when it is released.
 ```haskell
@@ -240,7 +248,7 @@ For simplicity's sake, I chose to arrange them randomly in a square, with area p
 ```haskell
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
   sl :: Slice Selected <- owners
-  let r = (*3) . subtract 1 . sqrt . fromIntegral$ S.size sl
+  let r = (*3) . subtract 1 . sqrt . fromIntegral . S.size $ sl
 
   S.forM_ sl $ \e -> do
     dx <- liftIO$ randomRIO (-r,r)
@@ -252,7 +260,6 @@ handleEvent _ = return ()
 `owners` returns a `Slice` of all members that have that particular component.
 A `Slice` is a list of entities.
 The reason we need a slice instead of a map is that we need to know the amount of selected units.
-There's a few more interesting functions here.
 `S.forM_` monadically iteraters over a `Slice`.
 `set entity component` then explicitly writes a component for an entity, overwriting whatever might have been there.
 
@@ -278,13 +285,4 @@ If you were to call `exists` with an `Entity (Position, Velocity)`, it'd tell yo
 These are the tools you need to build a game in apecs.
 I did not discuss every line in the final program, as they were mostly SDL-related.
 Again, the final version in its full glory can be found [here](https://github.com/jonascarpay/apecs/blob/master/examples/RTS.hs).
-
-The reason for writing this tutorial at this point is that apecs is now sufficiently developed where it has most of the functionality of other ECS, and is now a viable way of developing games in Haskell.
-The library is still under development, but for now, that is mostly on parts outside the scope of this tutorial.
-I hope to have a version on hackage soon!
-
-There will be at least one more tutorial, on how to make things fast.
-We'll be taking a look at
-  - How to cache your components for O(1) reads and writes
-  - How to use add Logs to your component storages
-  - How to use those Logs to get a free spatial hash of our positions
+If you have any questions or suggestions, feel free to open an issue or PR.
