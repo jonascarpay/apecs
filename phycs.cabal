@@ -22,7 +22,8 @@ executable phycs
   main-is:             Main.hs
   default-language:    Haskell2010
   other-modules: Context, Instances
-  build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell
+  build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell, vector
+  build-tools: hsc2hs
 
   if flag(system-chipmunk)
     include-dirs:    /usr/include/chipmunk

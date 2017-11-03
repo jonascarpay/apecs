@@ -21,6 +21,7 @@ import Language.C.Inline
 import Language.C.Inline.Context
 import qualified Language.C.Types as C
 import qualified Language.Haskell.TH as TH
+import System.Mem
 
 import Context
 import Instances
@@ -28,8 +29,21 @@ import Instances
 makeWorld "World" [''Body]
 type System' a = System World a
 
-game = do newEntity (Position 0)
-          return ()
+-- TODO: enforce:
+--    Cannot set mass of non-dynamic body
+--    Cannot simulate when mass <= 0
+--    Cannot simulate when moment <= 0
+
+game = do
+  e <- newEntity (DynamicBody, Moment 1, Mass 1)
+  cmapM_ $ \(Position p) -> liftIO (print p)
+  stepPhysics (1/60)
+  cmapM_ $ \(Position p) -> liftIO (print p)
+  writeGlobal (Gravity (V2 0 (-10)))
+  stepPhysics (1/60)
+  cmapM_ $ \(Position p) -> liftIO (print p)
 
 main :: IO ()
-main = initWorld >>= runSystem game
+main = do initWorld >>= runSystem game
+          performMajorGC
+

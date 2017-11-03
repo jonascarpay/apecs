@@ -30,6 +30,8 @@ phycsCtx = baseCtx <> funCtx <> ctx
 phycsTypesTable :: Map.Map C.TypeSpecifier TH.TypeQ
 phycsTypesTable = Map.fromList
   [ (C.TypeName "cpSpace", [t| FrnSpace |])
+  , (C.TypeName "cpBody", [t| Body |])
+  , (C.TypeName "cpShape", [t| Shape |])
   ]
 
 type Vec = V2 Double
@@ -40,7 +42,7 @@ data CollisionGroup
 data Collisionmask
 data Transform
 
-data Body = DynamicBody | KinematicBody | StaticBody -- TODO: Enum matchen met cpBodyType
+data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum) -- TODO: Enum matchen met cpBodyType
 
 newtype Position = Position WVec
 newtype Velocity = Velocity WVec
@@ -70,7 +72,8 @@ newtype FilterType = FilterType CollisionType -- TODO cpShapeFilter
 -- need to be removed when body is removed
 
 data FrnSpace
-data Space c = Space (IORef (M.IntMap Int)) (ForeignPtr FrnSpace)
+type EntityMap = M.IntMap (Ptr Body, [Ptr Shape])
+data Space c = Space (IORef EntityMap) (ForeignPtr FrnSpace)
 newtype Iterations = Iterations Int
 newtype Gravity = Gravity Vec
 newtype Damping = Damping Double
