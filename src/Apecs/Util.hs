@@ -40,8 +40,8 @@ instance Component EntityCounter where
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity ())
-nextEntity = do n <- readGlobal
-                writeGlobal (n+1)
+nextEntity = do n <- getGlobal
+                setGlobal (n+1)
                 return (Entity . getSum . getCounter $ n)
 
 -- | Writes the given components to a new entity, and yields that entity

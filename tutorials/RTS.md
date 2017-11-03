@@ -199,7 +199,7 @@ Once an entity loses its `Target` component, it will no longer be affected by th
 
 This is the second part of the game loop:
 ```haskell
-  m :: MouseState <- readGlobal
+  m :: MouseState <- getGlobal
   case m of
     Rest -> return ()
     Dragging (V2 ax ay) (V2 bx by) -> do
@@ -209,7 +209,7 @@ This is the second part of the game loop:
       rmap' f
 ```
 We start by reading the `MouseState` global.
-The result of `readGlobal` is determined by the type it is instantiated with.
+The result of `getGlobal` is determined by the type it is instantiated with.
 `resetStore` is semantically equivalent to `cmap' $ \(_ :: Selected) -> Safe False`, i.e. it just deletes every component of some type, but more general and usually faster.
 Because `Selected` is a `Set`, its `Safe` representation is a `Bool` rather than `Maybe c`.
 For components in a `Map`, the equivalent of `resetStore` is `cmap' $ \(_ :: c) -> Nothing`.
@@ -224,19 +224,19 @@ Here we start tracking the mouse when the left button is pressed, and stop when 
 ```haskell
 handleEvent :: SDL.EventPayload -> System' ()
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonLeft _ (P p))) =
-  let p' = fromIntegral <$> p in writeGlobal (Dragging p' p')
+  let p' = fromIntegral <$> p in setGlobal (Dragging p' p')
 
 handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Released _ SDL.ButtonLeft _ _)) =
-  writeGlobal Rest
+  setGlobal Rest
 ```
 
 This is how we update the selection box when the mouse moves:
 ```haskell
 handleEvent (SDL.MouseMotionEvent (SDL.MouseMotionEventData _ _ _ (P p) _)) = do
-  md <- readGlobal
+  md <- getGlobal
   case md of
     Rest -> return ()
-    Dragging a _ -> writeGlobal (Dragging a (fromIntegral <$> p))
+    Dragging a _ -> setGlobal (Dragging a (fromIntegral <$> p))
 ```
 
 And finally, what to do when the right mouse button is pressed.

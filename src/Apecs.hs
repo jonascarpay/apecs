@@ -18,14 +18,14 @@ module Apecs (
 
 
   -- ** GlobalRW wrapper functions
-    readGlobal, writeGlobal, modifyGlobal,
+    getGlobal, setGlobal, modifyGlobal,
 
   -- * Other
     runSystem, runWith,
     runGC, EntityCounter, newEntity,
-
-  -- Reader
-  asks, ask, liftIO, lift,
+    makeWorld,
+    -- Reader
+    asks, ask, liftIO, lift,
 ) where
 
 import Control.Monad.Reader (asks, ask, liftIO, lift)
@@ -34,4 +34,5 @@ import Apecs.Types
 import Apecs.System
 import Apecs.Stores
 import Apecs.Util
+import Apecs.TH
 

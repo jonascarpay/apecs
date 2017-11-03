@@ -150,7 +150,7 @@ makeWorld "GProp" [''G]
 
 prop_global = assertSys initGProp $ do
   modifyGlobal $ \(G x) -> G (not x)
-  G x <- readGlobal
+  G x <- getGlobal
   return $ x == True
 
 return []

@@ -78,7 +78,7 @@ render renderer = do
     SDL.drawPoint renderer (P (round <$> p))
 
   liftIO$ SDL.rendererDrawColor renderer $= V4 255 255 255 255
-  r <- readGlobal
+  r <- getGlobal
   case r of
     Dragging a b -> SDL.drawRect renderer (Just $ SDL.Rectangle (P (round <$> a)) (round <$> b-a))
     _ -> return ()
@@ -95,7 +95,7 @@ step = do
 
   cmap' stepPosition
 
-  m <- readGlobal
+  m <- getGlobal
   case m of
     Rest -> return ()
     Dragging (V2 ax ay) (V2 bx by) -> do
@@ -111,16 +111,16 @@ handleEvents = do
   where
     handleEvent :: SDL.EventPayload -> System' ()
     handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonLeft _ (P p))) =
-      let p' = fromIntegral <$> p in writeGlobal (Dragging p' p')
+      let p' = fromIntegral <$> p in setGlobal (Dragging p' p')
 
     handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Released _ SDL.ButtonLeft _ _)) =
-      writeGlobal Rest
+      setGlobal Rest
 
     handleEvent (SDL.MouseMotionEvent (SDL.MouseMotionEventData _ _ _ (P p) _)) = do
-      md <- readGlobal
+      md <- getGlobal
       case md of
         Rest -> return ()
-        Dragging a _ -> writeGlobal (Dragging a (fromIntegral <$> p))
+        Dragging a _ -> setGlobal (Dragging a (fromIntegral <$> p))
 
     handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
       sl :: Slice Selected <- owners
