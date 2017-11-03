@@ -2,7 +2,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 import Apecs
-import Apecs.TH (makeWorld)
 import Apecs.Stores (Cache)
 import Apecs.Concurrent (prmap)
 import Linear

@@ -16,7 +16,6 @@ import Data.Proxy
 import SDL.Vect
 
 import Apecs
-import Apecs.TH
 import qualified Apecs.Slice as S
 
 hres, vres :: Num a => a

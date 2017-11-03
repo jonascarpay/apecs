@@ -9,7 +9,6 @@ import Control.Monad
 import Linear
 
 import Apecs
-import Apecs.TH
 import Apecs.Stores
 import Apecs.Concurrent
 

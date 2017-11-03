@@ -26,7 +26,6 @@ There is a performance guide [here](https://github.com/jonascarpay/apecs/blob/ma
 ### Example
 ```haskell
 import Apecs
-import Apecs.TH (makeWorld)
 import Apecs.Stores (Cache)
 import Apecs.Concurrent (prmap)
 import Linear

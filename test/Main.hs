@@ -18,7 +18,6 @@ import Data.List (sort)
 
 import Apecs
 import Apecs.Types
-import Apecs.TH
 import Apecs.Stores
 import Apecs.Logs
 import Apecs.Util
