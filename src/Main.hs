@@ -37,10 +37,10 @@ type System' a = System World a
 game = do
   e <- newEntity (DynamicBody, Moment 1, Mass 1)
   cmapM_ $ \(Position p) -> liftIO (print p)
-  stepPhysics (1/60)
+  stepPhysicsSys (1/60)
   cmapM_ $ \(Position p) -> liftIO (print p)
   writeGlobal (Gravity (V2 0 (-10)))
-  stepPhysics (1/60)
+  stepPhysicsSys (1/60)
   cmapM_ $ \(Position p) -> liftIO (print p)
 
 main :: IO ()

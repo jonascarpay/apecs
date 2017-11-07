@@ -27,62 +27,17 @@ import qualified Language.C.Types as C
 import qualified Language.Haskell.TH as TH
 
 import Context
+import Wrapper
 
 C.context phycsCtx
 C.include "<chipmunk.h>"
 
+stepPhysicsSys dT = do
+  Space _ spacePtr :: Space Body <- getStore
+  liftIO$ stepPhysics spacePtr dT
+
 defaultSetMaybe s ety Nothing = explDestroy s ety
 defaultSetMaybe s ety (Just x) = explSet s ety x
-
-stepPhysics :: Has w Body => Double -> System w ()
-stepPhysics (realToFrac -> dT) = do
-  Space _ spacePtr :: Space Body <- getStore
-  liftIO $ withForeignPtr spacePtr $ \space -> [C.exp| void { cpSpaceStep( $(cpSpace* space), $(double dT) ) } |]
-
-destroyBody :: Ptr Body -> IO ()
-destroyBody  bodyPtr  = [C.block| void { cpBodyDestroy ($(cpBody*  bodyPtr));  cpBodyFree ($(cpBody*  bodyPtr));  } |]
-destroyShape shapePtr = [C.block| void { cpShapeDestroy($(cpShape* shapePtr)); cpShapeFree($(cpShape* shapePtr)); } |]
-
--- TODO: learn to hsc
-getPosition :: Ptr Body -> IO (V2 Double)
-getPosition bodyPtr = do
-  x <- [C.exp| double { cpBodyGetPosition ($(cpBody* bodyPtr)).x } |]
-  y <- [C.exp| double { cpBodyGetPosition ($(cpBody* bodyPtr)).y } |]
-  return (V2 (realToFrac x) (realToFrac y))
-
-setPosition :: Ptr Body -> V2 Double -> IO ()
-setPosition bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
-  const cpVect vec = { $(double x), $(double y) };
-  cpBodySetPosition($(cpBody* bodyPtr), vec);
-  } |]
-
-getGravity :: ForeignPtr FrnSpace -> IO (V2 Double)
-getGravity spacePtr = withForeignPtr spacePtr $ \space -> do
-  x <- [C.exp| double { cpSpaceGetGravity ($(cpSpace* space)).x } |]
-  y <- [C.exp| double { cpSpaceGetGravity ($(cpSpace* space)).y } |]
-  return (V2 (realToFrac x) (realToFrac y))
-
-setGravity :: ForeignPtr FrnSpace -> V2 Double -> IO ()
-setGravity spacePtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr spacePtr $ \space -> [C.block| void {
-  const cpVect vec = { $(double x), $(double y) };
-  cpSpaceSetGravity($(cpSpace* space), vec);
-  } |]
-
-getMass :: Ptr Body -> IO Double
-getMass bodyPtr = do
-  mass <- [C.exp| double { cpBodyGetMass ($(cpBody* bodyPtr)) } |]
-  return (realToFrac mass)
-
-setMass :: Ptr Body -> Double -> IO ()
-setMass bodyPtr (realToFrac -> mass) = [C.exp| void { cpBodySetMass($(cpBody* bodyPtr), $(double mass)); } |]
-
-getMoment :: Ptr Body -> IO Double
-getMoment bodyPtr = do
-  mass <- [C.exp| double { cpBodyGetMoment ($(cpBody* bodyPtr)) } |]
-  return (realToFrac mass)
-
-setMoment :: Ptr Body -> Double -> IO ()
-setMoment bodyPtr (realToFrac -> moment) = [C.exp| void { cpBodySetMoment($(cpBody* bodyPtr), $(double moment)); } |]
 
 instance Component Body where
   type Storage Body = Space Body
@@ -91,38 +46,30 @@ instance Store (Space Body) where
   type Stores (Space Body) = Body
   type SafeRW (Space Body) = Maybe Body
   initStore = do
-    spaceRaw     <- [C.exp| cpSpace* { cpSpaceNew() } |]
-    spaceManaged <- newForeignPtr spaceRaw [C.exp| void { cpSpaceFree($(cpSpace* spaceRaw)) } |] -- FIXME: deallocate all map entries
-    mapRef       <- newIORef mempty
-    return (Space mapRef spaceManaged)
+    spacePtr <- newSpace
+    mapRef   <- newIORef mempty
+    return (Space mapRef spacePtr)
 
   explSet (Space mapRef spcPtr) ety btype = do
     rd <- M.lookup ety <$> readIORef mapRef
     bdyPtr <- case rd of
                 Just (b, _) -> return b
-                Nothing     -> withForeignPtr spcPtr $ \space -> do
-                   bodyPtr <- [C.block| cpBody* { cpBody* body = cpBodyNew(0,0);
-                                                  cpSpaceAddBody($(cpSpace* space), body);
-                                                  return body; } |]
-                   modifyIORef' mapRef (M.insert ety (bodyPtr, []))
-                   return bodyPtr
-    let bInt = fromIntegral $ fromEnum btype
-    [C.exp| void { cpBodySetType($(cpBody* bdyPtr), $(int bInt)) } |]
+                Nothing -> do
+                  bodyPtr <- newBody spcPtr
+                  modifyIORef' mapRef (M.insert ety (bodyPtr, []))
+                  return bodyPtr
+    setBodyType bdyPtr btype
 
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
-    case rd of
-      Nothing -> return Nothing
-      Just (bdyPtr, _) -> withForeignPtr spcPtr $ \space -> do
-        bInt <- [C.exp| int { cpBodyGetType($(cpBody* bdyPtr)) } |]
-        return (Just . toEnum . fromIntegral $ bInt)
+    case rd of Nothing -> return Nothing
+               Just (bdyPtr, _) -> Just <$> getBodyType bdyPtr
 
   explDestroy (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     modifyIORef' mapRef (M.delete ety)
-    case rd of
-      Just (b,_) -> destroyBody b
-      _ -> return ()
+    case rd of Just (b,_) -> destroyBody b
+               _ -> return ()
 
   explMembers (Space mapRef spcPtr) = U.fromList . M.keys <$> readIORef mapRef
 
@@ -130,9 +77,7 @@ instance Store (Space Body) where
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
     Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
-    withForeignPtr spcPtr $ \space -> do
-      bInt <- [C.exp| int { cpBodyGetType($(cpBody* bdyPtr)) } |]
-      return (toEnum . fromIntegral $ bInt)
+    getBodyType bdyPtr
 
   explSetMaybe = defaultSetMaybe
 
@@ -253,7 +198,23 @@ instance Store (Space Moment) where
     Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
     Moment <$> getMoment bdyPtr
 
-  
+
+instance Component Shape where
+  type Storage Shape = Space Shape
+
+instance Has w Body => Has w Shape where
+  getStore = (cast :: Space Body -> Space Shape) <$> getStore
+
+instance Store (Space Shape) where
+  type Stores (Space Shape) = Shape
+  type SafeRW (Space Shape) = Maybe Shape
+  initStore = error "Initializing space from non-body store"
+  explDestroy _ _ = return ()
+  explMembers s = explMembers (cast s :: Space Body)
+  explExists s ety = explExists (cast s :: Space Body) ety
+  explSetMaybe = defaultSetMaybe
+
+  -- TODO: get/set shapes
 
 instance Cast (Space a) (Space b) where
   cast (Space c ref) = Space c ref

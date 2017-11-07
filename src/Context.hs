@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -32,6 +33,7 @@ phycsTypesTable = Map.fromList
   [ (C.TypeName "cpSpace", [t| FrnSpace |])
   , (C.TypeName "cpBody", [t| Body |])
   , (C.TypeName "cpShape", [t| Shape |])
+  , (C.TypeName "cpVect", [t| FrnVec |])
   ]
 
 type Vec = V2 Double
@@ -40,7 +42,6 @@ type WVec = Vec
 data CollisionType
 data CollisionGroup
 data Collisionmask
-data Transform
 
 data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum) -- TODO: Enum matchen met cpBodyType
 
@@ -58,22 +59,36 @@ newtype Sleeping = Sleeping Bool
 -- worldToBody :: ...
 
 type Verts = [Vec]
-data Shape = Circle BVec Double | Line Vec Vec Double | Poly Verts Transform Double
--- TODO: Line/poly vec space?
--- TODO Line neighbours?
+data ShapeType = Circle BVec Double
+               | Segment Vec Vec Double
+               | Convex Verts Double
 
-newtype Sensor = Sensor Bool
-newtype Elasticity = Elasticity Double -- 0 no bounce, 1 perfect bounce, TODO Bounded
-newtype Friction = Friction Double -- Coulomb model
-newtype SurfaceVelocity = SurfaceVelocity Vec
-newtype ShapeCollisionType = ShapeCollisionType CollisionType
-newtype FilterType = FilterType CollisionType -- TODO cpShapeFilter
--- shapeGetBB
--- need to be removed when body is removed
+data ShapeProperties = ShapeProperties
+  { sensor :: Bool
+  , elasticity :: Double
+  , friction :: Double
+  , surfaceVelocity :: Vec
+    , group :: Group
+  , filter :: Filter
+  }
+data CollisionFilter
+
+type Group = CUInt
+type Filter = forall a. (Eq a, Enum a) => [a]
+
+data Shape = Shape [(ShapeType, ShapeProperties)]
+
+
+
+-- TODO Segment neighbours?
+
 
 data FrnSpace
-type EntityMap = M.IntMap (Ptr Body, [Ptr Shape])
-data Space c = Space (IORef EntityMap) (ForeignPtr FrnSpace)
+data FrnVec
+
+type SpacePtr = ForeignPtr FrnSpace
+type EntityMap = M.IntMap (Ptr Body, [(ShapeType, Ptr Shape)])
+data Space c = Space (IORef EntityMap) SpacePtr
 newtype Iterations = Iterations Int
 newtype Gravity = Gravity Vec
 newtype Damping = Damping Double
