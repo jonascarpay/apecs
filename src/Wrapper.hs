@@ -52,9 +52,6 @@ newBody spacePtr = do
     cpBody* body = cpBodyNew(0,0);
     cpSpaceAddBody($(cpSpace* space), body);
     cpShape* shape = cpSpaceAddShape($(cpSpace* space), cpCircleShapeNew(body, 1, cpvzero));
-    printf("Sensor: %d", cpShapeGetSensor(shape));
-    printf("Elasticity: %f", cpShapeGetElasticity(shape));
-    printf("Friction: %f", cpShapeGetFriction(shape));
     return body; } |]
 
 setBodyType :: Ptr Body -> Body -> IO ()
@@ -123,11 +120,10 @@ newShape spacePtr' bodyPtr shape = withForeignPtr spacePtr' (go shape)
     go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya))
                 (V2 (realToFrac -> xb) (realToFrac -> yb))
                 (realToFrac -> radius)
-       ) spacePtr =
-      do [C.block| cpShape* { const cpVect va = { $(double xa), $(double ya) };
-                              const cpVect vb = { $(double xb), $(double yb) };
-                              return cpSegmentShapeNew($(cpBody* bodyPtr), va, vb, $(double radius));
-                            } |]
+       ) spacePtr = do [C.block| cpShape* {
+       const cpVect va = { $(double xa), $(double ya) };
+       const cpVect vb = { $(double xb), $(double yb) };
+       return cpSegmentShapeNew($(cpBody* bodyPtr), va, vb, $(double radius)); } |]
 
     go (Convex ((fmap.fmap) realToFrac -> verts)
                (realToFrac -> radius)
