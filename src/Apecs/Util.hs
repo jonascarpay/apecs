@@ -5,6 +5,7 @@
 module Apecs.Util (
   -- * Utility
   initStore, runGC,
+  proxy,
 
   -- * EntityCounter
   EntityCounter, nextEntity, newEntity,
@@ -30,6 +31,10 @@ import Data.Monoid
 import Apecs.Types
 import Apecs.Stores
 import Apecs.System
+
+-- | A proxy entity for TODO
+proxy :: Entity c
+proxy = Entity (-1)
 
 -- | Secretly just an int in a newtype
 newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Num, Eq, Show)

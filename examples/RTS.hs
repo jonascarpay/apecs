@@ -1,5 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -72,7 +74,7 @@ render renderer = do
   liftIO$ SDL.clear renderer
 
   cimapM_ $ \(e, Position p) -> do
-    e <- exists (cast e :: Entity Selected)
+    e <- exists (cast e @Selected)
     liftIO$ SDL.rendererDrawColor renderer $= if e then V4 255 255 255 255 else V4 255 0 0 255
     SDL.drawPoint renderer (P (round <$> p))
 
@@ -98,7 +100,7 @@ step = do
   case m of
     Rest -> return ()
     Dragging (V2 ax ay) (V2 bx by) -> do
-      resetStore (Proxy :: Proxy Selected)
+      resetStore (Proxy @Selected)
       let f :: Position -> Safe Selected
           f (Position (V2 x y)) = Safe (x >= min ax bx && x <= max ax bx && y >= min ay by && y <= max ay by)
       rmap' f

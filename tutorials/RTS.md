@@ -268,7 +268,7 @@ Rendering turns out to be really easy.
 It looks like this:
 ```haskell
 cimapM_ $ \(e, Position p) -> do
-  e <- exists (cast e :: Entity Selected)
+  e <- exists (cast e @Selected)
   liftIO$ SDL.rendererDrawColor renderer $= if e then V4 255 255 255 255 else V4 255 0 0 255
   SDL.drawPoint renderer (P (round <$> p))
 ```

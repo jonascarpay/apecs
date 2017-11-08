@@ -111,7 +111,7 @@ Cache 100 (Map Position)
 What this means is that every time this map is written to, the component will be written to a cache instead.
 A cache is a mutable vector of components of a fixed size, and hence writing and reading from one is _fast_.
 Each component is assigned a place in the vector, and if there's a different component there already that component is pushed through to the `Map`.
-Caches is are what make apecs Stores fast.
+Caches are what make Stores fast.
 
 The `100` type literal indicates the cache size (note that you need -XDataKinds for this).
 The larger the cache, the less often the collisions above will occur.
