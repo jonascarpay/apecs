@@ -1,34 +1,37 @@
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE Strict                     #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 module Wrapper where
 
-import Linear.V2
-import Apecs
+import           Apecs
+import           Apecs.TH
+import           Apecs.Types
+import           Control.Monad
+import qualified Data.IntMap         as M
+import           Data.IORef
+import qualified Data.Map            as Map
+import           Data.Monoid         ((<>))
 import qualified Data.Vector.Unboxed as U
-import Apecs.Types
-import Apecs.TH
-import Data.Monoid ((<>))
-import qualified Data.IntMap as M
-import qualified Data.Map as Map
-import Data.IORef
-import Foreign.Ptr
-import Foreign.Concurrent
-import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
-import qualified Language.C.Inline as C
-import qualified Language.C.Types as C
+import           Foreign.Concurrent
+import           Foreign.ForeignPtr  (ForeignPtr, withForeignPtr)
+import           Foreign.Ptr
+import qualified Language.C.Inline   as C
+import qualified Language.C.Types    as C
 import qualified Language.Haskell.TH as TH
-import Control.Monad
+import           Linear.V2
 
-import Context
+import           Types
 
 C.context phycsCtx
 C.include "<chipmunk.h>"
@@ -51,7 +54,6 @@ newBody spacePtr = do
   withForeignPtr spacePtr $ \space -> [C.block| cpBody* {
     cpBody* body = cpBodyNew(0,0);
     cpSpaceAddBody($(cpSpace* space), body);
-    cpShape* shape = cpSpaceAddShape($(cpSpace* space), cpCircleShapeNew(body, 1, cpvzero));
     return body; } |]
 
 setBodyType :: Ptr Body -> Body -> IO ()
@@ -62,7 +64,9 @@ getBodyType :: Ptr Body -> IO Body
 getBodyType bodyPtr = toEnum . fromIntegral <$> [C.exp| int { cpBodyGetType($(cpBody* bodyPtr)) } |]
 
 destroyBody :: Ptr Body -> IO ()
-destroyBody  bodyPtr  = [C.block| void { cpBodyDestroy ($(cpBody*  bodyPtr));  cpBodyFree ($(cpBody*  bodyPtr));  } |]
+destroyBody bodyPtr = [C.block| void {
+  cpBodyDestroy ($(cpBody* bodyPtr));
+  cpBodyFree    ($(cpBody* bodyPtr)); }|]
 
 -- Position
 getPosition :: Ptr Body -> IO (V2 Double)
@@ -107,41 +111,4 @@ getMoment bodyPtr = do
 
 setMoment :: Ptr Body -> Double -> IO ()
 setMoment bodyPtr (realToFrac -> moment) = [C.exp| void { cpBodySetMoment($(cpBody* bodyPtr), $(double moment)); } |]
-
--- Shape
-newShape :: SpacePtr -> Ptr Body -> ShapeType -> IO (Ptr Shape)
-newShape spacePtr' bodyPtr shape = withForeignPtr spacePtr' (go shape)
-  where
-
-    go (Circle (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> radius)) spacePtr = do [C.block| cpShape* {
-      const cpVect vec = { $(double x), $(double y) };
-      return cpCircleShapeNew($(cpBody* bodyPtr), $(double radius), vec); } |]
-
-    go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya))
-                (V2 (realToFrac -> xb) (realToFrac -> yb))
-                (realToFrac -> radius)
-       ) spacePtr = do [C.block| cpShape* {
-       const cpVect va = { $(double xa), $(double ya) };
-       const cpVect vb = { $(double xb), $(double yb) };
-       return cpSegmentShapeNew($(cpBody* bodyPtr), va, vb, $(double radius)); } |]
-
-    go (Convex ((fmap.fmap) realToFrac -> verts)
-               (realToFrac -> radius)
-       ) spacePtr =
-         do let n = fromIntegral$ length verts
-            vecs <- [C.exp| cpVect* { malloc($(int n)*sizeof(cpVect*)) } |]
-            forM_ (zip verts [1..]) (\((V2 x y), i) -> [C.block| void {
-                $(cpVect* vecs)[$(int i)].x = $(double x);
-                $(cpVect* vecs)[$(int i)].y = $(double y);
-              }|])
-
-            [C.block| cpShape* {
-              cpTransform trans = { 1, 0, 0, 1, 0, 0 };
-              return cpPolyShapeNew($(cpBody* bodyPtr), $(int n), $(cpVect* vecs), trans, $(double radius));
-            }|]
-
-destroyShape :: Ptr Shape -> IO ()
-destroyShape shapePtr = [C.block| void {
-  cpShapeDestroy ($(cpShape* shapePtr));
-  cpShapeFree ($(cpShape* shapePtr)); }|]
 

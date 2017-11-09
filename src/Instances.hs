@@ -1,33 +1,35 @@
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Instances where
 
-import Linear.V2
-import Apecs
+import           Apecs
+import           Apecs.TH
+import           Apecs.Types
+import qualified Data.IntMap         as M
+import           Data.IORef
+import qualified Data.Map            as Map
+import           Data.Monoid         ((<>))
 import qualified Data.Vector.Unboxed as U
-import Apecs.Types
-import Apecs.TH
-import Data.Monoid ((<>))
-import qualified Data.IntMap as M
-import qualified Data.Map as Map
-import Data.IORef
-import Foreign.Ptr
-import Foreign.Concurrent
-import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
-import qualified Language.C.Inline as C
-import qualified Language.C.Types as C
+import           Foreign.Concurrent
+import           Foreign.ForeignPtr  (ForeignPtr, withForeignPtr)
+import           Foreign.Ptr
+import qualified Language.C.Inline   as C
+import qualified Language.C.Types    as C
 import qualified Language.Haskell.TH as TH
+import           Linear.V2
 
-import Context
-import Wrapper
+import           Types
+import           Wrapper
 
 C.context phycsCtx
 C.include "<chipmunk.h>"
@@ -36,7 +38,7 @@ stepPhysicsSys dT = do
   Space _ spacePtr :: Space Body <- getStore
   liftIO$ stepPhysics spacePtr dT
 
-defaultSetMaybe s ety Nothing = explDestroy s ety
+defaultSetMaybe s ety Nothing  = explDestroy s ety
 defaultSetMaybe s ety (Just x) = explSet s ety x
 
 instance Component Body where
@@ -56,20 +58,20 @@ instance Store (Space Body) where
                 Just (b, _) -> return b
                 Nothing -> do
                   bodyPtr <- newBody spcPtr
-                  modifyIORef' mapRef (M.insert ety (bodyPtr, []))
+                  modifyIORef' mapRef (M.insert ety (bodyPtr, Shapes []))
                   return bodyPtr
     setBodyType bdyPtr btype
 
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
-    case rd of Nothing -> return Nothing
+    case rd of Nothing          -> return Nothing
                Just (bdyPtr, _) -> Just <$> getBodyType bdyPtr
 
   explDestroy (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     modifyIORef' mapRef (M.delete ety)
     case rd of Just (b,_) -> destroyBody b
-               _ -> return ()
+               _          -> return ()
 
   explMembers (Space mapRef spcPtr) = U.fromList . M.keys <$> readIORef mapRef
 
@@ -100,13 +102,13 @@ instance Store (Space Position) where
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing -> return Nothing
+      Nothing     -> return Nothing
       Just (b, _) -> Just . Position <$> getPosition b
 
   explSet (Space mapRef spcPtr) ety (Position vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing -> return ()
+      Nothing    -> return ()
       Just (b,_) -> setPosition b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
@@ -153,13 +155,13 @@ instance Store (Space Mass) where
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing -> return Nothing
+      Nothing     -> return Nothing
       Just (b, _) -> Just . Mass <$> getMass b
 
   explSet (Space mapRef spcPtr) ety (Mass vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing -> return ()
+      Nothing    -> return ()
       Just (b,_) -> setMass b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
@@ -185,37 +187,17 @@ instance Store (Space Moment) where
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing -> return Nothing
+      Nothing     -> return Nothing
       Just (b, _) -> Just . Moment <$> getMoment b
 
   explSet (Space mapRef spcPtr) ety (Moment vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing -> return ()
+      Nothing    -> return ()
       Just (b,_) -> setMoment b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
     Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
     Moment <$> getMoment bdyPtr
 
-
-instance Component Shape where
-  type Storage Shape = Space Shape
-
-instance Has w Body => Has w Shape where
-  getStore = (cast :: Space Body -> Space Shape) <$> getStore
-
-instance Store (Space Shape) where
-  type Stores (Space Shape) = Shape
-  type SafeRW (Space Shape) = Maybe Shape
-  initStore = error "Initializing space from non-body store"
-  explDestroy _ _ = return ()
-  explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  -- TODO: get/set shapes
-
-instance Cast (Space a) (Space b) where
-  cast (Space c ref) = Space c ref
 
