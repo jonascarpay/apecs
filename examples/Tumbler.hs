@@ -13,28 +13,14 @@
 module Main where
 
 import           Apecs
+import           Apecs.Physics
 import           Apecs.TH
 import           Apecs.Types
 import           Control.Monad
-import qualified Data.IntMap               as M
-import           Data.IORef
-import qualified Data.Map                  as Map
-import           Data.Monoid               ((<>))
-import           Foreign.ForeignPtr
-import           Graphics.Gloss            hiding (Circle)
-import           Language.C.Inline
-import           Language.C.Inline.Context
-import qualified Language.C.Types          as C
-import qualified Language.Haskell.TH       as TH
+import           Graphics.Gloss hiding (Circle)
 import           Linear.V2
 import           System.Mem
 import           System.Random
-
-import           Body
-import           Instances
-import           Render
-import           Shape
-import           Types
 
 -- TODO: enforce?:
 --    Cannot set mass of non-dynamic body

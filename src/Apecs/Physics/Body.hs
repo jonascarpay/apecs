@@ -13,27 +13,21 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-module Body where
+module Apecs.Physics.Body where
 
 import           Apecs
-import           Apecs.TH
 import           Apecs.Types
-import           Control.Monad
 import qualified Data.IntMap         as M
 import           Data.IORef
-import qualified Data.Map            as Map
-import           Data.Monoid         ((<>))
 import qualified Data.Vector.Unboxed as U
 import           Foreign.Concurrent
-import           Foreign.ForeignPtr  (ForeignPtr, withForeignPtr)
+import           Foreign.ForeignPtr  (withForeignPtr)
 import           Foreign.Ptr
 import qualified Language.C.Inline   as C
-import qualified Language.C.Types    as C
-import qualified Language.Haskell.TH as TH
 import           Linear.V2
 
-import           Instances
-import           Types
+import           Apecs.Physics.Space
+import           Apecs.Physics.Types
 
 C.context phycsCtx
 C.include "<chipmunk.h>"
@@ -79,22 +73,22 @@ instance Store (Space Body) where
                   return bodyPtr
     setBodyType bdyPtr btype
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of Nothing                 -> return Nothing
                Just (BodyRecord b _ _) -> Just <$> getBodyType b
 
-  explDestroy (Space mapRef spcPtr) ety = do
+  explDestroy (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     modifyIORef' mapRef (M.delete ety)
     case rd of Just (BodyRecord b _ _ ) -> destroyBody b
                _                        -> return ()
 
-  explMembers (Space mapRef spcPtr) = U.fromList . M.keys <$> readIORef mapRef
+  explMembers (Space mapRef _) = U.fromList . M.keys <$> readIORef mapRef
 
-  explExists (Space mapRef spcPtr) ety = M.member ety <$> readIORef mapRef
+  explExists (Space mapRef _) ety = M.member ety <$> readIORef mapRef
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     getBodyType b
 
@@ -129,7 +123,7 @@ instance Store (Space Position) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                  -> return Nothing
@@ -141,7 +135,7 @@ instance Store (Space Position) where
       Nothing                  -> return ()
       Just (BodyRecord b _ _ ) -> setPosition spcPtr b vec
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     Position <$> getPosition b
 
@@ -172,7 +166,7 @@ instance Store (Space Angle) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return Nothing
@@ -184,7 +178,7 @@ instance Store (Space Angle) where
       Nothing                 -> return ()
       Just (BodyRecord b _ _) -> setAngle spcPtr b vec
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     Angle <$> getAngle b
 
@@ -212,19 +206,19 @@ instance Store (Space Mass) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                  -> return Nothing
       Just (BodyRecord b _ _ ) -> Just . Mass <$> getMass b
 
-  explSet (Space mapRef spcPtr) ety (Mass vec) = do
+  explSet (Space mapRef _) ety (Mass vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                  -> return ()
       Just (BodyRecord b _ _ ) -> setMass b vec
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     Mass <$> getMass b
 
@@ -252,19 +246,19 @@ instance Store (Space Moment) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return Nothing
       Just (BodyRecord b _ _) -> Just . Moment <$> getMoment b
 
-  explSet (Space mapRef spcPtr) ety (Moment vec) = do
+  explSet (Space mapRef _) ety (Moment vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return ()
       Just (BodyRecord b _ _) -> setMoment b vec
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     Moment <$> getMoment b
 
@@ -293,19 +287,19 @@ instance Store (Space Velocity) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return Nothing
       Just (BodyRecord b _ _) -> Just . Velocity <$> getVelocity b
 
-  explSet (Space mapRef spcPtr) ety (Velocity vec) = do
+  explSet (Space mapRef _) ety (Velocity vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return ()
       Just (BodyRecord b _ _) -> setVelocity b vec
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     Velocity <$> getVelocity b
 
@@ -333,19 +327,19 @@ instance Store (Space AngularVelocity) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return Nothing
       Just (BodyRecord b _ _) -> Just . AngularVelocity <$> getAngularVelocity b
 
-  explSet (Space mapRef spcPtr) ety (AngularVelocity vec) = do
+  explSet (Space mapRef _) ety (AngularVelocity vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return ()
       Just (BodyRecord b _ _) -> setAngularVelocity b vec
 
-  explGetUnsafe (Space mapRef spcPtr) ety = do
+  explGetUnsafe (Space mapRef _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
     AngularVelocity <$> getAngularVelocity b
 

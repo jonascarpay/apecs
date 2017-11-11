@@ -11,10 +11,9 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Types where
+module Apecs.Physics.Types where
 
 import           Apecs
-import           Apecs.TH
 import           Apecs.Types
 import           Data.Bits
 import           Data.Char                 (intToDigit)

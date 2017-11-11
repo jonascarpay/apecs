@@ -10,23 +10,23 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
 
-module Shape where
+module Apecs.Physics.Shape where
 
 import           Apecs.Types
 import           Control.Monad
 import           Data.Bits
-import qualified Data.IntMap        as M
+import qualified Data.IntMap         as M
 import           Data.IORef
-import           Data.Monoid        ((<>))
+import           Data.Monoid         ((<>))
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
-import qualified Language.C.Inline  as C
-import qualified Language.C.Types   as C
+import qualified Language.C.Inline   as C
+import qualified Language.C.Types    as C
 import           Linear.V2
 
-import           Body
-import           Instances
-import           Types
+import           Apecs.Physics.Body
+import           Apecs.Physics.Space
+import           Apecs.Physics.Types
 
 C.context phycsCtx
 C.include "<chipmunk.h>"

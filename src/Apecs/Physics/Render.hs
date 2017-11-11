@@ -3,10 +3,9 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Render where
+module Apecs.Physics.Render where
 
 import           Apecs
 import           Apecs.Stores                         (Cache)
@@ -18,15 +17,15 @@ import           Graphics.Gloss.Geometry.Angle
 import           Graphics.Gloss.Interface.IO.Simulate
 import           Linear.V2
 
-import           Instances                            as P
-import           Shape                                as P
-import           Types                                as P
-import           Wrapper                              as P
+import           Apecs.Physics.Shape                  as P
+import           Apecs.Physics.Space                  as P
+import           Apecs.Physics.Types                  as P
 
 toPicture :: Shape -> Picture
 toPicture (Shape (P.Circle (V2 x y) radius) _) = translate (realToFrac x) (realToFrac y) $ circle (realToFrac radius)
 toPicture (Shape (Segment a b radius) _) = Line [v2ToTuple a, v2ToTuple b]
 toPicture (Shape (Convex verts radius) _) = Line (v2ToTuple <$> verts)
+toPicture (Compound shapes) = foldMap toPicture shapes
 
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
@@ -47,6 +46,8 @@ simulateWorld disp scaleFactor initialWorld intializeSys = do
     stepSys viewport dT w = do
       runSystem (stepPhysicsSys $ realToFrac dT) w
       return w
+
+
 
 instance Component Color where
   type Storage Color = Cache 100 (Map Color)
