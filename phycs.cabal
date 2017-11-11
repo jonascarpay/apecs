@@ -34,6 +34,7 @@ executable phycs
       src/Instances.c
       src/Wrapper.c
       src/Shape.c
+      src/Main.c
 
       Chipmunk2D/src/chipmunk.c
       Chipmunk2D/src/cpArbiter.c

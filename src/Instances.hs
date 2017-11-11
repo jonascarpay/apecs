@@ -55,31 +55,31 @@ instance Store (Space Body) where
   explSet (Space mapRef spcPtr) ety btype = do
     rd <- M.lookup ety <$> readIORef mapRef
     bdyPtr <- case rd of
-                Just (b, _) -> return b
+                Just (BodyRecord b _ _) -> return b
                 Nothing -> do
                   bodyPtr <- newBody spcPtr
-                  modifyIORef' mapRef (M.insert ety (bodyPtr, Shapes []))
+                  modifyIORef' mapRef (M.insert ety (BodyRecord bodyPtr (Shapes []) []))
                   return bodyPtr
     setBodyType bdyPtr btype
 
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
-    case rd of Nothing          -> return Nothing
-               Just (bdyPtr, _) -> Just <$> getBodyType bdyPtr
+    case rd of Nothing                 -> return Nothing
+               Just (BodyRecord b _ _) -> Just <$> getBodyType b
 
   explDestroy (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     modifyIORef' mapRef (M.delete ety)
-    case rd of Just (b,_) -> destroyBody b
-               _          -> return ()
+    case rd of Just (BodyRecord b _ _ ) -> destroyBody b
+               _                        -> return ()
 
   explMembers (Space mapRef spcPtr) = U.fromList . M.keys <$> readIORef mapRef
 
   explExists (Space mapRef spcPtr) ety = M.member ety <$> readIORef mapRef
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
-    Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
-    getBodyType bdyPtr
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
+    getBodyType b
 
   explSetMaybe = defaultSetMaybe
 
@@ -102,18 +102,18 @@ instance Store (Space Position) where
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing     -> return Nothing
-      Just (b, _) -> Just . Position <$> getPosition b
+      Nothing                  -> return Nothing
+      Just (BodyRecord b _ _ ) -> Just . Position <$> getPosition b
 
   explSet (Space mapRef spcPtr) ety (Position vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing    -> return ()
-      Just (b,_) -> setPosition b vec
+      Nothing                  -> return ()
+      Just (BodyRecord b _ _ ) -> setPosition b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
-    Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
-    Position <$> getPosition bdyPtr
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
+    Position <$> getPosition b
 
 
 instance Component Gravity where
@@ -155,18 +155,18 @@ instance Store (Space Mass) where
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing     -> return Nothing
-      Just (b, _) -> Just . Mass <$> getMass b
+      Nothing                  -> return Nothing
+      Just (BodyRecord b _ _ ) -> Just . Mass <$> getMass b
 
   explSet (Space mapRef spcPtr) ety (Mass vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing    -> return ()
-      Just (b,_) -> setMass b vec
+      Nothing                  -> return ()
+      Just (BodyRecord b _ _ ) -> setMass b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
-    Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
-    Mass <$> getMass bdyPtr
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
+    Mass <$> getMass b
 
 
 instance Component Moment where
@@ -187,17 +187,17 @@ instance Store (Space Moment) where
   explGet (Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing     -> return Nothing
-      Just (b, _) -> Just . Moment <$> getMoment b
+      Nothing                 -> return Nothing
+      Just (BodyRecord b _ _) -> Just . Moment <$> getMoment b
 
   explSet (Space mapRef spcPtr) ety (Moment vec) = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
-      Nothing    -> return ()
-      Just (b,_) -> setMoment b vec
+      Nothing                 -> return ()
+      Just (BodyRecord b _ _) -> setMoment b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
-    Just (bdyPtr, _) <- M.lookup ety <$> readIORef mapRef
-    Moment <$> getMoment bdyPtr
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
+    Moment <$> getMoment b
 
 

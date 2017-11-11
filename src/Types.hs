@@ -55,7 +55,7 @@ newtype Position = Position WVec
 newtype Velocity = Velocity WVec
 newtype Force = Force Vec
 newtype CenterOfGravity = CenterOfGravity BVec
-newtype Mass = Mass Double
+newtype Mass = Mass Double deriving (Eq, Show)
 newtype Moment = Moment Double
 newtype Angle = Angle Double
 newtype AngularVelocity = AngularVelocity Double
@@ -77,12 +77,15 @@ data ShapeProperties = ShapeProperties
   , mass            :: SMass
   , friction        :: Double
   , surfaceVelocity :: Vec
-  , group           :: Group
-  , categoryFilter  :: Bitmask
-  , categoryMask    :: Bitmask
+  , filter          :: CollisionFilter
   }
   deriving (Eq, Show)
-data CollisionFilter
+
+data CollisionFilter = CollisionFilter
+  { group      :: Group
+  , categories :: Bitmask
+  , mask       :: Bitmask
+  } deriving (Eq, Show)
 
 data SMass = SMass Double | SDensity Double deriving (Eq, Show)
 type Group = CUInt
@@ -97,10 +100,15 @@ newtype Shapes = Shapes [Shape]
 data FrnSpace
 data FrnVec
 
-data Space c = Space (IORef EntityMap) SpacePtr
+data Space c = Space (IORef BodyMap) SpacePtr
 type SpacePtr = ForeignPtr FrnSpace
 
-type EntityMap = M.IntMap (Ptr Body, Shapes)
+data BodyRecord = BodyRecord
+  { bodyPtr   :: Ptr Body
+  , shapes    :: Shapes
+  , shapePtrs :: [Ptr Shape]
+  }
+type BodyMap = M.IntMap BodyRecord
 
 newtype Iterations = Iterations Int
 newtype Gravity = Gravity Vec

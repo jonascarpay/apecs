@@ -50,8 +50,7 @@ stepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space ->
 
 -- Body
 newBody :: SpacePtr -> IO (Ptr Body)
-newBody spacePtr = do
-  withForeignPtr spacePtr $ \space -> [C.block| cpBody* {
+newBody spacePtr = withForeignPtr spacePtr $ \space -> [C.block| cpBody* {
     cpBody* body = cpBodyNew(0,0);
     cpSpaceAddBody($(cpSpace* space), body);
     return body; } |]
