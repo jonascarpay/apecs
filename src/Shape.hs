@@ -61,7 +61,7 @@ instance Store (Space Shapes) where
       Just (BodyRecord b _ ptrs) -> do
         forM_ ptrs destroyShape
         shPtrs <- forM shapes$ \(Shape shType prop) -> do
-          shPtr <- newShape spcPtr b shType
+          shPtr <- newShape spcPtr b shType ety
           setProperties shPtr prop
           return shPtr
         modifyIORef' mapRef (M.insert ety (BodyRecord b sh shPtrs))
@@ -83,13 +83,14 @@ maskList = foldr (flip setBit) maskNone
 defaultProperties = ShapeProperties False 0 (SMass 1) 0 0 defaultFilter
 defaultFilter     = CollisionFilter 0 maskAll maskAll
 
-newShape :: SpacePtr -> Ptr Body -> ShapeType -> IO (Ptr Shape)
-newShape spacePtr' bodyPtr shape = withForeignPtr spacePtr' (go shape)
+newShape :: SpacePtr -> Ptr Body -> ShapeType -> Int -> IO (Ptr Shape)
+newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
   where
 
     go (Circle (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> radius)) spacePtr = [C.block| cpShape* {
       const cpVect vec = { $(double x), $(double y) };
       cpShape* sh = cpCircleShapeNew($(cpBody* bodyPtr), $(double radius), vec);
+      cpShapeSetUserData(sh, (void*) $(intptr_t ety));
       return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
     go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya))

@@ -39,10 +39,11 @@ C.context phycsCtx
 C.include "<chipmunk.h>"
 
 -- Body
-newBody :: SpacePtr -> IO (Ptr Body)
-newBody spacePtr = withForeignPtr spacePtr $ \space -> [C.block| cpBody* {
+newBody :: SpacePtr -> Int -> IO (Ptr Body)
+newBody spacePtr (fromIntegral -> ety) = withForeignPtr spacePtr $ \space -> [C.block| cpBody* {
     cpBody* body = cpBodyNew(0,0);
     cpSpaceAddBody($(cpSpace* space), body);
+    cpBodySetUserData(body, (void*) $(intptr_t ety));
     return body; } |]
 
 setBodyType :: Ptr Body -> Body -> IO ()
@@ -73,7 +74,7 @@ instance Store (Space Body) where
     bdyPtr <- case rd of
                 Just (BodyRecord b _ _) -> return b
                 Nothing -> do
-                  bodyPtr <- newBody spcPtr
+                  bodyPtr <- newBody spcPtr ety
                   modifyIORef' mapRef (M.insert ety (BodyRecord bodyPtr (Shapes []) []))
                   return bodyPtr
     setBodyType bdyPtr btype

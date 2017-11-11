@@ -35,7 +35,6 @@ executable phycs
       src/Instances.c
       src/Wrapper.c
       src/Shape.c
-      src/Main.c
       src/Body.c
 
       Chipmunk2D/src/chipmunk.c
