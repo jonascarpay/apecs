@@ -14,13 +14,22 @@ makeWorld "World" [''Color, ''Physics]
 initialize = do
   writeGlobal (Gravity (V2 0 (-10)))
 
-  let ball = Shape (Circle 0 0.2) defaultProperties {elasticity = 0.8}
-      line = Shape (Segment (V2 (-1) 0) (V2 1 0) 0) defaultProperties {elasticity = 0.8}
+  newEntity ( KinematicBody
+            , AngularVelocity (-pi/6)
+            , hollowBox 30 30 0 defaultProperties )
 
-  newEntity (DynamicBody, Shapes [ball], Position (V2 0 2),    red)
-  newEntity (StaticBody,  Shapes [line], Position (V2 0 (-1)), Angle (-pi/10))
+  replicateM_ 400 $ do
+    x      <- liftIO$ randomRIO (-9,9)
+    y      <- liftIO$ randomRIO (-9,9)
+    radius <- liftIO$ randomRIO (0.4,0.8)
+    let color = (realToFrac x+9)/19
 
-main = simulateWorld (InWindow "phycs" (640,480) (10,10)) 100 initWorld initialize
+    newEntity ( DynamicBody
+              , Shape (Circle 0 radius) defaultProperties {elasticity=0.9}
+              , Position (V2 x y)
+              , makeColor 1 color color 1 )
+
+main = simulateWorld (InWindow "phycs" (640,480) (10,10)) 10 initWorld initialize
 ```
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/img.png)
