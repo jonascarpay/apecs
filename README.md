@@ -5,7 +5,7 @@ Uses [apecs](https://github.com/jonascarpay/apecs) and [Chipmunk2D](https://gith
 
 Also provides tools for [gloss](https://github.com/benl23x5/gloss)-based rendering.
 
-WIP.
+WIP. Do not use this yet.
 
 ### Example
 ```haskell
