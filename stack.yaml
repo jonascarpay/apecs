@@ -2,7 +2,6 @@ resolver: lts-9.11
 packages:
 - .
 extra-deps:
-  - Hipmunk-5.2.0.17
   - apecs-0.2.4.3
 flags: {}
 extra-package-dbs: []

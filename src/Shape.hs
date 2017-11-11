@@ -23,6 +23,7 @@ import qualified Language.C.Inline  as C
 import qualified Language.C.Types   as C
 import           Linear.V2
 
+import           Body
 import           Instances
 import           Types
 
@@ -32,13 +33,13 @@ C.include "<chipmunk.h>"
 instance Component Shapes where
   type Storage Shapes = Space Shapes
 
-instance Has w Body => Has w Shapes where
-  getStore = (cast :: Space Body -> Space Shapes) <$> getStore
+instance Has w Physics => Has w Shapes where
+  getStore = (cast :: Space Physics -> Space Shapes) <$> getStore
 
 instance Store (Space Shapes) where
   type Stores (Space Shapes) = Shapes
   type SafeRW (Space Shapes) = Shapes
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initializing space from non-Physics store"
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
 
@@ -61,6 +62,13 @@ instance Store (Space Shapes) where
           setProperties shPtr prop
           return shPtr
         modifyIORef' mapRef (M.insert ety (BodyRecord b sh shPtrs))
+
+  explGetUnsafe = explGet
+  explGet sp@(Space mapRef spcPtr) ety = do
+    rd <- M.lookup ety <$> readIORef mapRef
+    return $ case rd of
+      Nothing                  -> Shapes []
+      Just (BodyRecord b sh _) -> sh
 
 
 maskAll, maskNone :: Bitmask

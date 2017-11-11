@@ -21,8 +21,8 @@ executable phycs
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
-  other-modules: Types, Instances, Wrapper, Shape
-  build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell, vector, Diff
+  other-modules: Types, Instances, Wrapper, Shape, Render, Body
+  build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell, vector, gloss
   build-tools: hsc2hs
 
   if flag(system-chipmunk)
@@ -35,6 +35,7 @@ executable phycs
       src/Wrapper.c
       src/Shape.c
       src/Main.c
+      src/Body.c
 
       Chipmunk2D/src/chipmunk.c
       Chipmunk2D/src/cpArbiter.c

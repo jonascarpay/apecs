@@ -42,6 +42,8 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpVect", [t| FrnVec |])
   ]
 
+data Physics -- Dummy component that adds a physics system to a World
+
 type Vec = V2 Double
 type BVec = Vec
 type WVec = Vec
@@ -56,8 +58,8 @@ newtype Velocity = Velocity WVec
 newtype Force = Force Vec
 newtype CenterOfGravity = CenterOfGravity BVec
 newtype Mass = Mass Double deriving (Eq, Show)
-newtype Moment = Moment Double
-newtype Angle = Angle Double
+newtype Moment = Moment Double deriving (Eq, Show)
+newtype Angle = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
 newtype Sleeping = Sleeping Bool
 -- TODO cpBodyGetRotation? cpvrotate(), cpvunrotate()
