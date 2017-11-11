@@ -25,6 +25,7 @@ executable phycs
   build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell, vector, gloss
   build-tools: hsc2hs
 
+  CC-options: -std=c99
   if flag(system-chipmunk)
     include-dirs:    /usr/include/chipmunk
     extra-libraries: chipmunk

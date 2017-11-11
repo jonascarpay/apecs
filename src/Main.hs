@@ -21,7 +21,7 @@ import           Data.IORef
 import qualified Data.Map                  as Map
 import           Data.Monoid               ((<>))
 import           Foreign.ForeignPtr
-import qualified Graphics.Gloss            as G
+import           Graphics.Gloss            hiding (Circle)
 import           Language.C.Inline
 import           Language.C.Inline.Context
 import qualified Language.C.Types          as C
@@ -40,7 +40,7 @@ import           Types
 --    Cannot simulate when mass <= 0
 --    Cannot simulate when moment <= 0
 
-makeWorld "World" [''Physics]
+makeWorld "World" [''Color, ''Physics]
 
 initialize = do
   writeGlobal (Gravity (V2 0 (-10)))
@@ -48,7 +48,7 @@ initialize = do
   let ball = Shape (Circle 0 0.2) defaultProperties {elasticity = 0.8}
       line = Shape (Segment (V2 (-1) 0) (V2 1 0) 0) defaultProperties {elasticity = 0.8}
 
-  newEntity (DynamicBody, shape ball, Position (V2 0 2))
+  newEntity (DynamicBody, shape ball, Position (V2 0 2), red)
   newEntity (StaticBody,  shape line, Position (V2 0 (-1)), Angle (-pi/10))
 
-main = simulateWorld (G.InWindow "phycs" (640,480) (10,10)) 100 initWorld initialize
+main = simulateWorld (InWindow "phycs" (640,480) (10,10)) 100 initWorld initialize
