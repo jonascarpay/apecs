@@ -67,6 +67,15 @@ newtype Sleeping = Sleeping Bool
 -- worldToBody :: ...
 
 data Shape = Shape ShapeType ShapeProperties
+           | Compound [Shape]
+
+instance Monoid Shape where
+  mempty = Compound []
+  Compound as `mappend` Compound bs = Compound (as `mappend` bs)
+  Compound as `mappend` sh          = Compound (sh : as)
+  sh          `mappend` Compound as = Compound (sh : as)
+  sha         `mappend` shb         = Compound [sha, shb]
+
 type Verts = [Vec]
 data ShapeType = Circle BVec Double
                | Segment Vec Vec Double
@@ -95,8 +104,6 @@ newtype Bitmask = Bitmask CUInt deriving (Eq, Bits)
 instance Show Bitmask where
   show (Bitmask mask) = "Bitmask " ++ showIntAtBase 2 intToDigit mask ""
 
-newtype Shapes = Shapes [Shape]
-
 -- TODO Segment neighbours?
 
 data FrnSpace
@@ -107,7 +114,7 @@ type SpacePtr = ForeignPtr FrnSpace
 
 data BodyRecord = BodyRecord
   { bodyPtr   :: Ptr Body
-  , shapes    :: Shapes
+  , shapes    :: Shape
   , shapePtrs :: [Ptr Shape]
   }
 type BodyMap = M.IntMap BodyRecord

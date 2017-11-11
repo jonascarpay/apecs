@@ -1,0 +1,6 @@
+- [ ] Make separate example executables
+- [ ] Constraints
+- [ ] Collision callbacks
+- [ ] Deallocate bodies/shapes/spaces in SpacePtr cleanup
+- [ ] Add explicitly managed shapes whose properties you can easily change at runtime
+- [ ] Split out rendering into a separate module

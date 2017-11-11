@@ -17,6 +17,7 @@ import           Control.Monad
 import           Data.Bits
 import qualified Data.IntMap        as M
 import           Data.IORef
+import           Data.Monoid        ((<>))
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
 import qualified Language.C.Inline  as C
@@ -30,18 +31,29 @@ import           Types
 C.context phycsCtx
 C.include "<chipmunk.h>"
 
-shape :: Shape -> Shapes
-shape = Shapes . return
+hollowBox w h r props = line tl tr <> line tr br <> line br bl <> line bl tl
+  where
+    line v1 v2 = Shape (Segment v1 v2 0) props
+    w' = w/2
+    h' = h/2
+    tr = V2 w' h'
+    tl = V2 (-w') h'
+    br = V2 w' (-h')
+    bl = V2 (-w') (-h')
 
-instance Component Shapes where
-  type Storage Shapes = Space Shapes
+toPrimitiveList :: Shape -> [Shape]
+toPrimitiveList (Compound shapes) = shapes >>= toPrimitiveList
+toPrimitiveList (Shape t p)       = [Shape t p]
 
-instance Has w Physics => Has w Shapes where
-  getStore = (cast :: Space Physics -> Space Shapes) <$> getStore
+instance Component Shape where
+  type Storage Shape = Space Shape
 
-instance Store (Space Shapes) where
-  type Stores (Space Shapes) = Shapes
-  type SafeRW (Space Shapes) = Shapes
+instance Has w Physics => Has w Shape where
+  getStore = (cast :: Space Physics -> Space Shape) <$> getStore
+
+instance Store (Space Shape) where
+  type Stores (Space Shape) = Shape
+  type SafeRW (Space Shape) = Shape
   initStore = error "Initializing space from non-Physics store"
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -52,15 +64,15 @@ instance Store (Space Shapes) where
       Nothing                    -> return ()
       Just (BodyRecord b _ ptrs) -> do
         forM_ ptrs destroyShape
-        modifyIORef' mapRef (M.insert ety (BodyRecord b (Shapes []) []))
+        modifyIORef' mapRef (M.insert ety (BodyRecord b mempty []))
 
-  explSet sp@(Space mapRef spcPtr) ety sh@(Shapes shapes) = do
+  explSet sp@(Space mapRef spcPtr) ety sh = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing -> return ()
       Just (BodyRecord b _ ptrs) -> do
         forM_ ptrs destroyShape
-        shPtrs <- forM shapes$ \(Shape shType prop) -> do
+        shPtrs <- forM (toPrimitiveList sh)$ \(Shape shType prop) -> do
           shPtr <- newShape spcPtr b shType ety
           setProperties shPtr prop
           return shPtr
@@ -70,7 +82,7 @@ instance Store (Space Shapes) where
   explGet sp@(Space mapRef spcPtr) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     return $ case rd of
-      Nothing                  -> Shapes []
+      Nothing                  -> mempty
       Just (BodyRecord b sh _) -> sh
 
 

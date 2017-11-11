@@ -75,7 +75,7 @@ instance Store (Space Body) where
                 Just (BodyRecord b _ _) -> return b
                 Nothing -> do
                   bodyPtr <- newBody spcPtr ety
-                  modifyIORef' mapRef (M.insert ety (BodyRecord bodyPtr (Shapes []) []))
+                  modifyIORef' mapRef (M.insert ety (BodyRecord bodyPtr mempty []))
                   return bodyPtr
     setBodyType bdyPtr btype
 

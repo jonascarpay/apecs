@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -8,6 +9,7 @@
 module Render where
 
 import           Apecs
+import           Apecs.Stores                         (Cache)
 import           Apecs.Types
 import           Data.Foldable
 import           Data.Maybe                           (fromMaybe)
@@ -29,8 +31,8 @@ toPicture (Shape (Convex verts radius) _) = Line (v2ToTuple <$> verts)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
 drawWorld :: (Has w Physics, Has w Color) => w -> IO Picture
-drawWorld w = runWith w . fmap fold . cimapM $ \(ety, (Position (V2 x y), Angle theta, Shapes sh)) -> do
-  let pic = foldMap toPicture sh
+drawWorld w = runWith w . fmap fold . cimapM $ \(ety, (Position (V2 x y), Angle theta, shapes)) -> do
+  let pic = foldMap toPicture (toPrimitiveList shapes)
       rotated = rotate (negate . radToDeg . realToFrac $ theta) pic
       translated = translate (realToFrac x) (realToFrac y) rotated
   Safe mcolor :: Safe Color <- get (cast ety)
@@ -47,4 +49,4 @@ simulateWorld disp scaleFactor initialWorld intializeSys = do
       return w
 
 instance Component Color where
-  type Storage Color = Map Color
+  type Storage Color = Cache 100 (Map Color)

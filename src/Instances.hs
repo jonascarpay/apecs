@@ -46,7 +46,7 @@ instance Component Physics where
 
 instance Store (Space Physics) where
   type Stores (Space Physics) = Physics
-  type Stores (Space Physics) = Physics
+  type SafeRW (Space Physics) = Physics
   initStore = do
     spacePtr <- newSpace
     mapRef   <- newIORef mempty

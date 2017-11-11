@@ -22,10 +22,11 @@ executable phycs
   main-is:             Main.hs
   default-language:    Haskell2010
   other-modules: Types, Instances, Wrapper, Shape, Render, Body
-  build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell, vector, gloss
-  build-tools: hsc2hs
+  build-depends:       base >= 4.7 && < 5, linear, apecs, containers, inline-c, template-haskell, vector, gloss, random
+  ghc-options: -Wall -Wno-orphans
 
-  CC-options: -std=c99
+  CC-options: -std=c99 -DNDEBUG
+
   if flag(system-chipmunk)
     include-dirs:    /usr/include/chipmunk
     extra-libraries: chipmunk
