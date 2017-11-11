@@ -43,6 +43,7 @@ newBody :: SpacePtr -> IO (Ptr Body)
 newBody spacePtr = withForeignPtr spacePtr $ \space -> [C.block| cpBody* {
     cpBody* body = cpBodyNew(0,0);
     cpSpaceAddBody($(cpSpace* space), body);
+    printf("Created body\n");
     return body; } |]
 
 setBodyType :: Ptr Body -> Body -> IO ()
@@ -106,10 +107,11 @@ getPosition bodyPtr = do
   y <- [C.exp| double { cpBodyGetPosition ($(cpBody* bodyPtr)).y } |]
   return (V2 (realToFrac x) (realToFrac y))
 
-setPosition :: Ptr Body -> V2 Double -> IO ()
-setPosition bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
+setPosition :: SpacePtr -> Ptr Body -> V2 Double -> IO ()
+setPosition spcPtr bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr spcPtr $ \space -> [C.block| void {
   const cpVect vec = { $(double x), $(double y) };
   cpBodySetPosition($(cpBody* bodyPtr), vec);
+  cpSpaceReindexShapesForBody($(cpSpace* space), $(cpBody* bodyPtr));
   } |]
 
 instance Component Position where
@@ -137,7 +139,7 @@ instance Store (Space Position) where
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                  -> return ()
-      Just (BodyRecord b _ _ ) -> setPosition b vec
+      Just (BodyRecord b _ _ ) -> setPosition spcPtr b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef
@@ -229,8 +231,11 @@ getAngle bodyPtr = do
   angle <- [C.exp| double { cpBodyGetAngle ($(cpBody* bodyPtr)) } |]
   return (realToFrac angle)
 
-setAngle :: Ptr Body -> Double -> IO ()
-setAngle bodyPtr (realToFrac -> angle) = [C.exp| void { cpBodySetAngle($(cpBody* bodyPtr), $(double angle)); } |]
+setAngle :: SpacePtr -> Ptr Body -> Double -> IO ()
+setAngle spcPtr bodyPtr (realToFrac -> angle) = withForeignPtr spcPtr $ \space -> [C.block| void {
+  cpBodySetAngle($(cpBody* bodyPtr), $(double angle));
+  cpSpaceReindexShapesForBody($(cpSpace* space), $(cpBody* bodyPtr));
+  } |]
 
 instance Component Angle where
   type Storage Angle = Space Angle
@@ -257,7 +262,7 @@ instance Store (Space Angle) where
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                 -> return ()
-      Just (BodyRecord b _ _) -> setAngle b vec
+      Just (BodyRecord b _ _) -> setAngle spcPtr b vec
 
   explGetUnsafe (Space mapRef spcPtr) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef mapRef

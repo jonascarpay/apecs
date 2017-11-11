@@ -16,16 +16,16 @@ import           Apecs
 import           Apecs.TH
 import           Apecs.Types
 import           Control.Monad
-import qualified Data.IntMap                          as M
+import qualified Data.IntMap               as M
 import           Data.IORef
-import qualified Data.Map                             as Map
-import           Data.Monoid                          ((<>))
+import qualified Data.Map                  as Map
+import           Data.Monoid               ((<>))
 import           Foreign.ForeignPtr
-import           Graphics.Gloss.Interface.IO.Simulate as G
+import qualified Graphics.Gloss            as G
 import           Language.C.Inline
 import           Language.C.Inline.Context
-import qualified Language.C.Types                     as C
-import qualified Language.Haskell.TH                  as TH
+import qualified Language.C.Types          as C
+import qualified Language.Haskell.TH       as TH
 import           Linear.V2
 import           System.Mem
 
@@ -33,24 +33,22 @@ import           Body
 import           Instances
 import           Render
 import           Shape
-import           Types                                as P
-
-context phycsCtx
-include "<chipmunk.h>"
-
-makeWorld "World" [''Physics]
-type System' a = System World a
+import           Types
 
 -- TODO: enforce:
 --    Cannot set mass of non-dynamic body
 --    Cannot simulate when mass <= 0
 --    Cannot simulate when moment <= 0
 
-game = do
+makeWorld "World" [''Physics]
+
+initialize = do
   writeGlobal (Gravity (V2 0 (-10)))
-  let ball = Shape (P.Circle 0 1) defaultProperties
-  newEntity (DynamicBody, Shapes [ball])
-  return ()
 
+  let ball = Shape (Circle 0 0.2) defaultProperties {elasticity = 0.8}
+      line = Shape (Segment (V2 (-1) 0) (V2 1 0) 0) defaultProperties {elasticity = 0.8}
 
-main = simulateWorld FullScreen initWorld game
+  newEntity (DynamicBody, shape ball, Position (V2 0 2))
+  newEntity (StaticBody,  shape line, Angle (-pi/10))
+
+main = simulateWorld G.FullScreen 100 initWorld initialize

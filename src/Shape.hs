@@ -30,6 +30,9 @@ import           Types
 C.context phycsCtx
 C.include "<chipmunk.h>"
 
+shape :: Shape -> Shapes
+shape = Shapes . return
+
 instance Component Shapes where
   type Storage Shapes = Space Shapes
 
@@ -86,8 +89,8 @@ newShape spacePtr' bodyPtr shape = withForeignPtr spacePtr' (go shape)
 
     go (Circle (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> radius)) spacePtr = [C.block| cpShape* {
       const cpVect vec = { $(double x), $(double y) };
-      return cpSpaceAddShape( $(cpSpace* spacePtr)
-                            , cpCircleShapeNew($(cpBody* bodyPtr), $(double radius), vec)); } |]
+      cpShape* sh = cpCircleShapeNew($(cpBody* bodyPtr), $(double radius), vec);
+      return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
     go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya))
                 (V2 (realToFrac -> xb) (realToFrac -> yb))
@@ -95,7 +98,8 @@ newShape spacePtr' bodyPtr shape = withForeignPtr spacePtr' (go shape)
        ) spacePtr = [C.block| cpShape* {
        const cpVect va = { $(double xa), $(double ya) };
        const cpVect vb = { $(double xb), $(double yb) };
-       return cpSegmentShapeNew($(cpBody* bodyPtr), va, vb, $(double radius)); } |]
+       cpShape* sh = cpSegmentShapeNew($(cpBody* bodyPtr), va, vb, $(double radius));
+       return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
     go (Convex ((fmap.fmap) realToFrac -> verts)
                (realToFrac -> radius)
