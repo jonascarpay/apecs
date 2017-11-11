@@ -49,6 +49,6 @@ initialize = do
       line = Shape (Segment (V2 (-1) 0) (V2 1 0) 0) defaultProperties {elasticity = 0.8}
 
   newEntity (DynamicBody, shape ball, Position (V2 0 2))
-  newEntity (StaticBody,  shape line, Angle (-pi/10))
+  newEntity (StaticBody,  shape line, Position (V2 0 (-1)), Angle (-pi/10))
 
-main = simulateWorld G.FullScreen 100 initWorld initialize
+main = simulateWorld (G.InWindow "phycs" (640,480) (10,10)) 100 initWorld initialize
