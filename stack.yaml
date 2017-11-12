@@ -2,6 +2,6 @@ resolver: lts-9.11
 packages:
 - .
 extra-deps:
-  - apecs-0.2.4.3
+  - apecs-0.2.4.4
 flags: {}
 extra-package-dbs: []

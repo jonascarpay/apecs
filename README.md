@@ -8,11 +8,12 @@ Also provides tools for [gloss](https://github.com/benl23x5/gloss)-based renderi
 WIP. Do not use this yet.
 
 ### Example
+`stack build && stack exec tumbler`
 ```haskell
 makeWorld "World" [''Color, ''Physics]
 
 initialize = do
-  writeGlobal (Gravity (V2 0 (-10)))
+  setGlobal (Gravity (V2 0 (-10)))
 
   newEntity ( KinematicBody
             , AngularVelocity (-pi/6)

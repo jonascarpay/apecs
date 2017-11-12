@@ -30,6 +30,7 @@ import qualified Language.Haskell.TH       as TH
 import           Linear.V2
 import           Numeric                   (showIntAtBase)
 
+phycsCtx :: Context
 phycsCtx = baseCtx <> funCtx <> ctx
   where ctx = mempty { ctxTypesTable = phycsTypesTable }
 
@@ -61,9 +62,6 @@ newtype Moment = Moment Double deriving (Eq, Show)
 newtype Angle = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
 newtype Sleeping = Sleeping Bool
--- TODO cpBodyGetRotation? cpvrotate(), cpvunrotate()
--- bodyToWorld :: Entity c -> BVec -> System w WVec
--- worldToBody :: ...
 
 data Shape = Shape ShapeType ShapeProperties
            | Compound [Shape]
@@ -103,8 +101,6 @@ newtype Bitmask = Bitmask CUInt deriving (Eq, Bits)
 instance Show Bitmask where
   show (Bitmask mask) = "Bitmask " ++ showIntAtBase 2 intToDigit mask ""
 
--- TODO Segment neighbours?
-
 data FrnSpace
 data FrnVec
 
@@ -125,8 +121,7 @@ newtype IdleSpeedThreshold = IdleSpeedThreshold Double
 newtype SleepIdleTime = SleepIdleTime Double
 newtype CollisionSlop = CollisionSlop Double
 newtype CollisionBias = CollisionBias Double
--- useSpatialHash :: dim, bin size -> System
 
-instance Cast (Space a) (Space b) where
+instance Cast Space where
   cast (Space c ref) = Space c ref
 

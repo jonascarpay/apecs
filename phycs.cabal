@@ -19,12 +19,12 @@ library
   default-language:
     Haskell2010
   exposed-modules:
-    Apecs.Physics
+    Apecs.Physics,
+    Apecs.Physics.Render
   other-modules:
     Apecs.Physics.Types,
     Apecs.Physics.Space,
     Apecs.Physics.Shape,
-    Apecs.Physics.Render,
     Apecs.Physics.Body
   build-depends:
     base >= 4.7 && < 5,
@@ -40,6 +40,7 @@ library
     -Wall
     -Wno-orphans
     -Wno-unused-do-bind
+    -Wno-name-shadowing
   cc-options:
     -std=c99
     -DNDEBUG
@@ -94,4 +95,7 @@ executable tumbler
     base, apecs, gloss, phycs, random, linear
   ghc-options:
     -Wall
+    -Wno-orphans
+    -Wno-unused-do-bind
+    -Wno-name-shadowing
 

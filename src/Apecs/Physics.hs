@@ -14,11 +14,9 @@ module Apecs.Physics (
   defaultProperties, defaultFilter,
   hollowBox,
 
-  module Apecs.Physics.Render,
   ) where
 
-import           Apecs.Physics.Body
-import           Apecs.Physics.Render
+import           Apecs.Physics.Body  ()
 import           Apecs.Physics.Shape
-import           Apecs.Physics.Space
+import           Apecs.Physics.Space ()
 import           Apecs.Physics.Types

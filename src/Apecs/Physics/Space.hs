@@ -35,13 +35,14 @@ newSpace = do
       error "deallocate other objects before removing the space"
       [C.exp| void { cpSpaceFree($(cpSpace* spaceRaw)) } |] -- FIXME: deallocate all map entries
 
-stepPhysics :: SpacePtr -> Double -> IO ()
-stepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space ->
+explStepPhysics :: SpacePtr -> Double -> IO ()
+explStepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space ->
   [C.exp| void { cpSpaceStep( $(cpSpace* space), $(double dT) ) } |]
 
-stepPhysicsSys dT = do
+stepPhysics :: Has w Physics => Double -> System w ()
+stepPhysics dT = do
   Space _ spacePtr :: Space Physics <- getStore
-  liftIO$ stepPhysics spacePtr dT
+  liftIO$ explStepPhysics spacePtr dT
 
 defaultSetMaybe s ety Nothing  = explDestroy s ety
 defaultSetMaybe s ety (Just x) = explSet s ety x
@@ -93,8 +94,8 @@ instance Store (Space Gravity) where
   explDestroy _ _ = return ()
   explMembers _   = return mempty
   explExists _ _  = return False
-  explSet (Space mapRef spcPtr) _ (Gravity v) = setGravity spcPtr v
-  explGet (Space mapRef spcPtr) _ = Gravity <$> getGravity spcPtr
+  explSet (Space _ spcPtr) _ (Gravity v) = setGravity spcPtr v
+  explGet (Space _ spcPtr) _ = Gravity <$> getGravity spcPtr
   explSetMaybe  = explSet
   explGetUnsafe = explGet
 

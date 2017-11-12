@@ -4,12 +4,15 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 
-module Apecs.Physics.Render where
+module Apecs.Physics.Render (
+  simulateWorld,
+  Display (..), Color (..), makeColor,
+ )where
 
 import           Apecs
 import           Apecs.Stores                         (Cache)
-import           Apecs.Types
 import           Data.Foldable
 import           Data.Maybe                           (fromMaybe)
 import           Graphics.Gloss                       as G
@@ -22,11 +25,12 @@ import           Apecs.Physics.Space                  as P
 import           Apecs.Physics.Types                  as P
 
 toPicture :: Shape -> Picture
-toPicture (Shape (P.Circle (V2 x y) radius) _) = translate (realToFrac x) (realToFrac y) $ circle (realToFrac radius)
-toPicture (Shape (Segment a b radius) _) = Line [v2ToTuple a, v2ToTuple b]
-toPicture (Shape (Convex verts radius) _) = Line (v2ToTuple <$> verts)
+toPicture (Shape (P.Circle (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> radius)) _) = translate x y $ Line [(0.25,0),(radius*0.75,0)] `mappend` circle radius
+toPicture (Shape (Segment a b _) _) = Line [v2ToTuple a, v2ToTuple b]
+toPicture (Shape (Convex verts _) _) = Line (v2ToTuple <$> verts)
 toPicture (Compound shapes) = foldMap toPicture shapes
 
+v2ToTuple :: V2 Double -> (Float, Float)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
 drawWorld :: (Has w Physics, Has w Color) => w -> IO Picture
@@ -44,10 +48,8 @@ simulateWorld disp scaleFactor initialWorld intializeSys = do
     simulateIO disp black 60 w (fmap (scale scaleFactor scaleFactor) . drawWorld) stepSys
   where
     stepSys viewport dT w = do
-      runSystem (stepPhysicsSys $ realToFrac dT) w
+      runSystem (stepPhysics $ realToFrac dT) w
       return w
-
-
 
 instance Component Color where
   type Storage Color = Cache 100 (Map Color)

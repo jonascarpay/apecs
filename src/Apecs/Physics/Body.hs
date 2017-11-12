@@ -20,7 +20,6 @@ import           Apecs.Types
 import qualified Data.IntMap         as M
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U
-import           Foreign.Concurrent
 import           Foreign.ForeignPtr  (withForeignPtr)
 import           Foreign.Ptr
 import qualified Language.C.Inline   as C

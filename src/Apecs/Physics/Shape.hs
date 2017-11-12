@@ -21,19 +21,19 @@ import           Data.Monoid         ((<>))
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
 import qualified Language.C.Inline   as C
-import qualified Language.C.Types    as C
 import           Linear.V2
 
-import           Apecs.Physics.Body
-import           Apecs.Physics.Space
+import           Apecs.Physics.Body  ()
+import           Apecs.Physics.Space ()
 import           Apecs.Physics.Types
 
 C.context phycsCtx
 C.include "<chipmunk.h>"
 
+hollowBox :: Double -> Double -> Double -> ShapeProperties -> Shape
 hollowBox w h r props = line tl tr <> line tr br <> line br bl <> line bl tl
   where
-    line v1 v2 = Shape (Segment v1 v2 0) props
+    line v1 v2 = Shape (Segment v1 v2 r) props
     w' = w/2
     h' = h/2
     tr = V2 w' h'
@@ -58,7 +58,7 @@ instance Store (Space Shape) where
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
 
-  explDestroy (Space mapRef spcPtr) ety = do
+  explDestroy (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing                    -> return ()
@@ -66,7 +66,8 @@ instance Store (Space Shape) where
         forM_ ptrs destroyShape
         modifyIORef' mapRef (M.insert ety (BodyRecord b mempty []))
 
-  explSet sp@(Space mapRef spcPtr) ety sh = do
+  explSetMaybe = explSet
+  explSet (Space mapRef spcPtr) ety sh = do
     rd <- M.lookup ety <$> readIORef mapRef
     case rd of
       Nothing -> return ()
@@ -79,11 +80,11 @@ instance Store (Space Shape) where
         modifyIORef' mapRef (M.insert ety (BodyRecord b sh shPtrs))
 
   explGetUnsafe = explGet
-  explGet sp@(Space mapRef spcPtr) ety = do
+  explGet (Space mapRef _) ety = do
     rd <- M.lookup ety <$> readIORef mapRef
     return $ case rd of
       Nothing                  -> mempty
-      Just (BodyRecord b sh _) -> sh
+      Just (BodyRecord _ sh _) -> sh
 
 
 maskAll, maskNone :: Bitmask
@@ -92,8 +93,11 @@ maskNone = zeroBits
 maskList :: [Int] -> Bitmask
 maskList = foldr (flip setBit) maskNone
 
+defaultProperties :: ShapeProperties
 defaultProperties = ShapeProperties False 0 (SMass 1) 0 0 defaultFilter
-defaultFilter     = CollisionFilter 0 maskAll maskAll
+
+defaultFilter :: CollisionFilter
+defaultFilter = CollisionFilter 0 maskAll maskAll
 
 newShape :: SpacePtr -> Ptr Body -> ShapeType -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
@@ -124,7 +128,8 @@ newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr
            $(cpVect* vecs)[$(int i)].y = $(double y); }|])
          [C.block| cpShape* {
            cpTransform trans = { 1, 0, 0, 1, 0, 0 };
-           return cpPolyShapeNew($(cpBody* bodyPtr), $(int n), $(cpVect* vecs), trans, $(double radius)); }|]
+           cpShape* sh = cpPolyShapeNew($(cpBody* bodyPtr), $(int n), $(cpVect* vecs), trans, $(double radius));
+           return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
 destroyShape :: Ptr Shape -> IO ()
 destroyShape shapePtr = [C.block| void {
