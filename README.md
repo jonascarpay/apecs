@@ -1,10 +1,11 @@
 # phycs
 
-2D physics engine for games with with optional simple rendering.
+2D physics engine for games, with with optional simple rendering.
+Run `stack build && stack exec tumbler` for a demonstration, see below.
 
 - [apecs](https://github.com/jonascarpay/apecs) for syntax/interface/memory management with minimal overhead.
 - [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
-- [gloss](https://github.com/benl23x5/gloss) for simple rendering. Can easily be replaced by your own rendering engine.
+- [gloss](https://github.com/benl23x5/gloss) for rendering. Can easily be replaced by your own rendering engine.
 - [inline-c](https://github.com/fpco/inline-c) for easy binding to Chipmunk.
 
 Still in heavy development.
@@ -18,7 +19,7 @@ See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for sugg
 makeWorld "World" [''Color, ''Physics]
 
 initialize = do
-  setGlobal (Gravity (V2 0 (-10)))
+  setGlobal $ Gravity (V2 0 (-10))
 
   newEntity ( DynamicBody
             , Position (V2 0 2)
@@ -52,7 +53,7 @@ These can be composed using their `Monoid` instance.
 makeWorld "World" [''Color, ''Physics]
 
 initialize = do
-  setGlobal (Gravity (V2 0 (-10)))
+  setGlobal $ Gravity (V2 0 (-10))
 
   newEntity ( KinematicBody
             , AngularVelocity (-pi/6)
