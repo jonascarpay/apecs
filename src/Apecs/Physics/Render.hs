@@ -8,7 +8,10 @@
 
 module Apecs.Physics.Render (
   simulateWorld, playWorld,
+
   Display (..), Color(), makeColor,
+  black, white, red, green, blue, cyan, magenta, yellow,
+
   Event(..), Key(..), SpecialKey(..), MouseButton(..), KeyState(..), Modifiers(..),
  )where
 

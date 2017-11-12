@@ -1,20 +1,10 @@
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 module Main where
 
-import           Apecs
 import           Control.Monad
-import           Linear.V2
 import           System.Random
 
 import           Apecs.Physics
@@ -45,4 +35,4 @@ initialize = do
               , Position (V2 x y)
               , makeColor 1 color color 1 )
 
-main = simulateWorld (InWindow "phycs" (640,480) (10,10)) 10 initWorld initialize
+main = simulateWorld (InWindow "tumbler" (640,480) (10,10)) 10 initWorld initialize

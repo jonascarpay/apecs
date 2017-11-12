@@ -27,20 +27,21 @@ library
     Apecs.Physics,
     Apecs.Physics.Render
   other-modules:
-    Apecs.Physics.Types,
-    Apecs.Physics.Space,
+    Apecs.Physics.Body,
+    Apecs.Physics.Constraint,
     Apecs.Physics.Shape,
-    Apecs.Physics.Body
+    Apecs.Physics.Space,
+    Apecs.Physics.Types
   build-depends:
     base >= 4.7 && < 5,
-    linear,
     apecs,
     containers,
-    inline-c,
-    template-haskell,
-    vector,
     gloss,
-    random
+    inline-c,
+    linear,
+    random,
+    template-haskell,
+    vector
   ghc-options:
     -Wall
     -Wno-orphans
@@ -53,8 +54,9 @@ library
   include-dirs:
     Chipmunk2D/include/chipmunk
   c-sources:
-    src/Apecs/Physics/Shape.c
     src/Apecs/Physics/Body.c
+    src/Apecs/Physics/Constraint.c
+    src/Apecs/Physics/Shape.c
     src/Apecs/Physics/Space.c
 
     Chipmunk2D/src/chipmunk.c
@@ -98,7 +100,22 @@ executable tumbler
   main-is:
     Tumbler.hs
   build-depends:
-    base, apecs, gloss, phycs, random, linear
+    base, phycs, random
+  ghc-options:
+    -Wall
+    -Wno-orphans
+    -Wno-unused-do-bind
+    -Wno-name-shadowing
+
+executable chain
+  hs-source-dirs:
+    examples
+  default-language:
+    Haskell2010
+  main-is:
+    Chain.hs
+  build-depends:
+    base, phycs
   ghc-options:
     -Wall
     -Wno-orphans

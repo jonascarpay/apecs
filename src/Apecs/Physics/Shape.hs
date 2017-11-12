@@ -58,17 +58,17 @@ instance Store (Space Shape) where
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
 
-  explDestroy (Space mapRef _) ety = do
-    rd <- M.lookup ety <$> readIORef mapRef
+  explDestroy (Space eRef _ _) ety = do
+    rd <- M.lookup ety <$> readIORef eRef
     case rd of
       Nothing                    -> return ()
       Just (BodyRecord b _ ptrs) -> do
         forM_ ptrs destroyShape
-        modifyIORef' mapRef (M.insert ety (BodyRecord b mempty []))
+        modifyIORef' eRef (M.insert ety (BodyRecord b mempty []))
 
   explSetMaybe = explSet
-  explSet (Space mapRef spcPtr) ety sh = do
-    rd <- M.lookup ety <$> readIORef mapRef
+  explSet (Space eRef _ spcPtr) ety sh = do
+    rd <- M.lookup ety <$> readIORef eRef
     case rd of
       Nothing -> return ()
       Just (BodyRecord b _ ptrs) -> do
@@ -77,11 +77,11 @@ instance Store (Space Shape) where
           shPtr <- newShape spcPtr b shType ety
           setProperties shPtr prop
           return shPtr
-        modifyIORef' mapRef (M.insert ety (BodyRecord b sh shPtrs))
+        modifyIORef' eRef (M.insert ety (BodyRecord b sh shPtrs))
 
   explGetUnsafe = explGet
-  explGet (Space mapRef _) ety = do
-    rd <- M.lookup ety <$> readIORef mapRef
+  explGet (Space eRef _ _) ety = do
+    rd <- M.lookup ety <$> readIORef eRef
     return $ case rd of
       Nothing                  -> mempty
       Just (BodyRecord _ sh _) -> sh

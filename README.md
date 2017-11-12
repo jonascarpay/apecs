@@ -7,7 +7,8 @@ Also provides tools for [gloss](https://github.com/benl23x5/gloss)-based renderi
 
 WIP. Do not use this yet.
 
-### Example
+### Examples
+#### Tumbler
 `stack build && stack exec tumbler`
 ```haskell
 makeWorld "World" [''Color, ''Physics]

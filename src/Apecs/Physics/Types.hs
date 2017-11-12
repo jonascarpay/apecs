@@ -36,10 +36,11 @@ phycsCtx = baseCtx <> funCtx <> ctx
 
 phycsTypesTable :: Map.Map C.TypeSpecifier TH.TypeQ
 phycsTypesTable = Map.fromList
-  [ (C.TypeName "cpSpace", [t| FrnSpace |])
-  , (C.TypeName "cpBody", [t| Body |])
-  , (C.TypeName "cpShape", [t| Shape |])
-  , (C.TypeName "cpVect", [t| FrnVec |])
+  [ (C.TypeName "cpSpace",      [t| FrnSpace   |])
+  , (C.TypeName "cpBody",       [t| Body       |])
+  , (C.TypeName "cpConstraint", [t| Constraint |])
+  , (C.TypeName "cpShape",      [t| Shape      |])
+  , (C.TypeName "cpVect",       [t| FrnVec     |])
   ]
 
 data Physics -- Dummy component that adds a physics system to a World
@@ -88,7 +89,7 @@ data ShapeProperties = ShapeProperties
   , mass            :: SMass
   , friction        :: Double
   , surfaceVelocity :: Vec
-  , filter          :: CollisionFilter
+  , collisionFilter :: CollisionFilter
   }
   deriving (Eq, Show)
 
@@ -107,15 +108,21 @@ instance Show Bitmask where
 data FrnSpace
 data FrnVec
 
-data Space c = Space (IORef BodyMap) SpacePtr
+data Space c = Space
+  { entityMap     :: (IORef BodyMap)
+  , constraintMap :: (IORef ConstraintMap)
+  , spaceFrnPtr   :: SpacePtr
+  }
 type SpacePtr = ForeignPtr FrnSpace
 
 data BodyRecord = BodyRecord
   { bodyPtr   :: Ptr Body
-  , shapes    :: Shape
+  , shapes    :: Shape -- TODO: remove?
   , shapePtrs :: [Ptr Shape]
   }
 type BodyMap = M.IntMap BodyRecord
+
+type ConstraintMap = M.IntMap (Ptr Constraint)
 
 newtype Iterations = Iterations Int
 newtype Gravity = Gravity Vec deriving (Eq, Show)
@@ -126,5 +133,30 @@ newtype CollisionSlop = CollisionSlop Double
 newtype CollisionBias = CollisionBias Double
 
 instance Cast Space where
-  cast (Space c ref) = Space c ref
+  cast (Space eMap cMap spc) = Space eMap cMap spc
 
+data ConstraintA
+data ConstraintB
+data ConstraintMaxForce
+data ConstraintMaxBias
+data ConstraintErrorBias
+data ConstraintCollideBodies
+
+type SomeEntity = forall a. Entity a
+data Constraint = Constraint SomeEntity SomeEntity ConstraintType
+data ConstraintType
+  = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points
+  | SlideJoint BVec BVec Double Double -- offsetA offsetB min max
+  | PivotJoint WVec -- ^ Creates a pivot point at the given world coordinate
+  | GrooveJoint BVec BVec BVec
+  | DampedSpring BVec BVec Double Double Double -- offA offB restlength stiffness damping
+  | DampedRotarySpring Double Double Double -- restAngle stiffness damping
+  | RotaryLimitJoint Double Double -- min max
+  | RatcherJoint Double Double -- phase ratchet
+  | GearJoint Double Double -- phase ratio
+  | SimpleMotor Double -- rate
+
+-- TODO
+-- getConstraintImpulse
+-- getPinJointDistance
+-- getSlideJointDistance?

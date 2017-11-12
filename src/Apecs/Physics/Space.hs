@@ -41,7 +41,7 @@ explStepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space -
 
 stepPhysics :: Has w Physics => Double -> System w ()
 stepPhysics dT = do
-  Space _ spacePtr :: Space Physics <- getStore
+  Space _ _ spacePtr :: Space Physics <- getStore
   liftIO$ explStepPhysics spacePtr dT
 
 defaultSetMaybe s ety Nothing  = explDestroy s ety
@@ -55,8 +55,9 @@ instance Store (Space Physics) where
   type SafeRW (Space Physics) = Physics
   initStore = do
     spacePtr <- newSpace
-    mapRef   <- newIORef mempty
-    return (Space mapRef spacePtr)
+    eRef     <- newIORef mempty
+    cRef     <- newIORef mempty
+    return (Space eRef cRef spacePtr)
 
   explSet _ _ _ = return ()
   explGet _ _ = return (error "Can't produce a Physics")
@@ -94,8 +95,8 @@ instance Store (Space Gravity) where
   explDestroy _ _ = return ()
   explMembers _   = return mempty
   explExists _ _  = return False
-  explSet (Space _ spcPtr) _ (Gravity v) = setGravity spcPtr v
-  explGet (Space _ spcPtr) _ = Gravity <$> getGravity spcPtr
+  explSet (Space _ _ spcPtr) _ (Gravity v) = setGravity spcPtr v
+  explGet (Space _ _ spcPtr) _ = Gravity <$> getGravity spcPtr
   explSetMaybe  = explSet
   explGetUnsafe = explGet
 
