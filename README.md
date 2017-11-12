@@ -1,6 +1,6 @@
 # phycs
 
-2D physics engine for games, with with optional simple rendering.
+2D physics engine for games, with optional simple rendering.
 Run `stack build && stack exec tumbler` for a demonstration, see below.
 
 - [apecs](https://github.com/jonascarpay/apecs) for syntax/interface/memory management with minimal overhead.
@@ -10,7 +10,7 @@ Run `stack build && stack exec tumbler` for a demonstration, see below.
 
 Still in heavy development.
 Feel free to create issues/PRs for suggestions/questions/requests/critiques/spelling fixes/etc.
-See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code.
+See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code <3.
 
 ### Guided tour
 

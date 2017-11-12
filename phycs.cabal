@@ -29,6 +29,7 @@ library
   other-modules:
     Apecs.Physics.Body,
     Apecs.Physics.Constraint,
+    Apecs.Physics.Collision,
     Apecs.Physics.Shape,
     Apecs.Physics.Space,
     Apecs.Physics.Types
@@ -56,14 +57,15 @@ library
   c-sources:
     src/Apecs/Physics/Body.c
     src/Apecs/Physics/Constraint.c
+    src/Apecs/Physics/Collision.c
     src/Apecs/Physics/Shape.c
     src/Apecs/Physics/Space.c
 
     Chipmunk2D/src/chipmunk.c
+    Chipmunk2D/src/cpBody.c
     Chipmunk2D/src/cpArbiter.c
     Chipmunk2D/src/cpArray.c
     Chipmunk2D/src/cpBBTree.c
-    Chipmunk2D/src/cpBody.c
     Chipmunk2D/src/cpCollision.c
     Chipmunk2D/src/cpConstraint.c
     Chipmunk2D/src/cpDampedRotarySpring.c

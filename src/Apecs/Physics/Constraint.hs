@@ -71,7 +71,7 @@ instance Store (Space Constraint) where
   type SafeRW (Space Constraint) = Maybe Constraint
   initStore = error "Initializing space from non-Physics store"
 
-  explSet sp@(Space bMap cMap spcPtr) ety (Constraint (Entity a) (Entity b) ctype) = do
+  explSet sp@(Space bMap cMap _ spcPtr) ety (Constraint (Entity a) (Entity b) ctype) = do
     explDestroy sp ety
     rd <- M.lookup ety <$> readIORef cMap
     ea <- M.lookup a <$> readIORef bMap
@@ -82,14 +82,14 @@ instance Store (Space Constraint) where
         modifyIORef' cMap (M.insert ety cPtr)
       _ -> return ()
 
-  explDestroy (Space _ cMap _) ety = do
+  explDestroy (Space _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     modifyIORef' cMap (M.delete ety)
     case rd of Just c -> destroyConstraint c
                _      -> return ()
 
-  explMembers (Space _ cMap _) = U.fromList . M.keys <$> readIORef cMap
+  explMembers (Space _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
 
-  explExists (Space _ cMap _) ety = M.member ety <$> readIORef cMap
+  explExists (Space _ cMap _ _) ety = M.member ety <$> readIORef cMap
 
   explSetMaybe = defaultSetMaybe

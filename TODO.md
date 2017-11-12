@@ -6,8 +6,11 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 ### Need
 - [x] Make separate example executables
 - [x] Constraints
+- [ ] Constraints CollideBodies component, currently hardcoded to never collide
 - [ ] Collision callbacks
 - [x] Add Gloss `play` version to allow interactive games
+- [ ] Implement body force components
+- [ ] Implement remaining body components
 - [ ] Implement remaining global properties
 - [ ] Implement remaining constraints
 - [ ] Read Constraints/Shapes
@@ -17,6 +20,9 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Spatial queries
 - [ ] Fix issues on [travis](https://travis-ci.org/jonascarpay/phycs)
 - [ ] Hackage
+- [ ] Presolve/Postsolve collision handlers
+- [ ] Remaining collision properties
+- [ ] Wildcard collision handlers
 - [ ] Remaining body/shape/space/constraint/etc. query functions
 - [ ] Haddocks
 - [ ] Deallocate C bodies/shapes/spaces in SpacePtr cleanup
@@ -27,7 +33,9 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Split out rendering into a separate module
 - [ ] Figure out how to solve orphan instances
 - [ ] More convenience shapes
+- [ ] Consistent variable naming
 - [ ] Benchmarks
+- [ ] Tests
 - [ ] Render Constraints
 - [ ] `playWorld` camera tracking?
 - [ ] Documentation/tutorials?
@@ -35,3 +43,4 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 ### Safety
 - [ ] Cannot set mass of non-dynamic body
 - [ ] Cannot simulate when mass/moment = 0, probably unenforcable
+- [ ] Cannot create/delete objects from collision callbacks

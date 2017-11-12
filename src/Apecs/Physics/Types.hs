@@ -21,6 +21,7 @@ import qualified Data.IntMap               as M
 import           Data.IORef
 import qualified Data.Map                  as Map
 import           Data.Monoid               ((<>))
+import qualified Foreign.C.Types           as C
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
 import           Language.C.Inline
@@ -36,11 +37,14 @@ phycsCtx = baseCtx <> funCtx <> ctx
 
 phycsTypesTable :: Map.Map C.TypeSpecifier TH.TypeQ
 phycsTypesTable = Map.fromList
-  [ (C.TypeName "cpSpace",      [t| FrnSpace   |])
-  , (C.TypeName "cpBody",       [t| Body       |])
-  , (C.TypeName "cpConstraint", [t| Constraint |])
-  , (C.TypeName "cpShape",      [t| Shape      |])
-  , (C.TypeName "cpVect",       [t| FrnVec     |])
+  [ (C.TypeName "cpArbiter",          [t| CollisionPair    |])
+  , (C.TypeName "cpBody",             [t| Body             |])
+  , (C.TypeName "cpCollisionHandler", [t| CollisionHandler |])
+  , (C.TypeName "cpConstraint",       [t| Constraint       |])
+  , (C.TypeName "cpDataPointer",      [t| C.CUInt          |])
+  , (C.TypeName "cpShape",            [t| Shape            |])
+  , (C.TypeName "cpVect",             [t| FrnVec           |])
+  , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
 data Physics -- Dummy component that adds a physics system to a World
@@ -48,9 +52,6 @@ data Physics -- Dummy component that adds a physics system to a World
 type Vec = V2 Double
 type BVec = Vec
 type WVec = Vec
-data CollisionType
-data CollisionGroup
-data Collisionmask
 
 data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum) -- TODO: Enum matchen met cpBodyType
 
@@ -94,9 +95,9 @@ data ShapeProperties = ShapeProperties
   deriving (Eq, Show)
 
 data CollisionFilter = CollisionFilter
-  { group      :: Group
-  , categories :: Bitmask
-  , mask       :: Bitmask
+  { filterGroup      :: Group
+  , filterCategories :: Bitmask
+  , filterMask       :: Bitmask
   } deriving (Eq, Show)
 
 data SMass = SMass Double | SDensity Double deriving (Eq, Show)
@@ -109,11 +110,14 @@ data FrnSpace
 data FrnVec
 
 data Space c = Space
-  { entityMap     :: (IORef BodyMap)
-  , constraintMap :: (IORef ConstraintMap)
-  , spaceFrnPtr   :: SpacePtr
+  { entityMap           :: (IORef BodyMap)
+  , constraintMap       :: (IORef ConstraintMap)
+  , collisionHandlerMap :: (IORef CollisionHandlerMap)
+  , spaceFrnPtr         :: SpacePtr
   }
 type SpacePtr = ForeignPtr FrnSpace
+type ConstraintMap = M.IntMap (Ptr Constraint)
+type CollisionHandlerMap = M.IntMap (Ptr CollisionHandler)
 
 data BodyRecord = BodyRecord
   { bodyPtr   :: Ptr Body
@@ -122,7 +126,6 @@ data BodyRecord = BodyRecord
   }
 type BodyMap = M.IntMap BodyRecord
 
-type ConstraintMap = M.IntMap (Ptr Constraint)
 
 newtype Iterations = Iterations Int
 newtype Gravity = Gravity Vec deriving (Eq, Show)
@@ -133,7 +136,7 @@ newtype CollisionSlop = CollisionSlop Double
 newtype CollisionBias = CollisionBias Double
 
 instance Cast Space where
-  cast (Space eMap cMap spc) = Space eMap cMap spc
+  cast (Space eMap cMap hMap spc) = Space eMap cMap hMap spc
 
 data ConstraintA
 data ConstraintB
@@ -160,3 +163,27 @@ data ConstraintType
 -- getConstraintImpulse
 -- getPinJointDistance
 -- getSlideJointDistance?
+
+newtype CollisionGroup = CollisionGroup Int deriving (Num, Integral, Eq, Show, Ord, Enum, Real)
+newtype Callback a     = Callback (CollisionPair -> IO a)
+
+data CollisionHandler = CollisionHandler
+  { handlerA        :: CollisionGroup
+  , handlerB        :: CollisionGroup
+  , handlerBegin    :: Maybe (Callback Bool)
+  , handlerSeparate :: Maybe (Callback ())
+  }
+
+data CollisionPair = CollisionPair
+  { collisionNormal :: Vec
+  , collisionA      :: Entity ()
+  , collisionB      :: Entity ()
+  }
+
+data CollisionProperties = CollisionProperties
+  { collisionElasticity      :: Double
+  , collisionFriction        :: Double
+  , collisionSurfaceVelocity :: Vec
+  }
+
+-- TODO: Presolve/Postsolve handlers
