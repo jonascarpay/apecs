@@ -123,8 +123,8 @@ cpSpaceInit(cpSpace *space)
 #ifndef NDEBUG
 	static cpBool done = cpFalse;
 	if(!done){
-		printf("Initializing cpSpace - Chipmunk v%s (Debug Enabled)\n", cpVersionString);
-		printf("Compile with -DNDEBUG defined to disable debug mode and runtime assertion checks\n");
+		printf("phycs: Initializing new Space, Chipmunk v%s (Debug Enabled)\n", cpVersionString);
+		printf("phycs: Compile with the -frelease (cabal) or --flag phycs:release (stack) to disable debug mode and runtime assertion checks\n");
 		done = cpTrue;
 	}
 #endif

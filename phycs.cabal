@@ -13,6 +13,11 @@ build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
 
+flag release
+  description: Release mode, better performance but no longer provides debug info on the command line.
+  Manual:  True
+  default: False
+
 library
   hs-source-dirs:
     src
@@ -43,7 +48,8 @@ library
     -Wno-name-shadowing
   cc-options:
     -std=c99
-    -DNDEBUG
+  if flag(release)
+    cc-options: -DNDEBUG
   include-dirs:
     Chipmunk2D/include/chipmunk
   c-sources:
