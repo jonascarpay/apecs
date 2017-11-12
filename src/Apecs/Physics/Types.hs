@@ -68,10 +68,13 @@ data Shape = Shape ShapeType ShapeProperties
 
 instance Monoid Shape where
   mempty = Compound []
+
+  Compound [] `mappend` x           = x
+  x           `mappend` Compound [] = x
   Compound as `mappend` Compound bs = Compound (as `mappend` bs)
-  Compound as `mappend` sh          = Compound (sh : as)
-  sh          `mappend` Compound as = Compound (sh : as)
-  sha         `mappend` shb         = Compound [sha, shb]
+  Compound ss `mappend` s           = Compound (s:ss)
+  s           `mappend` Compound ss = Compound (s:ss)
+  sa          `mappend` sb          = Compound [sa, sb]
 
 type Verts = [Vec]
 data ShapeType = Circle BVec Double
@@ -115,7 +118,7 @@ data BodyRecord = BodyRecord
 type BodyMap = M.IntMap BodyRecord
 
 newtype Iterations = Iterations Int
-newtype Gravity = Gravity Vec
+newtype Gravity = Gravity Vec deriving (Eq, Show)
 newtype Damping = Damping Double
 newtype IdleSpeedThreshold = IdleSpeedThreshold Double
 newtype SleepIdleTime = SleepIdleTime Double

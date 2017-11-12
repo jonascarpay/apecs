@@ -7,8 +7,9 @@
 {-# LANGUAGE ViewPatterns          #-}
 
 module Apecs.Physics.Render (
-  simulateWorld,
-  Display (..), Color (..), makeColor,
+  simulateWorld, playWorld,
+  Display (..), Color(), makeColor,
+  Event(..), Key(..), SpecialKey(..), MouseButton(..), KeyState(..), Modifiers(..),
  )where
 
 import           Apecs
@@ -17,6 +18,7 @@ import           Data.Foldable
 import           Data.Maybe                           (fromMaybe)
 import           Graphics.Gloss                       as G
 import           Graphics.Gloss.Geometry.Angle
+import           Graphics.Gloss.Interface.IO.Game
 import           Graphics.Gloss.Interface.IO.Simulate
 import           Linear.V2
 
@@ -42,14 +44,31 @@ drawWorld w = runWith w . fmap fold . cimapM $ \(ety, (Position (V2 x y), Angle 
   return . color (fromMaybe white mcolor) $ translated
 
 simulateWorld :: (Has w Color, Has w Physics) => Display -> Float -> IO w -> System w a -> IO ()
-simulateWorld disp scaleFactor initialWorld intializeSys = do
+simulateWorld disp scaleFactor initialWorld initializer = do
     w <- initialWorld
-    runSystem intializeSys w
-    simulateIO disp black 60 w (fmap (scale scaleFactor scaleFactor) . drawWorld) stepSys
+    runSystem initializer w
+    simulateIO disp black 60 w render step
   where
-    stepSys viewport dT w = do
+    step _ dT w = do
       runSystem (stepPhysics $ realToFrac dT) w
       return w
+
+    render = fmap (scale scaleFactor scaleFactor) . drawWorld
+
+playWorld :: (Has w Color, Has w Physics) => Display -> Float -> IO w -> (Event -> System w ()) -> System w a -> IO ()
+playWorld disp scaleFactor initialWorld eventHandler initializer = do
+    w <- initialWorld
+    runSystem initializer w
+    playIO disp black 60 w render handler step
+  where
+    step dT w = do
+      runSystem (stepPhysics $ realToFrac dT) w
+      return w
+    render = fmap (scale scaleFactor scaleFactor) . drawWorld
+    handler event w = do
+      runSystem (eventHandler event) w
+      return w
+
 
 instance Component Color where
   type Storage Color = Cache 100 (Map Color)

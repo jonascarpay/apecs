@@ -1,7 +1,12 @@
 - [x] Make separate example executables
 - [ ] Constraints
 - [ ] Collision callbacks
-- [ ] Deallocate bodies/shapes/spaces in SpacePtr cleanup
-- [ ] Add explicitly managed shapes whose properties you can easily change at runtime
+- [x] Add Gloss `play` version to allow interactive games
+- [ ] `playWorld` camera tracking?
+- [ ] Deallocate C bodies/shapes/spaces in SpacePtr cleanup
+- [ ] Add explicitly managed shapes whose properties you can change at runtime
 - [ ] Split out rendering into a separate module
+- [ ] Proper convex polygon rendering
 - [ ] Figure out how to solve orphan instances
+- [ ] Benchmarks
+- [ ] Include entity from data pointer in Chipmunk error messages
