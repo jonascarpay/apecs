@@ -7,7 +7,7 @@ module Apecs.Physics (
   Gravity (..),
 
   -- * Body
-  Body (..), Position (..), Velocity (..), AngularVelocity (..),
+  Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..),
 
   -- * Shape
   ShapeProperties (..), ShapeType (..), Shape (..),

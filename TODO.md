@@ -25,3 +25,7 @@ If you want to help, I think it's easiest if you create an issue for the one you
 - [ ] Figure out how to solve orphan instances
 - [ ] Benchmarks
 - [ ] `playWorld` camera tracking?
+
+### Safety
+- [ ] Cannot set mass of non-dynamic body
+- [ ] Cannot simulate when mass/moment = 0, probably unenforcable

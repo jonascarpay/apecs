@@ -10,11 +10,6 @@ import           System.Random
 import           Apecs.Physics
 import           Apecs.Physics.Render
 
--- TODO: enforce?:
---    Cannot set mass of non-dynamic body
---    Cannot simulate when mass <= 0
---    Cannot simulate when moment <= 0
-
 makeWorld "World" [''Color, ''Physics]
 
 initialize = do
