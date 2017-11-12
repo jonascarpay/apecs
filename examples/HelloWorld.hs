@@ -19,6 +19,5 @@ initialize = do
   newEntity ( StaticBody
             , Shape (Segment (V2 (-3) 0) (V2 3 0) 0) defaultProperties {friction = 1}
             , Angle (-pi/10) )
-  return ()
 
 main = simulateWorld (InWindow "helloworld" (640,480) (10,10)) 40 initWorld initialize

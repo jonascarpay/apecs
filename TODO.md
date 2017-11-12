@@ -1,4 +1,4 @@
-This is how I keep track of the issues I still need to fix.
+This is how I keep track of the issues I still need to address.
 If you want to help, I think it's easiest if you create an issue for the one you are fixing and assigning yourself, but I'm open to ideas.
 
 ### Need
@@ -7,6 +7,7 @@ If you want to help, I think it's easiest if you create an issue for the one you
 - [ ] Collision callbacks
 - [x] Add Gloss `play` version to allow interactive games
 - [ ] Implement remaining global properties
+- [ ] Implement remaining constraints
 - [ ] Read Constraints/Shapes
 - [ ] Add explicitly managed shapes whose properties you can change at runtime
 - [ ] Include entity index from data pointer in Chipmunk error messages
@@ -23,8 +24,10 @@ If you want to help, I think it's easiest if you create an issue for the one you
 ### Want
 - [ ] Split out rendering into a separate module
 - [ ] Figure out how to solve orphan instances
+- [ ] More convenience shapes
 - [ ] Benchmarks
 - [ ] `playWorld` camera tracking?
+- [ ] Documentation/tutorials?
 
 ### Safety
 - [ ] Cannot set mass of non-dynamic body

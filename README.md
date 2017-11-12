@@ -1,16 +1,19 @@
 # phycs
 
-2D game physics.
-Uses [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) for fast physics and [apecs](https://github.com/jonascarpay/apecs) for object management.
+2D physics engine for games with with optional simple rendering.
 
-Also provides tools for [gloss](https://github.com/benl23x5/gloss)-based rendering.
+- [apecs](https://github.com/jonascarpay/apecs) for syntax/interface/memory management with minimal overhead.
+- [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
+- [gloss](https://github.com/benl23x5/gloss) for simple rendering. Can easily be replaced by your own rendering engine.
+- [inline-c](https://github.com/fpco/inline-c) for easy binding to Chipmunk.
 
-WIP. Do not use this yet.
+Still in heavy development.
+Feel free to create issues/PRs for suggestions/questions/requests/critiques/spelling fixes/etc.
+See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code.
 
 ### Guided tour
 
 #### Hello World
-`stack build && stack exec helloworld`
 ```haskell
 makeWorld "World" [''Color, ''Physics]
 
@@ -24,14 +27,27 @@ initialize = do
   newEntity ( StaticBody
             , Shape (Segment (V2 (-3) 0) (V2 3 0) 0) defaultProperties {friction = 1}
             , Angle (-pi/10) )
-  return ()
 
 main = simulateWorld (InWindow "helloworld" (640,480) (10,10)) 40 initWorld initialize
 ```
+Run with `stack build && stack exec helloworld`.
+`makeWorld` comes from apecs, `Color` and `InWindow` come from gloss, but are re-exported by `Apecs.Physics` and `Apecs.Physics.Render` respectively.
+Adding the `Physics` component to your world gives access to all phycs components.
+The first of these is `Gravity`, which is self-explanatory.
+
+When creating a physics object, the first thing you should do is add a `Body`.
+A body is either a `DynamicBody`, controlled by forces, a `KinematicBody`, controlled by velocities, or a `StaticBody`, which just has a position and rarely moves.
+You can control bodies by setting its lower derivatives, like set a `DynamicBody` position, but not the other way around, and doing so might cause physics artifacts.
+For example, setting the velocity of a `DynamicBody` that's touching another object of infinite mass requires the solver to apply an infinite force.
+
+If you don't add a body, setting other properties won't have an effect.
+In order to do anything, you probably also want to add a shape.
+These can be composed using their `Monoid` instance.
+
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/helloworld.png)
 
+
 #### Tumbler
-`stack build && stack exec tumbler`
 ```haskell
 makeWorld "World" [''Color, ''Physics]
 
@@ -55,11 +71,14 @@ initialize = do
 
 main = simulateWorld (InWindow "phycs" (640,480) (10,10)) 10 initWorld initialize
 ```
+Run with `stack build && stack exec tumbler`.
+Here we see how a `KinematicBody` preserves its velocity, in this case its angular velocity, even though it contains many `DynamicBody`s.
+In a game, this is how you would make things like moving platforms.
+A hollowBox is a composition of several line segments.
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/tumbler.png)
 
 #### Chain
-`stack build && stack exec chain`
 ```haskell
 makeWorld "World" [''Color, ''Physics]
 
@@ -79,5 +98,7 @@ initialize = do
 
 main = simulateWorld (InWindow "chain" (640,480) (10,10)) 30 initWorld initialize
 ```
+Run with `stack build && stack exec chain`.
+A `Constraint` takes as argument two bodies, and a `ConstraintType` between them.
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/chain.png)
