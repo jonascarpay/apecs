@@ -9,7 +9,7 @@ WIP. Do not use this yet.
 
 ### Guided tour
 
-### Hello World
+#### Hello World
 `stack build && stack exec helloworld`
 ```haskell
 makeWorld "World" [''Color, ''Physics]
@@ -58,34 +58,24 @@ main = simulateWorld (InWindow "phycs" (640,480) (10,10)) 10 initWorld initializ
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/tumbler.png)
 
-#### Chaing
+#### Chain
 `stack build && stack exec chain`
 ```haskell
 makeWorld "World" [''Color, ''Physics]
 
-chain :: (Entity a) -> Int -> System World (Entity ())
-chain init links = go (cast init) 0
+initialize = do
+    setGlobal $ Gravity (V2 0 (-10))
+    fixed <- newEntity StaticBody
+    chain (cast fixed) 0
   where
-    go a n = do
+    links = 10
+    chain a n = do
       b <- newEntity ( DynamicBody
-                     , Position (V2 (fromIntegral n) 5)
+                     , Position (V2 n 5)
                      , Shape (Segment 0 (V2 1 0) 0.1) defaultProperties )
 
-      newEntity $ Constraint (cast a) (cast b) (PivotJoint (V2 (fromIntegral n) 5))
-      if (n >= links) then return (cast b) else go b (n+1)
-
-initialize = do
-  setGlobal $ Gravity (V2 0 (-10))
-  fixed <- newEntity StaticBody
-  b <- chain fixed 8
-
-  ball <- newEntity ( DynamicBody
-                    , Position (V2 10 5)
-                    , Shape (Circle 0 1) defaultProperties
-                    , red )
-
-  newEntity $ Constraint (cast b) (cast ball) (PivotJoint (V2 9 5) )
-  return ()
+      newEntity $ Constraint (cast a) (cast b) (PivotJoint (V2 n 5))
+      unless (n >= links) $ chain b (n+1)
 
 main = simulateWorld (InWindow "chain" (640,480) (10,10)) 30 initWorld initialize
 ```
