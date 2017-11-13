@@ -5,6 +5,7 @@ apecs is an Entity Component System inspired by [specs](https://github.com/slide
 It exposes a DSL that translates to fast storage operations, resulting in expressivity without sacrificing performance or safety.
 
 There is an example below, and a tutorial can be found [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md).
+For a physics engine written on top of apecs, check out [phycs](https://github.com/jonascarpay/phycs).
 For a general introduction to ECS, see [this talk](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [here](https://en.wikipedia.org/wiki/Entity–component–system).
 
 ### Performance
