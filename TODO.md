@@ -29,11 +29,12 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Deallocate C bodies/shapes/spaces in SpacePtr cleanup
 - [ ] Proper convex polygon rendering
 - [ ] Clean up pragmas
+- [ ] Move examples to separate package
 - [ ] Benchmarks
 - [ ] Performance tuning (inlining etc.)
 
 ### Want
-- [ ] Split out rendering into a separate module
+- [ ] Move rendering to separate package?
 - [ ] Figure out how to solve orphan instances
 - [ ] More convenience shapes
 - [ ] Consistent variable naming
