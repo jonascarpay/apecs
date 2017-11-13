@@ -110,32 +110,20 @@ executable helloworld
     -Wno-name-shadowing
 
 executable tumbler
-  hs-source-dirs:
-    examples
-  default-language:
-    Haskell2010
-  main-is:
-    Tumbler.hs
-  build-depends:
-    base, phycs, random
-  ghc-options:
-    -Wall
-    -Wno-orphans
-    -Wno-unused-do-bind
-    -Wno-name-shadowing
+  main-is:          Tumbler.hs
+  hs-source-dirs:   examples
+  default-language: Haskell2010
+  build-depends:    base, phycs, random
 
 executable chain
-  hs-source-dirs:
-    examples
-  default-language:
-    Haskell2010
-  main-is:
-    Chain.hs
-  build-depends:
-    base, phycs
-  ghc-options:
-    -Wall
-    -Wno-orphans
-    -Wno-unused-do-bind
-    -Wno-name-shadowing
+  main-is:          Chain.hs
+  hs-source-dirs:   examples
+  default-language: Haskell2010
+  build-depends:    base, phycs
+
+executable platform
+  main-is:          Platform.hs
+  hs-source-dirs:   examples
+  default-language: Haskell2010
+  build-depends:    base, phycs
 

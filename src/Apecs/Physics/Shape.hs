@@ -94,7 +94,7 @@ maskList :: [Int] -> Bitmask
 maskList = foldr (flip setBit) maskNone
 
 defaultProperties :: ShapeProperties
-defaultProperties = ShapeProperties False 0 (SMass 1) 0 0 defaultFilter
+defaultProperties = ShapeProperties False 0 (SMass 1) 0 0 0 defaultFilter
 
 defaultFilter :: CollisionFilter
 defaultFilter = CollisionFilter 0 maskAll maskAll
@@ -157,11 +157,12 @@ getProperties shape = do
   friction   <- realToFrac   <$> [C.exp| double       { cpShapeGetFriction($(cpShape* shape))          }|]
   sx         <- realToFrac   <$> [C.exp| double       { cpShapeGetSurfaceVelocity($(cpShape* shape)).x }|]
   sy         <- realToFrac   <$> [C.exp| double       { cpShapeGetSurfaceVelocity($(cpShape* shape)).y }|]
+  ctype      <-                  [C.exp| unsigned int { cpShapeGetCollisionType($(cpShape* shape))     }|]
   group      <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).group      }|]
   cats       <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).categories }|]
   mask       <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).mask       }|]
-  return$ ShapeProperties (toEnum sensor) elasticity (SMass mass) friction
-                          (V2 sx sy) (CollisionFilter group (Bitmask cats) (Bitmask mask))
+  return$ ShapeProperties (toEnum sensor) elasticity (SMass mass) friction (V2 sx sy)
+                          ctype (CollisionFilter group (Bitmask cats) (Bitmask mask))
 
 getSensor :: Ptr Shape -> IO Bool
 getSensor shape = toEnum . fromIntegral <$> [C.exp| int {
@@ -205,6 +206,7 @@ setProperties
       smass
       (realToFrac -> friction)
       (V2 (realToFrac -> sx) (realToFrac -> sy))
+      ctype
       ( CollisionFilter
           group
           (Bitmask cats)
@@ -216,6 +218,7 @@ setProperties
             cpShapeSetFriction($(cpShape* shape), $(double friction));
             const cpVect vec = { $(double sx), $(double sy) };
             cpShapeSetSurfaceVelocity($(cpShape* shape), vec);
+            cpShapeSetCollisionType($(cpShape* shape), $(unsigned int ctype));
             const cpShapeFilter filter = { $(unsigned int group)
                                          , $(unsigned int cats)
                                          , $(unsigned int mask) };

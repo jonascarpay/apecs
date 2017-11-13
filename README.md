@@ -9,8 +9,8 @@ Run `stack build && stack exec tumbler` for a demonstration, see below.
 - [inline-c](https://github.com/fpco/inline-c) for easy binding to Chipmunk.
 
 Still in heavy development.
-Feel free to create issues/PRs for suggestions/questions/requests/critiques/spelling fixes/etc.
-See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code <3.
+Feel free to create an issue or PR for suggestions/questions/requests/critiques/spelling fixes/etc.
+See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code.
 
 ### Guided tour
 
@@ -101,5 +101,7 @@ main = simulateWorld (InWindow "chain" (640,480) (10,10)) 30 initWorld initializ
 ```
 Run with `stack build && stack exec chain`.
 A `Constraint` takes as argument two bodies, and a `ConstraintType` between them.
+Similar to how adding a `Body` gives you access to `Position`, a Constraint also has a number of properties.
+There is nothing preventing you from registering a constraint under the same entity as a body, the underlying `Space` tracks them separately anyway, but it's easiest to make separate entities.
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/chain.png)

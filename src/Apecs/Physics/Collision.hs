@@ -41,10 +41,9 @@ makeCallback sys = do
     return . Callback $ \pair -> runSystem (sys pair) w
 
 newCollisionHandler :: SpacePtr -> CollisionHandler -> Int -> IO (Ptr CollisionHandler)
-newCollisionHandler spcPtr (CollisionHandler (fromIntegral -> ca) (fromIntegral -> cb) begin separate) (fromIntegral -> ety) =
+newCollisionHandler spcPtr (CollisionHandler cta ctb begin separate) (fromIntegral -> ety) =
   withForeignPtr spcPtr $ \space -> do
-
-    handler <- [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(int ca), $(int cb))}|]
+    handler <- [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(unsigned int cta), $(unsigned int ctb))}|]
 
     forM_ begin $ \(Callback cb) ->
       let sys_ arb spc _ = do nx <- realToFrac <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
@@ -52,16 +51,21 @@ newCollisionHandler spcPtr (CollisionHandler (fromIntegral -> ca) (fromIntegral 
                               ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
                               eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
                               fromIntegral . fromEnum <$> cb (CollisionPair (V2 nx ny) (Entity ea) (Entity eb))
+
+        -- FIXME:
+        -- It seems like this callback is never called.
+        -- The default beginFunc is properly called if we don't change this value, and we get an error on collision if we set it to NULL,
+        -- so it _is_ used at runtime...
        in [C.block| void { $(cpCollisionHandler* handler)->beginFunc = $fun:(unsigned char (*sys_)(cpArbiter*,cpSpace*,cpDataPointer));
                            $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety);
                          }|]
 
-    forM_ separate $ undefined
+    forM_ separate $ \e -> putStrLn "Separation callbacks not yet implemented"
 
     return handler
 
 destroyCollisionHandler :: Ptr CollisionHandler -> IO ()
-destroyCollisionHandler = undefined
+destroyCollisionHandler = error "Destroy CollisionHandler not yet implemented"
 
 instance Component CollisionHandler where
   type Storage CollisionHandler = Space CollisionHandler

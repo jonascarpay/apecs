@@ -53,7 +53,7 @@ type Vec = V2 Double
 type BVec = Vec
 type WVec = Vec
 
-data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum) -- TODO: Enum matchen met cpBodyType
+data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 
 newtype Position = Position WVec
 newtype Velocity = Velocity WVec
@@ -90,9 +90,12 @@ data ShapeProperties = ShapeProperties
   , mass            :: SMass
   , friction        :: Double
   , surfaceVelocity :: Vec
+  , collisionType   :: CollisionType
   , collisionFilter :: CollisionFilter
   }
   deriving (Eq, Show)
+
+type CollisionType = CUInt
 
 data CollisionFilter = CollisionFilter
   { filterGroup      :: Group
@@ -164,12 +167,11 @@ data ConstraintType
 -- getPinJointDistance
 -- getSlideJointDistance?
 
-newtype CollisionGroup = CollisionGroup Int deriving (Num, Integral, Eq, Show, Ord, Enum, Real)
 newtype Callback a     = Callback (CollisionPair -> IO a)
 
 data CollisionHandler = CollisionHandler
-  { handlerA        :: CollisionGroup
-  , handlerB        :: CollisionGroup
+  { handlerA        :: CollisionType
+  , handlerB        :: CollisionType
   , handlerBegin    :: Maybe (Callback Bool)
   , handlerSeparate :: Maybe (Callback ())
   }
