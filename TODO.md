@@ -15,6 +15,7 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Implement remaining body components
 - [ ] Implement remaining global properties
 - [ ] Implement remaining constraints
+- [ ] Free FunPtrs
 - [ ] Add explicitly managed shapes whose properties you can change at runtime
 - [ ] Include entity index from data pointer in Chipmunk error messages
 - [ ] Check(enforce?) proper deallocation of bodies/shapes/constraints on overwrites etc.
