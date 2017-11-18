@@ -34,7 +34,7 @@ C.context (phycsCtx `mappend` C.funCtx)
 C.include "<chipmunk.h>"
 C.include "<chipmunk_structs.h>"
 
-makeCallback :: (CollisionPair -> System w Bool) -> System w BeginCB
+makeCallback :: (CollisionPair -> System w Bool) -> System w BeginFunc
 makeCallback sys = do
     w <- System ask
 
@@ -46,17 +46,17 @@ makeCallback sys = do
           r <- liftIO$ runSystem (sys (CollisionPair (V2 nx ny) (Entity ea) (Entity eb))) w
           return . fromIntegral . fromEnum $ r
 
-    a <- liftIO$ $(C.mkFunPtr [t| Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar |]) cb
-    return (BeginCB a)
+    return cb
 
 newCollisionHandler :: SpacePtr -> CollisionHandler -> Int -> IO (Ptr CollisionHandler)
 newCollisionHandler spcPtr (CollisionHandler cta ctb begin separate) (fromIntegral -> ety) =
   withForeignPtr spcPtr $ \space -> do
     handler <- [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(unsigned int cta), $(unsigned int ctb))}|]
-    forM_ begin$ \(BeginCB cb) -> do
-      let fn = $(C.peekFunPtr [t| BeginFunc |]) cb
+    forM_ begin$ \cb -> do
+      funPtr <- liftIO$ $(C.mkFunPtr [t| Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar |]) cb
+      let fn = castFunPtrToPtr funPtr
       [C.block| void {
-      $(cpCollisionHandler* handler)->beginFunc = $fun:(unsigned char (*fn)(cpArbiter*, cpSpace*, cpDataPointer));
+      $(cpCollisionHandler* handler)->beginFunc = $(void* fn);
       $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety); }|]
 
     return handler

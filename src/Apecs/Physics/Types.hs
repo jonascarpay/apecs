@@ -170,12 +170,11 @@ data ConstraintType
 newtype SeparateCB = SeparateCB (FunPtr (Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO ()))
 
 type BeginFunc = Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
-newtype BeginCB = BeginCB (FunPtr BeginFunc)
 
 data CollisionHandler = CollisionHandler
   { handlerA        :: CollisionType
   , handlerB        :: CollisionType
-  , handlerBegin    :: Maybe BeginCB
+  , handlerBegin    :: Maybe BeginFunc
   , handlerSeparate :: Maybe SeparateCB
   }
 
