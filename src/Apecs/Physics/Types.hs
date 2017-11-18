@@ -167,13 +167,15 @@ data ConstraintType
 -- getPinJointDistance
 -- getSlideJointDistance?
 
-newtype Callback a     = Callback (CollisionPair -> IO a)
+newtype SeparateCB = SeparateCB (FunPtr (Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO ()))
+
+type BeginFunc = Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
 
 data CollisionHandler = CollisionHandler
   { handlerA        :: CollisionType
   , handlerB        :: CollisionType
-  , handlerBegin    :: Maybe (Callback Bool)
-  , handlerSeparate :: Maybe (Callback ())
+  , handlerBegin    :: Maybe BeginFunc
+  , handlerSeparate :: Maybe SeparateCB
   }
 
 data CollisionPair = CollisionPair

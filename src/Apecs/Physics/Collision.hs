@@ -34,33 +34,30 @@ C.context (phycsCtx `mappend` C.funCtx)
 C.include "<chipmunk.h>"
 C.include "<chipmunk_structs.h>"
 
--- | Necessary to pass the @w@ argument, but I'm interested in a way to remove this
-makeCallback :: (CollisionPair -> System w a) -> System w (Callback a)
+makeCallback :: (CollisionPair -> System w Bool) -> System w BeginFunc
 makeCallback sys = do
     w <- System ask
-    return . Callback $ \pair -> runSystem (sys pair) w
+
+    let cb arb _ _ = do
+          nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
+          ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
+          ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
+          eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
+          r <- liftIO$ runSystem (sys (CollisionPair (V2 nx ny) (Entity ea) (Entity eb))) w
+          return . fromIntegral . fromEnum $ r
+
+    return cb
 
 newCollisionHandler :: SpacePtr -> CollisionHandler -> Int -> IO (Ptr CollisionHandler)
 newCollisionHandler spcPtr (CollisionHandler cta ctb begin separate) (fromIntegral -> ety) =
   withForeignPtr spcPtr $ \space -> do
     handler <- [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(unsigned int cta), $(unsigned int ctb))}|]
-
-    forM_ begin $ \(Callback cb) ->
-      let sys_ arb spc _ = do nx <- realToFrac <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
-                              ny <- realToFrac <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
-                              ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
-                              eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
-                              fromIntegral . fromEnum <$> cb (CollisionPair (V2 nx ny) (Entity ea) (Entity eb))
-
-        -- FIXME:
-        -- It seems like this callback is never called.
-        -- The default beginFunc is properly called if we don't change this value, and we get an error on collision if we set it to NULL,
-        -- so it _is_ used at runtime...
-       in [C.block| void { $(cpCollisionHandler* handler)->beginFunc = $fun:(unsigned char (*sys_)(cpArbiter*,cpSpace*,cpDataPointer));
-                           $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety);
-                         }|]
-
-    forM_ separate $ \e -> putStrLn "Separation callbacks not yet implemented"
+    forM_ begin$ \cb -> do
+      funPtr <- liftIO$ $(C.mkFunPtr [t| Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar |]) cb
+      let fn = castFunPtrToPtr funPtr
+      [C.block| void {
+      $(cpCollisionHandler* handler)->beginFunc = $(void* fn);
+      $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety); }|]
 
     return handler
 
