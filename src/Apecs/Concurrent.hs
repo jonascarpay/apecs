@@ -1,5 +1,7 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 module Apecs.Concurrent (
   concurrently,
@@ -7,11 +9,11 @@ module Apecs.Concurrent (
 ) where
 
 import qualified Control.Concurrent.Async as A
-import Control.Monad.Reader
-import qualified Data.Vector.Unboxed as U
+import           Control.Monad.Reader
+import qualified Data.Vector.Unboxed      as U
 
-import Apecs.Types
-import Apecs.System
+import           Apecs.System
+import           Apecs.Types
 
 -- | Executes a list of systems concurrently, and blocks until all have finished.
 --   Provides zero protection against race conditions and other hazards, so use with caution.

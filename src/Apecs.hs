@@ -8,14 +8,12 @@ module Apecs (
     Component(..), Entity(..), Slice, Has(..), Safe(..), cast,
     Map, Set, Unique, Global, Flag(..),
 
-
   -- * Store wrapper functions
     initStore,
     destroy, exists, owners, resetStore,
-    get, set, set', modify,
+    get, getUnsafe, set, set', modify,
     cmap, cmapM, cmapM_, cimapM, cimapM_,
     rmap', rmap, wmap, wmap', cmap',
-
 
   -- ** GlobalRW wrapper functions
     getGlobal, setGlobal, modifyGlobal,
@@ -24,15 +22,16 @@ module Apecs (
     runSystem, runWith,
     runGC, EntityCounter, newEntity,
     makeWorld,
-    -- Reader
+
+  -- * Re-exports
     asks, ask, liftIO, lift,
 ) where
 
-import Control.Monad.Reader (asks, ask, liftIO, lift)
+import           Control.Monad.Reader (ask, asks, lift, liftIO)
 
-import Apecs.Types
-import Apecs.System
-import Apecs.Stores
-import Apecs.Util
-import Apecs.TH
+import           Apecs.Stores
+import           Apecs.System
+import           Apecs.TH
+import           Apecs.Types
+import           Apecs.Util
 

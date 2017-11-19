@@ -2,8 +2,8 @@
 
 module Apecs.THTuples where
 
-import Language.Haskell.TH
 import qualified Data.Vector.Unboxed as U
+import           Language.Haskell.TH
 
 -- | Generate tuple instances for the following tuple sizes.
 makeInstances :: [Int] -> Q [Dec]

@@ -1,10 +1,12 @@
-{-# LANGUAGE Strict #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE DataKinds, KindSignatures #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Apecs.Stores
   ( Map, Set, Flag(..), Cache, Unique,
@@ -12,18 +14,18 @@ module Apecs.Stores
     Cachable,
   ) where
 
-import qualified Data.IntMap.Strict as M
-import qualified Data.IntSet as S
-import Data.IORef
-import Data.Maybe (fromJust)
-import qualified Data.Vector.Unboxed as U
+import           Control.Monad.Reader
+import qualified Data.IntMap.Strict          as M
+import qualified Data.IntSet                 as S
+import           Data.IORef
+import           Data.Maybe                  (fromJust)
+import           Data.Proxy
+import qualified Data.Vector.Mutable         as VM
+import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-import qualified Data.Vector.Mutable as VM
-import Control.Monad.Reader
-import GHC.TypeLits
-import Data.Proxy
+import           GHC.TypeLits
 
-import Apecs.Types
+import           Apecs.Types
 
 {-# INLINE defaultSetMaybe #-}
 defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (Stores s) -> IO ()

@@ -1,7 +1,13 @@
-{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, ConstraintKinds #-}
-{-# LANGUAGE ScopedTypeVariables, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+
+-- | Experimental module for logging a store
 
 module Apecs.Logs
   ( -- * Types and classes
@@ -12,14 +18,14 @@ module Apecs.Logs
     EnumTable, byIndex, byEnum,
   ) where
 
-import Data.IORef
-import qualified Data.Vector.Mutable as VM
-import qualified Data.IntSet as S
-import Control.Monad.Reader
+import           Control.Monad.Reader
+import qualified Data.IntSet          as S
+import           Data.IORef
+import qualified Data.Vector.Mutable  as VM
 
-import Apecs.Types
-import Apecs.Stores
-import qualified Apecs.Slice as Sl
+import qualified Apecs.Slice          as Sl
+import           Apecs.Stores
+import           Apecs.Types
 
 -- | A PureLog is a piece of state @l c@ that is updated when components @c@ are written or destroyed.
 --   Note that @l :: * -> *@
@@ -73,7 +79,7 @@ instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
     mc <- explGet s ety
     case mc of
       Just c -> logOnDestroy l (Entity ety) c >> explDestroy s ety
-      _ -> return ()
+      _      -> return ()
 
   {-# INLINE explExists #-}
   explExists (Logger _ s) ety = explExists s ety
@@ -100,13 +106,13 @@ instance (Log l (Stores s), Cachable s) => Store (Logger l s) where
 
   {-# INLINE explSetMaybe #-}
   explSetMaybe s ety (Nothing) = explDestroy s ety
-  explSetMaybe s ety (Just x) = explSet s ety x
+  explSetMaybe s ety (Just x)  = explSet s ety x
 
   {-# INLINE explModify #-}
   explModify (Logger l s) ety f = do
     mc <- explGet s ety
     case mc of
-      Just c -> explSet (Logger l s) ety (f c)
+      Just c  -> explSet (Logger l s) ety (f c)
       Nothing -> return ()
 
   {-# INLINE explCmapM_ #-}
@@ -179,7 +185,7 @@ instance (Bounded c, Enum c) => Log EnumTable c where
   logOnSet (EnumTable vec) (Entity e) old new = do
     case old of
       Nothing -> return ()
-      Just c -> VM.modify vec (S.delete e) (fromEnum c)
+      Just c  -> VM.modify vec (S.delete e) (fromEnum c)
     VM.modify vec (S.insert e) (fromEnum new)
 
   {-# INLINE logOnDestroy #-}

@@ -4,9 +4,9 @@ module Apecs.TH
   ( makeWorld, makeWorldNoEC
   )where
 
-import Language.Haskell.TH
+import           Language.Haskell.TH
 
-import Apecs.Util (EntityCounter)
+import           Apecs.Util          (EntityCounter)
 
 genName :: String -> Q Name
 genName s = mkName . show <$> newName s

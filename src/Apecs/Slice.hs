@@ -1,14 +1,16 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 -- | This module is designed to be imported with qualified
 module Apecs.Slice where
 
-import qualified Data.Vector.Unboxed as U
-import Data.Traversable (for)
-import Control.Monad.IO.Class
+import           Control.Monad.Reader (liftIO)
+import           Data.Traversable     (for)
+import qualified Data.Vector.Unboxed  as U
 
-import Apecs.Types
+import           Apecs.Types
 
 -- | Slice version of foldM_
 {-# INLINE foldM_ #-}

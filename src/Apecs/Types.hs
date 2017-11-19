@@ -1,18 +1,19 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Apecs.Types where
 
-import Control.Monad.Reader
-import Data.Traversable (for)
-import qualified Data.Vector.Unboxed as U
+import           Control.Monad.Reader
+import           Data.Traversable     (for)
+import qualified Data.Vector.Unboxed  as U
 
-import qualified Apecs.THTuples as T
+import qualified Apecs.THTuples       as T
 
 -- | An Entity is really just an Int. The type variable is used to keep track of reads and writes, but can be freely cast.
 newtype Entity c = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
