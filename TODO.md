@@ -4,12 +4,11 @@ If you want to help, I think it's easiest if you create an issue for the one you
 The name of the game is mostly to identify Chipmunk objects, create a safe wrapper, and then implement `Store (Space component)` instances for that object.
 
 ### Need
-- [ ] Proper conversion between C structs and data types, instead of field-by-field copying
 - [x] Make separate example executables
 - [x] Constraints
 - [x] Collision Handling
 - [ ] CollideBodies component for Constraints, currently hardcoded to never collide
-- [ ] Remaining Collision callbacks etc.
+- [x] Remaining Collision callbacks
 - [x] Add Gloss `play` version to allow interactive games
 - [ ] Implement body force components
 - [ ] Implement remaining body components
@@ -43,6 +42,8 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Render Constraints
 - [ ] `playWorld` camera tracking?
 - [ ] Documentation/tutorials?
+- [ ] Proper conversion between C structs and data types, instead of field-by-field copying
+- [ ] Switch to normal FFI instead of inline-c
 
 ### Safety
 - [ ] Cannot set mass of non-dynamic body

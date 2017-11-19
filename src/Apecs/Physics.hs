@@ -1,3 +1,5 @@
+-- | Phycs prelude
+
 module Apecs.Physics (
 
   -- * Global
@@ -18,8 +20,9 @@ module Apecs.Physics (
   Constraint (..), ConstraintType (..),
 
   -- * Collision
-  CollisionPair (..), CollisionHandler (..),
-  makeCallback,
+  Collision (..), CollisionHandler (..), defaultHandler,
+  CollisionSource(..), BeginCB, SeparateCB, PreSolveCB, PostSolveCB,
+  mkBeginCB, mkSeparateCB, mkPreSolveCB, mkPostSolveCB,
 
   module Apecs,
   module Linear.V2,

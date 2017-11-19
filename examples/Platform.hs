@@ -15,30 +15,36 @@ instance Component Player where
 
 makeWorld "World" [''Color, ''Physics, ''Player]
 
+walls    = 0
+player   = 1
+platform = 2
+
 initialize = do
   setGlobal (Gravity (V2 0 (-10)))
 
   newEntity ( DynamicBody
-            , Position (V2 0 1.5)
-            , Shape (Circle 0 0.5) defaultProperties {friction = 1, collisionType = 1}
+            , Position (V2 0 (-3))
+            , Shape (Circle 0 0.5) defaultProperties {friction = 1, collisionType = player}
             , Player )
 
   newEntity ( StaticBody
-            , Shape (Segment (V2 (-3) 0) (V2 3 0) 0) defaultProperties {friction = 1, collisionType = 2})
+            , hollowBox 12 8 0 defaultProperties {friction = 1, collisionType = walls})
 
   newEntity ( StaticBody
-            , Position (V2 0 3)
-            , Shape (Segment (V2 (-2) 0) (V2 2 0) 0) defaultProperties {friction = 1, collisionType = 2})
+            , Shape (Segment (V2 (-2) 0) (V2 2 0) 0) defaultProperties {friction = 1, collisionType = walls})
 
-  cb <- makeCallback collisionBegin
-  newEntity ( CollisionHandler 1 2 (Just cb) Nothing)
+  newEntity ( StaticBody
+            , Position (V2 0 (-1.5))
+            , red
+            , Shape (Segment (V2 (-2) 0) (V2 2 0) 0) defaultProperties {friction = 1, collisionType = platform})
 
-collisionBegin (CollisionPair _ entA _) = do
-  Safe (Just (Velocity (V2 _ y))) :: Safe Velocity <- get (cast entA)
-  liftIO$ putStrLn "Callback!"
-  return (y<=0)
+  cb <- mkBeginCB oneWayPlatform
+  newEntity$ defaultHandler { source  = Between player platform
+                            , beginCB = Just cb }
 
-handleEvent (EventKey _ Down _ _) = rmap $ \(_ :: Player) -> Velocity (V2 0 9)
+oneWayPlatform (Collision (V2 _ y) _ _) = return (y < 0.7)
+
+handleEvent (EventKey _ Down _ _) = rmap $ \Player -> Velocity (V2 0 9)
 handleEvent _                     = return ()
 
 main = playWorld (InWindow "helloworld" (640,480) (10,10)) 40 initWorld handleEvent initialize

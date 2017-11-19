@@ -34,8 +34,10 @@ C.context (phycsCtx `mappend` C.funCtx)
 C.include "<chipmunk.h>"
 C.include "<chipmunk_structs.h>"
 
-makeCallback :: (CollisionPair -> System w Bool) -> System w BeginFunc
-makeCallback sys = do
+defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
+
+mkBeginCB :: (Collision -> System w Bool) -> System w BeginCB
+mkBeginCB sys = do
     w <- System ask
 
     let cb arb _ _ = do
@@ -43,21 +45,59 @@ makeCallback sys = do
           ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
           ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
           eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
-          r <- liftIO$ runSystem (sys (CollisionPair (V2 nx ny) (Entity ea) (Entity eb))) w
+          r <- liftIO$ runSystem (sys (Collision (V2 nx ny) (Entity ea) (Entity eb))) w
           return . fromIntegral . fromEnum $ r
 
-    return cb
+    return (BeginCB cb)
+
+mkSeparateCB :: (Collision -> System w ()) -> System w SeparateCB
+mkSeparateCB sys = do
+    w <- System ask
+
+    let cb arb _ _ = do
+          nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
+          ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
+          ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
+          eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
+          liftIO$ runSystem (sys (Collision (V2 nx ny) (Entity ea) (Entity eb))) w
+
+    return (SeparateCB cb)
+
+
+mkPreSolveCB :: (Collision -> System w Bool) -> System w PreSolveCB
+mkPreSolveCB sys = (\(BeginCB cb) -> PreSolveCB cb) <$> mkBeginCB sys
+
+mkPostSolveCB :: (Collision -> System w ()) -> System w PostSolveCB
+mkPostSolveCB sys = (\(SeparateCB cb) -> PostSolveCB cb) <$> mkSeparateCB sys
 
 newCollisionHandler :: SpacePtr -> CollisionHandler -> Int -> IO (Ptr CollisionHandler)
-newCollisionHandler spcPtr (CollisionHandler cta ctb begin separate) (fromIntegral -> ety) =
+newCollisionHandler spcPtr (CollisionHandler source begin separate presolve postsolve) (fromIntegral -> ety) =
   withForeignPtr spcPtr $ \space -> do
-    handler <- [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(unsigned int cta), $(unsigned int ctb))}|]
-    forM_ begin$ \cb -> do
-      funPtr <- liftIO$ $(C.mkFunPtr [t| Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar |]) cb
+    handler <- case source of
+                 Between cta ctb -> [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(unsigned int cta), $(unsigned int ctb))}|]
+                 Wildcard ct     -> [C.exp| cpCollisionHandler* {cpSpaceAddWildcardHandler($(cpSpace* space), $(unsigned int ct))}|]
+
+    [C.exp| void { $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety) }|]
+
+    forM_ begin$ \(BeginCB cb) -> do
+      funPtr <- liftIO$ $(C.mkFunPtr [t| BeginFunc |]) cb
       let fn = castFunPtrToPtr funPtr
-      [C.block| void {
-      $(cpCollisionHandler* handler)->beginFunc = $(void* fn);
-      $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety); }|]
+      [C.exp| void { $(cpCollisionHandler* handler)->beginFunc = $(void* fn) }|]
+
+    forM_ separate$ \(SeparateCB cb) -> do
+      funPtr <- liftIO$ $(C.mkFunPtr [t| SeparateFunc |]) cb
+      let fn = castFunPtrToPtr funPtr
+      [C.exp| void { $(cpCollisionHandler* handler)->separateFunc = $(void* fn) }|]
+
+    forM_ presolve$ \(PreSolveCB cb) -> do
+      funPtr <- liftIO$ $(C.mkFunPtr [t| PreSolveFunc |]) cb
+      let fn = castFunPtrToPtr funPtr
+      [C.exp| void { $(cpCollisionHandler* handler)->preSolveFunc = $(void* fn) }|]
+
+    forM_ postsolve$ \(PostSolveCB cb) -> do
+      funPtr <- liftIO$ $(C.mkFunPtr [t| PostSolveFunc |]) cb
+      let fn = castFunPtrToPtr funPtr
+      [C.exp| void { $(cpCollisionHandler* handler)->postSolveFunc = $(void* fn) }|]
 
     return handler
 

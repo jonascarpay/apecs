@@ -37,7 +37,7 @@ phycsCtx = baseCtx <> funCtx <> ctx
 
 phycsTypesTable :: Map.Map C.TypeSpecifier TH.TypeQ
 phycsTypesTable = Map.fromList
-  [ (C.TypeName "cpArbiter",          [t| CollisionPair    |])
+  [ (C.TypeName "cpArbiter",          [t| Collision    |])
   , (C.TypeName "cpBody",             [t| Body             |])
   , (C.TypeName "cpCollisionHandler", [t| CollisionHandler |])
   , (C.TypeName "cpConstraint",       [t| Constraint       |])
@@ -167,18 +167,31 @@ data ConstraintType
 -- getPinJointDistance
 -- getSlideJointDistance?
 
-newtype SeparateCB = SeparateCB (FunPtr (Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO ()))
 
-type BeginFunc = Ptr CollisionPair -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
+newtype BeginCB     = BeginCB     BeginFunc
+newtype SeparateCB  = SeparateCB  SeparateFunc
+newtype PreSolveCB  = PreSolveCB  PreSolveFunc
+newtype PostSolveCB = PostSolveCB PostSolveFunc
+
+type BeginFunc     = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
+type SeparateFunc  = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO ()
+type PreSolveFunc  = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
+type PostSolveFunc = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO ()
 
 data CollisionHandler = CollisionHandler
-  { handlerA        :: CollisionType
-  , handlerB        :: CollisionType
-  , handlerBegin    :: Maybe BeginFunc
-  , handlerSeparate :: Maybe SeparateCB
+  { source      :: CollisionSource
+  , beginCB     :: Maybe BeginCB
+  , separateCB  :: Maybe SeparateCB
+  , preSolveCB  :: Maybe PreSolveCB
+  , postSolveCB :: Maybe PostSolveCB
   }
 
-data CollisionPair = CollisionPair
+data CollisionSource
+  = Wildcard CollisionType
+  | Between CollisionType CollisionType
+
+-- Corresponds to an 'arbiter' in Chipmunk
+data Collision = Collision
   { collisionNormal :: Vec
   , collisionA      :: Entity ()
   , collisionB      :: Entity ()
