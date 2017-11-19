@@ -43,4 +43,6 @@ handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = rmap $ \Box -> AngularVe
 handleEvent (EventKey (SpecialKey KeyDown)  Down _ _) = rmap $ \Box -> AngularVelocity 0
 handleEvent _ = return ()
 
-main = playWorld (InWindow "tumbler" (640,480) (10,10)) 10 initWorld handleEvent initialize
+step = return ()
+
+main = playWorld (InWindow "tumbler" (640,480) (10,10)) 10 initWorld initialize handleEvent step

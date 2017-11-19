@@ -79,43 +79,6 @@ A hollowBox is a composition of several line segments.
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/tumbler.png)
 
-#### interactive
-```haskell
-data Box = Box
-instance Component Box where
-  type Storage Box = Unique Box
-
-makeWorld "World" [''Box, ''Color, ''Physics]
-
-initialize = do
-  setGlobal (Gravity (V2 0 (-10)))
-
-  newEntity ( Box
-            , KinematicBody
-            , hollowBox 30 30 0 defaultProperties )
-
-  replicateM_ 300 $ do
-    x      <- liftIO$ randomRIO (-9,9)
-    y      <- liftIO$ randomRIO (-9,9)
-    radius <- liftIO$ randomRIO (0.4,0.8)
-    let color = (realToFrac x+9)/19
-
-    newEntity ( DynamicBody
-              , Shape (Circle 0 radius) defaultProperties {elasticity=0.9, friction=1}
-              , Position (V2 x y)
-              , makeColor 1 color color 1 )
-
-handleEvent (EventKey (SpecialKey KeyLeft)  Down _ _) = rmap $ \Box -> AngularVelocity (pi/6)
-handleEvent (EventKey (SpecialKey KeyRight) Down _ _) = rmap $ \Box -> AngularVelocity (-pi/6)
-handleEvent (EventKey (SpecialKey KeyDown)  Down _ _) = rmap $ \Box -> AngularVelocity 0
-handleEvent _ = return ()
-
-main = playWorld (InWindow "tumbler" (640,480) (10,10)) 10 initWorld handleEvent initialize
-```
-Interactive version of the tumbler.
-We switch to `playWorld` and add an eventHandler.
-We could track the entity manually, but it's more idiomatic to tag it with a component.
-
 #### chain
 ```haskell
 makeWorld "World" [''Color, ''Physics]
@@ -141,3 +104,58 @@ Similar to how adding a `Body` gives you access to `Position`, a Constraint also
 There is nothing preventing you from registering a constraint under the same entity as a body, the underlying `Space` tracks them separately anyway, but it's easiest to make separate entities.
 
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/chain.png)
+
+#### platform
+```haskell
+data Player = Player
+instance Component Player where
+  type Storage Player = Unique Player
+
+makeWorld "World" [''Color, ''Physics, ''Player]
+
+walls    = 0
+player   = 1
+platform = 2
+
+initialize = do
+  setGlobal (Gravity (V2 0 (-10)))
+
+  newEntity ( DynamicBody
+            , Position (V2 0 (-3))
+            , Shape (Circle 0 0.5) defaultProperties {friction = 1, collisionType = player}
+            , Player )
+
+  newEntity ( StaticBody
+            , hollowBox 12 8 0 defaultProperties {friction = 1, collisionType = walls})
+
+  newEntity ( StaticBody
+            , Shape (Segment (V2 (-2) 0) (V2 2 0) 0) defaultProperties {friction = 1, collisionType = walls})
+
+  newEntity ( StaticBody
+            , Position (V2 0 (-1.5))
+            , red
+            , Shape (Segment (V2 (-2) 0) (V2 2 0) 0) defaultProperties {friction = 1, collisionType = platform})
+
+  cb <- mkBeginCB oneWayPlatform
+
+  newEntity$ defaultHandler { source  = Between player platform
+                            , beginCB = Just cb
+                            }
+
+oneWayPlatform (Collision (V2 _ y) _ _) = return (y < 0.7)
+
+handleEvent (EventKey _ Down _ _) = rmap $ \Player -> Velocity (V2 0 9)
+handleEvent _                     = return ()
+
+main = playWorld (InWindow "platform" (640,480) (10,10)) 40 initWorld handleEvent initialize
+```
+Example with a one-way platform.
+We make an explicit `CollisionHandler` for collisions between the player and the platform.
+The `beginCB` callback runs when two shapes touch.
+Returning `False` from it causes the collision to be ignored.
+`mkBeginCB` is required in order to embed the callback into the `world`; it returns a `BeginCB`.
+Check the documentation for other collision callbacks.
+
+This example also shows how to do interactivity in the test renderer; switch to `playWorld` and pass an event handler.
+
+![Screenshot](https://raw.githubusercontent.com/jonascarpay/phycs/master/examples/platform.png)

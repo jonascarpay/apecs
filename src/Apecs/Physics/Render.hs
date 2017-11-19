@@ -47,9 +47,9 @@ drawWorld w = runWith w . fmap fold . cimapM $ \(ety, (Position (V2 x y), Angle 
   return . color (fromMaybe white mcolor) $ translated
 
 simulateWorld :: (Has w Color, Has w Physics) => Display -> Float -> IO w -> System w a -> IO ()
-simulateWorld disp scaleFactor initialWorld initializer = do
+simulateWorld disp scaleFactor initialWorld initializeSys = do
     w <- initialWorld
-    runSystem initializer w
+    runSystem initializeSys w
     simulateIO disp black 60 w render step
   where
     step _ dT w = do
@@ -58,20 +58,26 @@ simulateWorld disp scaleFactor initialWorld initializer = do
 
     render = fmap (scale scaleFactor scaleFactor) . drawWorld
 
-playWorld :: (Has w Color, Has w Physics) => Display -> Float -> IO w -> (Event -> System w ()) -> System w a -> IO ()
-playWorld disp scaleFactor initialWorld eventHandler initializer = do
+playWorld :: (Has w Color, Has w Physics)
+          => Display
+          -> Float
+          -> IO w
+          -> System w a
+          -> (Event -> System w ())
+          -> System w b
+          -> IO ()
+playWorld disp scaleFactor initialWorld initializeSys eventSys stepSys = do
     w <- initialWorld
-    runSystem initializer w
+    runSystem initializeSys w
     playIO disp black 60 w render handler step
   where
     step dT w = do
-      runSystem (stepPhysics $ realToFrac dT) w
+      runSystem (stepPhysics (realToFrac dT) >> stepSys) w
       return w
     render = fmap (scale scaleFactor scaleFactor) . drawWorld
     handler event w = do
-      runSystem (eventHandler event) w
+      runSystem (eventSys event) w
       return w
-
 
 instance Component Color where
   type Storage Color = Cache 100 (Map Color)
