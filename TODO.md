@@ -23,6 +23,7 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Hackage
 - [ ] Presolve/Postsolve collision handlers
 - [ ] Remaining collision properties
+- [ ] Apply(Impulse/Force)At(Local/World)
 - [ ] Wildcard collision handlers
 - [ ] Remaining body/shape/space/constraint/etc. query functions
 - [ ] Explicit gloss Picture component, make shapes write-only

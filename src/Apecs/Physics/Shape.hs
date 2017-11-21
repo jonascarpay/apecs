@@ -15,20 +15,30 @@ module Apecs.Physics.Shape where
 import           Apecs.Types
 import           Control.Monad
 import           Data.Bits
-import qualified Data.IntMap         as M
+import qualified Data.IntMap                  as M
 import           Data.IORef
-import           Data.Monoid         ((<>))
+import           Data.Monoid                  ((<>))
+import qualified Data.Vector.Storable         as V
+import qualified Data.Vector.Storable.Mutable as VM
 import           Foreign.ForeignPtr
+import           Foreign.Marshal.Alloc        (free, malloc)
 import           Foreign.Ptr
-import qualified Language.C.Inline   as C
+import qualified Language.C.Inline            as C
 import           Linear.V2
 
-import           Apecs.Physics.Body  ()
-import           Apecs.Physics.Space ()
+import           Apecs.Physics.Body           ()
+import           Apecs.Physics.Space          ()
 import           Apecs.Physics.Types
 
-C.context phycsCtx
+C.context (phycsCtx <> C.vecCtx)
 C.include "<chipmunk.h>"
+
+box :: Double -> Double -> Double -> ShapeProperties -> Shape
+box w h r props = Shape (Convex verts r) props
+  where
+    w' = w/2
+    h' = h/2
+    verts = [V2 w' h', V2 w' (-h'), V2 (-w') (-h'), V2 (-w') h']
 
 hollowBox :: Double -> Double -> Double -> ShapeProperties -> Shape
 hollowBox w h r props = line tl tr <> line tr br <> line br bl <> line bl tl
@@ -116,19 +126,17 @@ newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr
        const cpVect va = { $(double xa), $(double ya) };
        const cpVect vb = { $(double xb), $(double yb) };
        cpShape* sh = cpSegmentShapeNew($(cpBody* bodyPtr), va, vb, $(double radius));
+       cpShapeSetUserData(sh, (void*) $(intptr_t ety));
        return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
     go (Convex ((fmap.fmap) realToFrac -> verts)
                (realToFrac -> radius)
        ) spacePtr = do
-         let n = fromIntegral$ length verts
-         vecs <- [C.exp| cpVect* { malloc($(int n)*sizeof(cpVect*)) } |]
-         forM_ (zip verts [1..]) (\(V2 x y, i) -> [C.block| void {
-           $(cpVect* vecs)[$(int i)].x = $(double x);
-           $(cpVect* vecs)[$(int i)].y = $(double y); }|])
+         vec <- V.thaw (V.fromList verts)
          [C.block| cpShape* {
-           cpTransform trans = { 1, 0, 0, 1, 0, 0 };
-           cpShape* sh = cpPolyShapeNew($(cpBody* bodyPtr), $(int n), $(cpVect* vecs), trans, $(double radius));
+           cpTransform trans = cpTransformIdentity;
+           cpShape* sh = cpPolyShapeNew($(cpBody* bodyPtr), $vec-len:vec, $vec-ptr:(cpVect *vec), trans, $(double radius));
+           cpShapeSetUserData(sh, (void*) $(intptr_t ety));
            return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
 destroyShape :: Ptr Shape -> IO ()

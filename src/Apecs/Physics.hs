@@ -14,7 +14,7 @@ module Apecs.Physics (
   -- * Shape
   ShapeProperties (..), ShapeType (..), Shape (..),
   defaultProperties, defaultFilter,
-  hollowBox,
+  hollowBox, box,
 
   -- * Constraint
   Constraint (..), ConstraintType (..),

@@ -43,7 +43,7 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpConstraint",       [t| Constraint       |])
   , (C.TypeName "cpDataPointer",      [t| C.CUInt          |])
   , (C.TypeName "cpShape",            [t| Shape            |])
-  , (C.TypeName "cpVect",             [t| FrnVec           |])
+  , (C.TypeName "cpVect",             [t| V2 Double           |])
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
