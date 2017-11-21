@@ -1,7 +1,10 @@
 resolver: lts-9.11
 packages:
 - .
+- location:
+    git: git@github.com:jonascarpay/apecs
+    commit: 7ee9c5dc415fe1d7e9eb32c5673f95a8c36aa9aa
+  extra-dep: true
 extra-deps:
-  - apecs-0.2.4.5
 flags: {}
 extra-package-dbs: []

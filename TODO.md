@@ -25,6 +25,7 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Remaining collision properties
 - [ ] Wildcard collision handlers
 - [ ] Remaining body/shape/space/constraint/etc. query functions
+- [ ] Explicit gloss Picture component, make shapes write-only
 - [ ] Haddocks
 - [ ] Deallocate C bodies/shapes/spaces in SpacePtr cleanup
 - [ ] Proper convex polygon rendering
@@ -44,8 +45,3 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [ ] Documentation/tutorials?
 - [ ] Proper conversion between C structs and data types, instead of field-by-field copying
 - [ ] Switch to normal FFI instead of inline-c
-
-### Safety
-- [ ] Cannot set mass of non-dynamic body
-- [ ] Cannot simulate when mass/moment = 0, probably unenforcable
-- [ ] Cannot create/delete objects from collision callbacks

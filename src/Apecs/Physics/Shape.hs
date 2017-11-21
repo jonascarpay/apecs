@@ -136,19 +136,6 @@ destroyShape shapePtr = [C.block| void {
   cpShapeDestroy ($(cpShape* shapePtr));
   cpShapeFree ($(cpShape* shapePtr)); }|]
 
-{-data ShapeProperties = ShapeProperties-}
-  {-{ sensor          :: Bool-}
-  {-, elasticity      :: Double-}
-  {-, mass            :: SMass-}
-  {-, friction        :: Double-}
-  {-, surfaceVelocity :: Vec-}
-  {-, group           :: Group-}
-  {-, categoryFilter  :: Bitmask-}
-  {-, categoryMask    :: Bitmask-}
-  {-}-}
-  {-deriving (Eq, Show)-}
-{-data CollisionFilter-}
-
 getProperties :: Ptr Shape -> IO ShapeProperties
 getProperties shape = do
   sensor     <- fromIntegral <$> [C.exp| int          { cpShapeGetSensor($(cpShape* shape))            }|]

@@ -16,6 +16,7 @@
 module Apecs.Physics.Body where
 
 import           Apecs
+import           Apecs.Stores        (defaultSetMaybe)
 import           Apecs.Types
 import qualified Data.IntMap         as M
 import           Data.IORef

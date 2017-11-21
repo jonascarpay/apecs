@@ -16,6 +16,7 @@
 module Apecs.Physics.Collision where
 
 import           Apecs
+import           Apecs.Stores        (defaultSetMaybe)
 import           Apecs.Types
 import           Control.Monad
 import qualified Data.IntMap         as M

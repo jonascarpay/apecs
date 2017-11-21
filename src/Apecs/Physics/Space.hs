@@ -44,15 +44,12 @@ stepPhysics dT = do
   Space _ _ _ spacePtr :: Space Physics <- getStore
   liftIO$ explStepPhysics spacePtr dT
 
-defaultSetMaybe s ety Nothing  = explDestroy s ety
-defaultSetMaybe s ety (Just x) = explSet s ety x
-
 instance Component Physics where
   type Storage Physics = Space Physics
 
 instance Store (Space Physics) where
   type Stores (Space Physics) = Physics
-  type SafeRW (Space Physics) = Physics
+  type SafeRW (Space Physics) = ()
   initStore = do
     spacePtr <- newSpace
     eRef     <- newIORef mempty
@@ -61,7 +58,7 @@ instance Store (Space Physics) where
     return (Space eRef cRef hRef spacePtr)
 
   explSet _ _ _ = return ()
-  explGet _ _ = return (error "Can't produce a Physics")
+  explGet _ _ = return ()
   explDestroy _ _ = return ()
   explMembers _ = return mempty
   explExists _ _ = return False
