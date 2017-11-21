@@ -26,7 +26,7 @@ initialize = do
     let color = (realToFrac x+9)/19
 
     newEntity ( DynamicBody
-              , box radius radius 0.1 defaultProperties {elasticity=0.9, friction=1}
+              , Shape (Circle 0 radius) defaultProperties {elasticity=0.9, friction=1}
               , Position (V2 x y)
               , makeColor 1 color color 1 )
 

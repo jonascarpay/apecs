@@ -32,7 +32,7 @@ import           Apecs.Physics.Types                  as P
 toPicture :: Shape -> Picture
 toPicture (Shape (P.Circle (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> radius)) _) = translate x y $ Line [(0.25,0),(radius*0.75,0)] `mappend` circle radius
 toPicture (Shape (Segment a b _) _) = Line [v2ToTuple a, v2ToTuple b]
-toPicture (Shape (Convex verts _) _) = Line (v2ToTuple <$> verts)
+toPicture (Shape (Convex verts _) _) = Polygon (v2ToTuple <$> verts)
 toPicture (Compound shapes) = foldMap toPicture shapes
 
 v2ToTuple :: V2 Double -> (Float, Float)
