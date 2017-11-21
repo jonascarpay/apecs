@@ -12,6 +12,7 @@ module Apecs.Stores
   ( Map, Set, Flag(..), Cache, Unique,
     Global,
     Cachable,
+    defaultSetMaybe,
   ) where
 
 import           Control.Monad.Reader
@@ -27,6 +28,8 @@ import           GHC.TypeLits
 
 import           Apecs.Types
 
+-- | Default version of @explSetMaybe@, for your convenience.
+--   Can be used when 'SafeRW s ~ Maybe (Stores s)'.
 {-# INLINE defaultSetMaybe #-}
 defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (Stores s) -> IO ()
 defaultSetMaybe s e Nothing  = explDestroy s e
