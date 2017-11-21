@@ -58,11 +58,13 @@ data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 newtype Position = Position WVec
 newtype Velocity = Velocity WVec
 newtype Force = Force Vec
-newtype CenterOfGravity = CenterOfGravity BVec
+newtype Torque = Torque Double
 newtype Mass = Mass Double deriving (Eq, Show)
 newtype Moment = Moment Double deriving (Eq, Show)
 newtype Angle = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
+
+newtype CenterOfGravity = CenterOfGravity BVec
 newtype Sleeping = Sleeping Bool
 
 data Shape = Shape ShapeType ShapeProperties

@@ -9,7 +9,7 @@ module Apecs.Physics (
   Gravity (..),
 
   -- * Body
-  Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..),
+  Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
 
   -- * Shape
   ShapeProperties (..), ShapeType (..), Shape (..),
@@ -33,7 +33,7 @@ import           Linear.V2
 
 import           Apecs.Physics.Body       ()
 import           Apecs.Physics.Collision
-import           Apecs.Physics.Constraint
+import           Apecs.Physics.Constraint ()
 import           Apecs.Physics.Shape
 import           Apecs.Physics.Space      ()
 import           Apecs.Physics.Types

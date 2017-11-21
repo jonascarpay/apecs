@@ -117,7 +117,7 @@ instance Has w Physics => Has w Position where
 instance Store (Space Position) where
   type Stores (Space Position) = Position
   type SafeRW (Space Position) = Maybe Position
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -160,7 +160,7 @@ instance Has w Physics => Has w Angle where
 instance Store (Space Angle) where
   type Stores (Space Angle) = Angle
   type SafeRW (Space Angle) = Maybe Angle
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -200,7 +200,7 @@ instance Has w Physics => Has w Mass where
 instance Store (Space Mass) where
   type Stores (Space Mass) = Mass
   type SafeRW (Space Mass) = Maybe Mass
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -240,7 +240,7 @@ instance Has w Physics => Has w Moment where
 instance Store (Space Moment) where
   type Stores (Space Moment) = Moment
   type SafeRW (Space Moment) = Maybe Moment
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -281,7 +281,7 @@ instance Has w Physics => Has w Velocity where
 instance Store (Space Velocity) where
   type Stores (Space Velocity) = Velocity
   type SafeRW (Space Velocity) = Maybe Velocity
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -321,7 +321,7 @@ instance Has w Physics => Has w AngularVelocity where
 instance Store (Space AngularVelocity) where
   type Stores (Space AngularVelocity) = AngularVelocity
   type SafeRW (Space AngularVelocity) = Maybe AngularVelocity
-  initStore = error "Initializing space from non-body store"
+  initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
@@ -342,4 +342,89 @@ instance Store (Space AngularVelocity) where
   explGetUnsafe (Space eRef _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef eRef
     AngularVelocity <$> getAngularVelocity b
+
+-- Force
+getForce :: Ptr Body -> IO (V2 Double)
+getForce bodyPtr = do
+  x <- [C.exp| double { cpBodyGetForce ($(cpBody* bodyPtr)).x } |]
+  y <- [C.exp| double { cpBodyGetForce ($(cpBody* bodyPtr)).y } |]
+  return (V2 (realToFrac x) (realToFrac y))
+
+setForce :: SpacePtr -> Ptr Body -> V2 Double -> IO ()
+setForce spcPtr bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr spcPtr $ \space -> [C.block| void {
+  const cpVect vec = { $(double x), $(double y) };
+  cpBodySetForce($(cpBody* bodyPtr), vec);
+  cpSpaceReindexShapesForBody($(cpSpace* space), $(cpBody* bodyPtr));
+  } |]
+
+instance Component Force where
+  type Storage Force = Space Force
+
+instance Has w Physics => Has w Force where
+  getStore = (cast :: Space Physics -> Space Force) <$> getStore
+
+instance Store (Space Force) where
+  type Stores (Space Force) = Force
+  type SafeRW (Space Force) = Maybe Force
+  initStore = error "Initialize a space with a Physics component"
+  explDestroy _ _ = return ()
+  explMembers s = explMembers (cast s :: Space Body)
+  explExists s ety = explExists (cast s :: Space Body) ety
+  explSetMaybe = defaultSetMaybe
+
+  explGet (Space eRef _ _ _) ety = do
+    rd <- M.lookup ety <$> readIORef eRef
+    case rd of
+      Nothing                  -> return Nothing
+      Just (BodyRecord b _ _ ) -> Just . Force <$> getForce b
+
+  explSet (Space eRef _ _ spcPtr) ety (Force vec) = do
+    rd <- M.lookup ety <$> readIORef eRef
+    case rd of
+      Nothing                  -> return ()
+      Just (BodyRecord b _ _ ) -> setForce spcPtr b vec
+
+  explGetUnsafe (Space eRef _ _ _) ety = do
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef eRef
+    Force <$> getForce b
+
+-- Torque
+getTorque :: Ptr Body -> IO Double
+getTorque bodyPtr = do
+  torque <- [C.exp| double { cpBodyGetTorque ($(cpBody* bodyPtr)) } |]
+  return (realToFrac torque)
+
+setTorque :: Ptr Body -> Double -> IO ()
+setTorque bodyPtr (realToFrac -> torque) = [C.exp| void { cpBodySetTorque($(cpBody* bodyPtr), $(double torque)); } |]
+
+instance Component Torque where
+  type Storage Torque = Space Torque
+
+instance Has w Physics => Has w Torque where
+  getStore = (cast :: Space Physics -> Space Torque) <$> getStore
+
+instance Store (Space Torque) where
+  type Stores (Space Torque) = Torque
+  type SafeRW (Space Torque) = Maybe Torque
+  initStore = error "Initialize a space with a Physics component"
+  explDestroy _ _ = return ()
+  explMembers s = explMembers (cast s :: Space Body)
+  explExists s ety = explExists (cast s :: Space Body) ety
+  explSetMaybe = defaultSetMaybe
+
+  explGet (Space eRef _ _ _) ety = do
+    rd <- M.lookup ety <$> readIORef eRef
+    case rd of
+      Nothing                 -> return Nothing
+      Just (BodyRecord b _ _) -> Just . Torque <$> getTorque b
+
+  explSet (Space eRef _ _ _) ety (Torque vec) = do
+    rd <- M.lookup ety <$> readIORef eRef
+    case rd of
+      Nothing                 -> return ()
+      Just (BodyRecord b _ _) -> setTorque b vec
+
+  explGetUnsafe (Space eRef _ _ _) ety = do
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef eRef
+    Torque <$> getTorque b
 

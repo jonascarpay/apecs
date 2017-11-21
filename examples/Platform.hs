@@ -49,6 +49,6 @@ oneWayPlatform (Collision (V2 _ y) _ _) = return (y < 0.7)
 handleEvent (EventKey _ Down _ _) = rmap $ \Player -> Velocity (V2 0 9)
 handleEvent _                     = return ()
 
-step = return ()
+step = cmapM_ $ \(Player,Force f) -> liftIO (print f)
 
 main = playWorld (InWindow "platform" (640,480) (10,10)) 40 initWorld initialize handleEvent step
