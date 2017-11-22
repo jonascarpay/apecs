@@ -41,8 +41,8 @@ explStepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space -
 
 stepPhysics :: Has w Physics => Double -> System w ()
 stepPhysics dT = do
-  Space _ _ _ spacePtr :: Space Physics <- getStore
-  liftIO$ explStepPhysics spacePtr dT
+  s :: Space Physics <- getStore
+  liftIO$ explStepPhysics (spacePtr s) dT
 
 instance Component Physics where
   type Storage Physics = Space Physics
@@ -52,10 +52,11 @@ instance Store (Space Physics) where
   type SafeRW (Space Physics) = ()
   initStore = do
     spacePtr <- newSpace
-    eRef     <- newIORef mempty
+    bRef     <- newIORef mempty
+    sRef     <- newIORef mempty
     cRef     <- newIORef mempty
     hRef     <- newIORef mempty
-    return (Space eRef cRef hRef spacePtr)
+    return (Space bRef sRef cRef hRef spacePtr)
 
   explSet _ _ _ = return ()
   explGet _ _ = return ()
@@ -93,8 +94,8 @@ instance Store (Space Gravity) where
   explDestroy _ _ = return ()
   explMembers _   = return mempty
   explExists _ _  = return False
-  explSet (Space _ _ _ spcPtr) _ (Gravity v) = setGravity spcPtr v
-  explGet (Space _ _ _ spcPtr) _ = Gravity <$> getGravity spcPtr
+  explSet (Space _ _ _ _ spcPtr) _ (Gravity v) = setGravity spcPtr v
+  explGet (Space _ _ _ _ spcPtr) _ = Gravity <$> getGravity spcPtr
   explSetMaybe  = explSet
   explGetUnsafe = explGet
 
