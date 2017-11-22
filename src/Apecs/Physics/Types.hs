@@ -55,17 +55,15 @@ type WVec = Vec
 
 data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 
-newtype Position = Position WVec
-newtype Velocity = Velocity WVec
-newtype Force = Force Vec
-newtype Torque = Torque Double
-newtype Mass = Mass Double deriving (Eq, Show)
-newtype Moment = Moment Double deriving (Eq, Show)
-newtype Angle = Angle Double deriving (Eq, Show)
+newtype Position        = Position WVec
+newtype Velocity        = Velocity WVec
+newtype Force           = Force Vec
+newtype Torque          = Torque Double
+newtype Mass            = Mass Double deriving (Eq, Show)
+newtype Moment          = Moment Double deriving (Eq, Show)
+newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
-
 newtype CenterOfGravity = CenterOfGravity BVec
-newtype Sleeping = Sleeping Bool
 
 data Shape = Shape ShapeType ShapeProperties
            | Compound [Shape]
@@ -89,7 +87,7 @@ data ShapeType = Circle BVec Double
 data ShapeProperties = ShapeProperties
   { sensor          :: Bool
   , elasticity      :: Double
-  , mass            :: SMass
+  , mass            :: ShapeMass
   , friction        :: Double
   , surfaceVelocity :: Vec
   , collisionType   :: CollisionType
@@ -105,7 +103,7 @@ data CollisionFilter = CollisionFilter
   , filterMask       :: Bitmask
   } deriving (Eq, Show)
 
-data SMass = SMass Double | SDensity Double deriving (Eq, Show)
+data ShapeMass = ShapeMass Double | ShapeDensity Double deriving (Eq, Show)
 type Group = CUInt
 newtype Bitmask = Bitmask CUInt deriving (Eq, Bits)
 instance Show Bitmask where
@@ -115,11 +113,12 @@ data FrnSpace
 data FrnVec
 
 data Space c = Space
-  { entityMap           :: (IORef BodyMap)
-  , constraintMap       :: (IORef ConstraintMap)
-  , collisionHandlerMap :: (IORef CollisionHandlerMap)
+  { entityMap           :: IORef BodyMap
+  , constraintMap       :: IORef ConstraintMap
+  , collisionHandlerMap :: IORef CollisionHandlerMap
   , spaceFrnPtr         :: SpacePtr
   }
+
 type SpacePtr = ForeignPtr FrnSpace
 type ConstraintMap = M.IntMap (Ptr Constraint)
 type CollisionHandlerMap = M.IntMap (Ptr CollisionHandler)
@@ -143,12 +142,10 @@ newtype CollisionBias = CollisionBias Double
 instance Cast Space where
   cast (Space eMap cMap hMap spc) = Space eMap cMap hMap spc
 
-data ConstraintA
-data ConstraintB
-data ConstraintMaxForce
-data ConstraintMaxBias
-data ConstraintErrorBias
-data ConstraintCollideBodies
+newtype MaxForce      = MaxForce      Double
+newtype MaxBias       = MaxBias       Double
+newtype ErrorBias     = ErrorBias     Double
+newtype CollideBodies = CollideBodies Bool
 
 type SomeEntity = forall a. Entity a
 data Constraint = Constraint SomeEntity SomeEntity ConstraintType
@@ -156,6 +153,7 @@ data ConstraintType
   = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points
   | SlideJoint BVec BVec Double Double -- offsetA offsetB min max
   | PivotJoint WVec -- ^ Creates a pivot point at the given world coordinate
+  | PivotJoint2 BVec BVec -- ^ Creates a pivot point at the given body coordinates
   | GrooveJoint BVec BVec BVec
   | DampedSpring BVec BVec Double Double Double -- offA offB restlength stiffness damping
   | DampedRotarySpring Double Double Double -- restAngle stiffness damping
@@ -195,8 +193,8 @@ data CollisionSource
 -- Corresponds to an 'arbiter' in Chipmunk
 data Collision = Collision
   { collisionNormal :: Vec
-  , collisionA      :: Entity ()
-  , collisionB      :: Entity ()
+  , collisionA      :: Entity Body
+  , collisionB      :: Entity Body
   }
 
 data CollisionProperties = CollisionProperties

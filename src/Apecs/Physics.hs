@@ -10,6 +10,7 @@ module Apecs.Physics (
 
   -- * Body
   Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
+  Mass (..), Moment (..), CenterOfGravity (..), Torque (..),
 
   -- * Shape
   ShapeProperties (..), ShapeType (..), Shape (..),
@@ -17,7 +18,7 @@ module Apecs.Physics (
   hollowBox, box,
 
   -- * Constraint
-  Constraint (..), ConstraintType (..),
+  Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), CollideBodies (..),
 
   -- * Collision
   Collision (..), CollisionHandler (..), defaultHandler,

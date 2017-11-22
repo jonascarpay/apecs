@@ -26,7 +26,7 @@ import           Foreign.Ptr
 import qualified Language.C.Inline   as C
 import           Linear.V2
 
-import           Apecs.Physics.Space
+import           Apecs.Physics.Space ()
 import           Apecs.Physics.Types
 
 C.context phycsCtx
@@ -427,4 +427,49 @@ instance Store (Space Torque) where
   explGetUnsafe (Space eRef _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef eRef
     Torque <$> getTorque b
+
+-- CenterOfGravity
+getCenterOfGravity :: Ptr Body -> IO (V2 Double)
+getCenterOfGravity bodyPtr = do
+  x <- [C.exp| double { cpBodyGetCenterOfGravity ($(cpBody* bodyPtr)).x } |]
+  y <- [C.exp| double { cpBodyGetCenterOfGravity ($(cpBody* bodyPtr)).y } |]
+  return (V2 (realToFrac x) (realToFrac y))
+
+setCenterOfGravity :: SpacePtr -> Ptr Body -> V2 Double -> IO ()
+setCenterOfGravity spcPtr bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr spcPtr $ \space -> [C.block| void {
+  const cpVect vec = { $(double x), $(double y) };
+  cpBodySetCenterOfGravity($(cpBody* bodyPtr), vec);
+  cpSpaceReindexShapesForBody($(cpSpace* space), $(cpBody* bodyPtr));
+  } |]
+
+instance Component CenterOfGravity where
+  type Storage CenterOfGravity = Space CenterOfGravity
+
+instance Has w Physics => Has w CenterOfGravity where
+  getStore = (cast :: Space Physics -> Space CenterOfGravity) <$> getStore
+
+instance Store (Space CenterOfGravity) where
+  type Stores (Space CenterOfGravity) = CenterOfGravity
+  type SafeRW (Space CenterOfGravity) = Maybe CenterOfGravity
+  initStore = error "Initialize a space with a Physics component"
+  explDestroy _ _ = return ()
+  explMembers s = explMembers (cast s :: Space Body)
+  explExists s ety = explExists (cast s :: Space Body) ety
+  explSetMaybe = defaultSetMaybe
+
+  explGet (Space eRef _ _ _) ety = do
+    rd <- M.lookup ety <$> readIORef eRef
+    case rd of
+      Nothing                  -> return Nothing
+      Just (BodyRecord b _ _ ) -> Just . CenterOfGravity <$> getCenterOfGravity b
+
+  explSet (Space eRef _ _ spcPtr) ety (CenterOfGravity vec) = do
+    rd <- M.lookup ety <$> readIORef eRef
+    case rd of
+      Nothing                  -> return ()
+      Just (BodyRecord b _ _ ) -> setCenterOfGravity spcPtr b vec
+
+  explGetUnsafe (Space eRef _ _ _) ety = do
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef eRef
+    CenterOfGravity <$> getCenterOfGravity b
 

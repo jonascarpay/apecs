@@ -121,6 +121,12 @@ executable chain
   default-language: Haskell2010
   build-depends:    base, phycs
 
+executable constraintgallery
+  main-is:          ConstraintGallery.hs
+  hs-source-dirs:   examples
+  default-language: Haskell2010
+  build-depends:    base, phycs
+
 executable platform
   main-is:          Platform.hs
   hs-source-dirs:   examples

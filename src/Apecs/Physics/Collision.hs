@@ -27,14 +27,15 @@ import           Foreign.Ptr
 import qualified Language.C.Inline   as C
 import           Linear.V2
 
-import           Apecs.Physics.Body
-import           Apecs.Physics.Space
+import           Apecs.Physics.Body  ()
+import           Apecs.Physics.Space ()
 import           Apecs.Physics.Types
 
 C.context (phycsCtx `mappend` C.funCtx)
 C.include "<chipmunk.h>"
 C.include "<chipmunk_structs.h>"
 
+defaultHandler :: CollisionHandler
 defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
 
 mkBeginCB :: (Collision -> System w Bool) -> System w BeginCB
@@ -116,7 +117,7 @@ instance Store (Space CollisionHandler) where
   type SafeRW (Space CollisionHandler) = Maybe CollisionHandler
   initStore = error "Initializing space from non-Physics store"
 
-  explSet sp@(Space bMap cMap hMap spcPtr) ety handler = do
+  explSet sp@(Space _ _ hMap spcPtr) ety handler = do
     explDestroy sp ety
     hPtr <- newCollisionHandler spcPtr handler ety
     modifyIORef' hMap (M.insert ety hPtr)
@@ -127,8 +128,9 @@ instance Store (Space CollisionHandler) where
     case rd of Just c -> destroyCollisionHandler c
                _      -> return ()
 
-  explMembers (Space _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
+  explMembers (Space _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
 
-  explExists (Space _ cMap _ _) ety = M.member ety <$> readIORef cMap
+  explExists (Space _ _ hMap _) ety = M.member ety <$> readIORef hMap
 
   explSetMaybe = defaultSetMaybe
+

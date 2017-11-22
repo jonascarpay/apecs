@@ -104,7 +104,7 @@ maskList :: [Int] -> Bitmask
 maskList = foldr (flip setBit) maskNone
 
 defaultProperties :: ShapeProperties
-defaultProperties = ShapeProperties False 0 (SMass 1) 0 0 0 defaultFilter
+defaultProperties = ShapeProperties False 0 (ShapeDensity 1) 0 0 0 defaultFilter
 
 defaultFilter :: CollisionFilter
 defaultFilter = CollisionFilter 0 maskAll maskAll
@@ -156,7 +156,7 @@ getProperties shape = do
   group      <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).group      }|]
   cats       <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).categories }|]
   mask       <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).mask       }|]
-  return$ ShapeProperties (toEnum sensor) elasticity (SMass mass) friction (V2 sx sy)
+  return$ ShapeProperties (toEnum sensor) elasticity (ShapeMass mass) friction (V2 sx sy)
                           ctype (CollisionFilter group (Bitmask cats) (Bitmask mask))
 
 getSensor :: Ptr Shape -> IO Bool
@@ -219,9 +219,8 @@ setProperties
                                          , $(unsigned int mask) };
             cpShapeSetFilter($(cpShape* shape), filter); }|]
          case smass of
-           SDensity (realToFrac -> density) -> [C.exp| void { cpShapeSetDensity ($(cpShape* shape), $(double density)) } |]
-           SMass    (realToFrac -> mass)    -> [C.exp| void { cpShapeSetMass    ($(cpShape* shape), $(double mass))    } |]
-
+           ShapeDensity (realToFrac -> density) -> [C.exp| void { cpShapeSetDensity ($(cpShape* shape), $(double density)) } |]
+           ShapeMass    (realToFrac -> mass)    -> [C.exp| void { cpShapeSetMass    ($(cpShape* shape), $(double mass))    } |]
 
 setSensor :: Ptr Shape -> Bool -> IO ()
 setSensor shape (fromIntegral . fromEnum -> isSensor) = [C.exp| void {

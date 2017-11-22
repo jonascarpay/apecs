@@ -22,7 +22,10 @@ initialize = do
                      , Position (V2 n 5)
                      , Shape (Segment 0 (V2 1 0) 0.1) defaultProperties )
 
-      newEntity $ Constraint (cast a) (cast b) (PivotJoint (V2 n 5))
+      newEntity ( Constraint (cast a) (cast b) (PivotJoint (V2 n 5))
+                , CollideBodies False
+                , MaxBias 1 )
+
       unless (n >= links) $ chain b (n+1)
 
 main = simulateWorld (InWindow "chain" (640,480) (10,10)) 30 initWorld initialize
