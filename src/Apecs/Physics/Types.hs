@@ -37,13 +37,13 @@ phycsCtx = baseCtx <> funCtx <> ctx
 
 phycsTypesTable :: Map.Map C.TypeSpecifier TH.TypeQ
 phycsTypesTable = Map.fromList
-  [ (C.TypeName "cpArbiter",          [t| Collision    |])
+  [ (C.TypeName "cpArbiter",          [t| Collision        |])
   , (C.TypeName "cpBody",             [t| Body             |])
   , (C.TypeName "cpCollisionHandler", [t| CollisionHandler |])
   , (C.TypeName "cpConstraint",       [t| Constraint       |])
   , (C.TypeName "cpDataPointer",      [t| C.CUInt          |])
   , (C.TypeName "cpShape",            [t| Shape            |])
-  , (C.TypeName "cpVect",             [t| V2 Double           |])
+  , (C.TypeName "cpVect",             [t| V2 Double        |])
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
@@ -59,7 +59,7 @@ newtype Position        = Position WVec
 newtype Velocity        = Velocity WVec
 newtype Force           = Force Vec
 newtype Torque          = Torque Double
-newtype Mass            = Mass Double deriving (Eq, Show)
+newtype BodyMass        = BodyMass Double deriving (Eq, Show)
 newtype Moment          = Moment Double deriving (Eq, Show)
 newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
@@ -74,27 +74,21 @@ data ShapeType = Circle  BVec        Double
                | Convex  [BVec]      Double
                deriving (Eq, Show)
 
-data ShapeProperties = ShapeProperties
-  { sensor          :: Bool
-  , elasticity      :: Double
-  , mass            :: ShapeMass
-  , friction        :: Double
-  , surfaceVelocity :: Vec
-  , collisionType   :: CollisionType
-  , collisionFilter :: CollisionFilter
-  }
-  deriving (Eq, Show)
+newtype Sensor          = Sensor          Bool           deriving (Eq, Show)
+newtype Elasticity      = Elasticity      Double         deriving (Eq, Show)
+newtype Mass            = Mass            Double         deriving (Eq, Show)
+newtype Friction        = Friction        Double         deriving (Eq, Show)
+newtype SurfaceVelocity = SurfaceVelocity Vec            deriving (Eq, Show)
+newtype CollisionType   = CollisionType   CollisionGroup deriving (Eq, Show)
 
-type CollisionType = CUInt
+type CollisionGroup = CUInt
 
 data CollisionFilter = CollisionFilter
-  { filterGroup      :: Group
+  { filterGroup      :: CollisionGroup
   , filterCategories :: Bitmask
   , filterMask       :: Bitmask
   } deriving (Eq, Show)
 
-data ShapeMass = ShapeMass Double | ShapeDensity Double deriving (Eq, Show)
-type Group = CUInt
 newtype Bitmask = Bitmask CUInt deriving (Eq, Bits)
 instance Show Bitmask where
   show (Bitmask mask) = "Bitmask " ++ showIntAtBase 2 intToDigit mask ""
@@ -103,24 +97,17 @@ data FrnSpace
 data FrnVec
 
 data Space c = Space
-  { entityMap           :: IORef BodyMap
-  , constraintMap       :: IORef ConstraintMap
-  , collisionHandlerMap :: IORef CollisionHandlerMap
-  , spaceFrnPtr         :: SpacePtr
+  { spBodies      :: SpMap Body
+  , spShapes      :: SpMap Shape
+  , spConstraints :: SpMap Constraint
+  , spHandlers    :: SpMap CollisionHandler
+  , spacePtr      :: SpacePtr
   }
 
+type SpMap a = IORef (M.IntMap (Ptr a))
 type SpacePtr = ForeignPtr FrnSpace
-type ConstraintMap = M.IntMap (Ptr Constraint)
-type CollisionHandlerMap = M.IntMap (Ptr CollisionHandler)
 
-data BodyRecord = BodyRecord
-  { bodyPtr   :: Ptr Body
-  , shapes    :: Shape -- TODO: remove?
-  , shapePtrs :: [Ptr Shape]
-  }
-type BodyMap = M.IntMap BodyRecord
-
-
+-- Space subcomponents
 newtype Iterations = Iterations Int
 newtype Gravity = Gravity Vec deriving (Eq, Show)
 newtype Damping = Damping Double
@@ -130,8 +117,9 @@ newtype CollisionSlop = CollisionSlop Double
 newtype CollisionBias = CollisionBias Double
 
 instance Cast Space where
-  cast (Space eMap cMap hMap spc) = Space eMap cMap hMap spc
+  cast (Space b s c h w) = Space b s c h w
 
+-- Constraint subcomponents
 newtype MaxForce      = MaxForce      Double
 newtype MaxBias       = MaxBias       Double
 newtype ErrorBias     = ErrorBias     Double
@@ -163,6 +151,7 @@ newtype SeparateCB  = SeparateCB  SeparateFunc
 newtype PreSolveCB  = PreSolveCB  PreSolveFunc
 newtype PostSolveCB = PostSolveCB PostSolveFunc
 
+-- Collision, Space, Handler data pointer
 type BeginFunc     = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
 type SeparateFunc  = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO ()
 type PreSolveFunc  = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO C.CUChar
@@ -177,8 +166,8 @@ data CollisionHandler = CollisionHandler
   }
 
 data CollisionSource
-  = Wildcard CollisionType
-  | Between CollisionType CollisionType
+  = Wildcard CollisionGroup
+  | Between CollisionGroup CollisionGroup
 
 -- Corresponds to an 'arbiter' in Chipmunk
 data Collision = Collision

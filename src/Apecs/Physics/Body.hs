@@ -191,15 +191,15 @@ getMass bodyPtr = do
 setMass :: Ptr Body -> Double -> IO ()
 setMass bodyPtr (realToFrac -> mass) = [C.exp| void { cpBodySetMass($(cpBody* bodyPtr), $(double mass)); } |]
 
-instance Component Mass where
-  type Storage Mass = Space Mass
+instance Component BodyMass where
+  type Storage BodyMass = Space BodyMass
 
-instance Has w Physics => Has w Mass where
-  getStore = (cast :: Space Physics -> Space Mass) <$> getStore
+instance Has w Physics => Has w BodyMass where
+  getStore = (cast :: Space Physics -> Space BodyMass) <$> getStore
 
-instance Store (Space Mass) where
-  type Stores (Space Mass) = Mass
-  type SafeRW (Space Mass) = Maybe Mass
+instance Store (Space BodyMass) where
+  type Stores (Space BodyMass) = BodyMass
+  type SafeRW (Space BodyMass) = Maybe BodyMass
   initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
@@ -210,9 +210,9 @@ instance Store (Space Mass) where
     rd <- M.lookup ety <$> readIORef eRef
     case rd of
       Nothing                  -> return Nothing
-      Just (BodyRecord b _ _ ) -> Just . Mass <$> getMass b
+      Just (BodyRecord b _ _ ) -> Just . BodyMass <$> getMass b
 
-  explSet (Space eRef _ _ _) ety (Mass vec) = do
+  explSet (Space eRef _ _ _) ety (BodyMass vec) = do
     rd <- M.lookup ety <$> readIORef eRef
     case rd of
       Nothing                  -> return ()
@@ -220,7 +220,7 @@ instance Store (Space Mass) where
 
   explGetUnsafe (Space eRef _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef eRef
-    Mass <$> getMass b
+    BodyMass <$> getMass b
 
 -- Moment
 getMoment :: Ptr Body -> IO Double
