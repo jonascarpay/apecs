@@ -117,20 +117,16 @@ instance Store (Space CollisionHandler) where
   type SafeRW (Space CollisionHandler) = Maybe CollisionHandler
   initStore = error "Initializing space from non-Physics store"
 
-  explSet sp@(Space _ _ hMap spcPtr) ety handler = do
+  explSet sp@(Space _ _ _ hMap spcPtr) ety handler = do
     explDestroy sp ety
     hPtr <- newCollisionHandler spcPtr handler ety
     modifyIORef' hMap (M.insert ety hPtr)
 
-  explDestroy (Space _ _ hMap _) ety = do
+  explDestroy (Space _ _ _ hMap _) ety = do
     rd <- M.lookup ety <$> readIORef hMap
-    modifyIORef' hMap (M.delete ety)
-    case rd of Just c -> destroyCollisionHandler c
-               _      -> return ()
+    forM_ rd$ \c -> destroyCollisionHandler c >> modifyIORef' hMap (M.delete ety)
 
-  explMembers (Space _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
-
-  explExists (Space _ _ hMap _) ety = M.member ety <$> readIORef hMap
-
+  explMembers (Space _ _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
+  explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
   explSetMaybe = defaultSetMaybe
 

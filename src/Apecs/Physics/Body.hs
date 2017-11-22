@@ -18,6 +18,7 @@ module Apecs.Physics.Body where
 import           Apecs
 import           Apecs.Stores        (defaultSetMaybe)
 import           Apecs.Types
+import           Control.Monad
 import qualified Data.IntMap         as M
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U
@@ -134,9 +135,7 @@ instance Store (Space Position) where
 
   explSet (Space bMap _ _ _ _) ety (Position vec) = do
     rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return ()
-      Just b  -> setPosition b vec
+    forM_ rd$ \b -> setPosition b vec
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
     Just b <- M.lookup ety <$> readIORef bMap
@@ -180,9 +179,7 @@ instance Store (Space Angle) where
 
   explSet (Space bMap _ _ _ _) ety (Angle vec) = do
     rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return ()
-      Just b  -> setAngle b vec
+    forM_ rd $ \b -> setAngle b vec
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
     Just b <- M.lookup ety <$> readIORef bMap
