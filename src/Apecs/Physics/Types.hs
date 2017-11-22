@@ -126,7 +126,9 @@ newtype MaxBias       = MaxBias       Double
 newtype ErrorBias     = ErrorBias     Double
 newtype CollideBodies = CollideBodies Bool
 
-data Constraint = Constraint (Entity Body) (Entity Body) ConstraintType
+data Constraint = Constraint (Entity Body) ConstraintType
+                | ConstraintExtend (Entity Body) (Entity Body) ConstraintType
+                | ConstraintRead
 
 data ConstraintType
   = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points

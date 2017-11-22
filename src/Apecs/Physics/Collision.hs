@@ -130,3 +130,8 @@ instance Store (Space CollisionHandler) where
   explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
   explSetMaybe = defaultSetMaybe
 
+  explGet s ety = do
+    e <- explExists s ety
+    if e then Just <$> explGetUnsafe s ety else return Nothing
+  explGetUnsafe _ _ = return (error "CollisionHandler is a read-only component")
+

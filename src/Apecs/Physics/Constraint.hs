@@ -18,6 +18,7 @@ module Apecs.Physics.Constraint where
 import           Apecs
 import           Apecs.Stores        (defaultSetMaybe)
 import           Apecs.Types
+import           Control.Monad
 import qualified Data.IntMap         as M
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U
@@ -26,8 +27,8 @@ import           Foreign.Ptr
 import qualified Language.C.Inline   as C
 import           Linear.V2
 
-import           Apecs.Physics.Body
-import           Apecs.Physics.Space
+import           Apecs.Physics.Body  ()
+import           Apecs.Physics.Space ()
 import           Apecs.Physics.Types
 
 C.context phycsCtx
@@ -80,9 +81,10 @@ instance Store (Space Constraint) where
   type SafeRW (Space Constraint) = Maybe Constraint
   initStore = error "Initializing space from non-Physics store"
 
-  explSet sp@(Space bMap _ cMap _ spcPtr) ety (Constraint (Entity a) (Entity b) ctype) = do
+  explSet _ _ ConstraintRead = return ()
+  explSet s ety (Constraint b ctype) = explSet s ety (ConstraintExtend (Entity ety) b ctype)
+  explSet sp@(Space bMap _ cMap _ spcPtr) ety (ConstraintExtend (Entity a) (Entity b) ctype) = do
     explDestroy sp ety
-    rd <- M.lookup ety <$> readIORef cMap
     ea <- M.lookup a <$> readIORef bMap
     eb <- M.lookup b <$> readIORef bMap
     case (ea,eb) of
@@ -94,23 +96,27 @@ instance Store (Space Constraint) where
   explDestroy (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     modifyIORef' cMap (M.delete ety)
-    case rd of Just c -> destroyConstraint c
-               _      -> return ()
+    forM_ rd destroyConstraint
 
   explMembers (Space _ _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
 
   explExists (Space _ _ cMap _ _) ety = M.member ety <$> readIORef cMap
 
   explSetMaybe = defaultSetMaybe
+  explGet s ety = do
+    e <- explExists s ety
+    if e then Just <$> explGetUnsafe s ety else return Nothing
+  explGetUnsafe _ _ = return (error "Constraint is a read-only component")
+
 
 -- MaxForce
 getMaxForce :: Ptr Constraint -> IO Double
-getMaxForce cnstrPtr = do
-  maxForce <- [C.exp| double { cpConstraintGetMaxForce ($(cpConstraint* cnstrPtr)) } |]
+getMaxForce c = do
+  maxForce <- [C.exp| double { cpConstraintGetMaxForce ($(cpConstraint* c)) } |]
   return (realToFrac maxForce)
 
 setMaxForce :: Ptr Constraint -> Double -> IO ()
-setMaxForce cnstrPtr (realToFrac -> maxForce) = [C.exp| void { cpConstraintSetMaxForce($(cpConstraint* cnstrPtr), $(double maxForce)); } |]
+setMaxForce c (realToFrac -> maxForce) = [C.exp| void { cpConstraintSetMaxForce($(cpConstraint* c), $(double maxForce)); } |]
 
 instance Component MaxForce where
   type Storage MaxForce = Space MaxForce
@@ -130,27 +136,27 @@ instance Store (Space MaxForce) where
   explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return Nothing
-      Just cstr -> Just . MaxForce <$> getMaxForce cstr
+      Nothing -> return Nothing
+      Just c  -> Just . MaxForce <$> getMaxForce c
 
   explSet (Space _ _ cMap _ _) ety (MaxForce vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return ()
-      Just cstr -> setMaxForce cstr vec
+      Nothing -> return ()
+      Just c  -> setMaxForce c vec
 
   explGetUnsafe (Space _ _ cMap _ _) ety = do
-    Just cstr <- M.lookup ety <$> readIORef cMap
-    MaxForce <$> getMaxForce cstr
+    Just c <- M.lookup ety <$> readIORef cMap
+    MaxForce <$> getMaxForce c
 
 -- MaxBias
 getMaxBias :: Ptr Constraint -> IO Double
-getMaxBias cnstrPtr = do
-  maxBias <- [C.exp| double { cpConstraintGetMaxBias ($(cpConstraint* cnstrPtr)) } |]
+getMaxBias c = do
+  maxBias <- [C.exp| double { cpConstraintGetMaxBias ($(cpConstraint* c)) } |]
   return (realToFrac maxBias)
 
 setMaxBias :: Ptr Constraint -> Double -> IO ()
-setMaxBias cnstrPtr (realToFrac -> maxBias) = [C.exp| void { cpConstraintSetMaxBias($(cpConstraint* cnstrPtr), $(double maxBias)); } |]
+setMaxBias c (realToFrac -> maxBias) = [C.exp| void { cpConstraintSetMaxBias($(cpConstraint* c), $(double maxBias)); } |]
 
 instance Component MaxBias where
   type Storage MaxBias = Space MaxBias
@@ -170,27 +176,27 @@ instance Store (Space MaxBias) where
   explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return Nothing
-      Just cstr -> Just . MaxBias <$> getMaxBias cstr
+      Nothing -> return Nothing
+      Just c  -> Just . MaxBias <$> getMaxBias c
 
   explSet (Space _ _ cMap _ _) ety (MaxBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return ()
-      Just cstr -> setMaxBias cstr vec
+      Nothing -> return ()
+      Just c  -> setMaxBias c vec
 
   explGetUnsafe (Space _ _ cMap _ _) ety = do
-    Just cstr <- M.lookup ety <$> readIORef cMap
-    MaxBias <$> getMaxBias cstr
+    Just c <- M.lookup ety <$> readIORef cMap
+    MaxBias <$> getMaxBias c
 
 -- ErrorBias
 getErrorBias :: Ptr Constraint -> IO Double
-getErrorBias cnstrPtr = do
-  errorBias <- [C.exp| double { cpConstraintGetErrorBias ($(cpConstraint* cnstrPtr)) } |]
+getErrorBias c = do
+  errorBias <- [C.exp| double { cpConstraintGetErrorBias ($(cpConstraint* c)) } |]
   return (realToFrac errorBias)
 
 setErrorBias :: Ptr Constraint -> Double -> IO ()
-setErrorBias cnstrPtr (realToFrac -> errorBias) = [C.exp| void { cpConstraintSetErrorBias($(cpConstraint* cnstrPtr), $(double errorBias)); } |]
+setErrorBias c (realToFrac -> errorBias) = [C.exp| void { cpConstraintSetErrorBias($(cpConstraint* c), $(double errorBias)); } |]
 
 instance Component ErrorBias where
   type Storage ErrorBias = Space ErrorBias
@@ -210,27 +216,27 @@ instance Store (Space ErrorBias) where
   explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return Nothing
-      Just cstr -> Just . ErrorBias <$> getErrorBias cstr
+      Nothing -> return Nothing
+      Just c  -> Just . ErrorBias <$> getErrorBias c
 
   explSet (Space _ _ cMap _ _) ety (ErrorBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return ()
-      Just cstr -> setErrorBias cstr vec
+      Nothing -> return ()
+      Just c  -> setErrorBias c vec
 
   explGetUnsafe (Space _ _ cMap _ _) ety = do
-    Just cstr <- M.lookup ety <$> readIORef cMap
-    ErrorBias <$> getErrorBias cstr
+    Just c <- M.lookup ety <$> readIORef cMap
+    ErrorBias <$> getErrorBias c
 
 -- CollideBodies
 getCollideBodies :: Ptr Constraint -> IO Bool
-getCollideBodies cnstrPtr = do
-  collide <- [C.exp| int { cpConstraintGetCollideBodies ($(cpConstraint* cnstrPtr)) } |]
+getCollideBodies c = do
+  collide <- [C.exp| int { cpConstraintGetCollideBodies ($(cpConstraint* c)) } |]
   return . toEnum . fromIntegral $ collide
 
 setCollideBodies :: Ptr Constraint -> Bool -> IO ()
-setCollideBodies cnstrPtr (fromIntegral . fromEnum -> collide) = [C.exp| void { cpConstraintSetCollideBodies($(cpConstraint* cnstrPtr), $(int collide)); } |]
+setCollideBodies c (fromIntegral . fromEnum -> collide) = [C.exp| void { cpConstraintSetCollideBodies($(cpConstraint* c), $(int collide)); } |]
 
 instance Component CollideBodies where
   type Storage CollideBodies = Space CollideBodies
@@ -250,15 +256,15 @@ instance Store (Space CollideBodies) where
   explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return Nothing
-      Just cstr -> Just . CollideBodies <$> getCollideBodies cstr
+      Nothing -> return Nothing
+      Just c  -> Just . CollideBodies <$> getCollideBodies c
 
   explSet (Space _ _ cMap _ _) ety (CollideBodies vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
-      Nothing   -> return ()
-      Just cstr -> setCollideBodies cstr vec
+      Nothing -> return ()
+      Just c  -> setCollideBodies c vec
 
   explGetUnsafe (Space _ _ cMap _ _) ety = do
-    Just cstr <- M.lookup ety <$> readIORef cMap
-    CollideBodies <$> getCollideBodies cstr
+    Just c <- M.lookup ety <$> readIORef cMap
+    CollideBodies <$> getCollideBodies c
