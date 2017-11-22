@@ -1,24 +1,25 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeOperators #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 
 module Main where
 
-import Control.Monad as M
+import           Control.Monad as M
+import           Data.Proxy
+import           SDL           (($=))
 import qualified SDL
-import SDL (($=))
-import System.Random
-import Data.Proxy
-import SDL.Vect
+import           SDL.Vect
+import           System.Random
 
-import Apecs
-import qualified Apecs.Slice as S
+import           Apecs
+import qualified Apecs.Slice   as S
 
 hres, vres :: Num a => a
 hres = 1024
@@ -120,7 +121,7 @@ handleEvents = do
     handleEvent (SDL.MouseMotionEvent (SDL.MouseMotionEventData _ _ _ (P p) _)) = do
       md <- getGlobal
       case md of
-        Rest -> return ()
+        Rest         -> return ()
         Dragging a _ -> setGlobal (Dragging a (fromIntegral <$> p))
 
     handleEvent (SDL.MouseButtonEvent (SDL.MouseButtonEventData _ SDL.Pressed _ SDL.ButtonRight _ (P (V2 px py)))) = do
