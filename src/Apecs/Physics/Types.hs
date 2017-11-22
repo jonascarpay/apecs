@@ -80,6 +80,7 @@ newtype Mass            = Mass            Double         deriving (Eq, Show)
 newtype Friction        = Friction        Double         deriving (Eq, Show)
 newtype SurfaceVelocity = SurfaceVelocity Vec            deriving (Eq, Show)
 newtype CollisionType   = CollisionType   CollisionGroup deriving (Eq, Show)
+newtype ShapeBody       = ShapeBody       (Entity Body)  deriving (Eq, Show)
 
 type CollisionGroup = CUInt
 
