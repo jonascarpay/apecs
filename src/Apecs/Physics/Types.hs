@@ -126,8 +126,8 @@ newtype MaxBias       = MaxBias       Double
 newtype ErrorBias     = ErrorBias     Double
 newtype CollideBodies = CollideBodies Bool
 
-type SomeEntity = forall a. Entity a
-data Constraint = Constraint SomeEntity SomeEntity ConstraintType
+data Constraint = Constraint (Entity Body) (Entity Body) ConstraintType
+
 data ConstraintType
   = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points
   | SlideJoint BVec BVec Double Double -- offsetA offsetB min max

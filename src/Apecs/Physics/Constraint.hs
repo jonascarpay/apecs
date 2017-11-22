@@ -80,26 +80,26 @@ instance Store (Space Constraint) where
   type SafeRW (Space Constraint) = Maybe Constraint
   initStore = error "Initializing space from non-Physics store"
 
-  explSet sp@(Space bMap cMap _ spcPtr) ety (Constraint (Entity a) (Entity b) ctype) = do
+  explSet sp@(Space bMap _ cMap _ spcPtr) ety (Constraint (Entity a) (Entity b) ctype) = do
     explDestroy sp ety
     rd <- M.lookup ety <$> readIORef cMap
     ea <- M.lookup a <$> readIORef bMap
     eb <- M.lookup b <$> readIORef bMap
     case (ea,eb) of
-      (Just (BodyRecord ba _ _), Just (BodyRecord bb _ _)) -> do
+      (Just ba, Just bb) -> do
         cPtr <- newConstraint spcPtr ba bb ety ctype
         modifyIORef' cMap (M.insert ety cPtr)
       _ -> return ()
 
-  explDestroy (Space _ cMap _ _) ety = do
+  explDestroy (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     modifyIORef' cMap (M.delete ety)
     case rd of Just c -> destroyConstraint c
                _      -> return ()
 
-  explMembers (Space _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
+  explMembers (Space _ _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
 
-  explExists (Space _ cMap _ _) ety = M.member ety <$> readIORef cMap
+  explExists (Space _ _ cMap _ _) ety = M.member ety <$> readIORef cMap
 
   explSetMaybe = defaultSetMaybe
 
@@ -127,19 +127,19 @@ instance Store (Space MaxForce) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return Nothing
       Just cstr -> Just . MaxForce <$> getMaxForce cstr
 
-  explSet (Space _ cMap _ _) ety (MaxForce vec) = do
+  explSet (Space _ _ cMap _ _) ety (MaxForce vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return ()
       Just cstr -> setMaxForce cstr vec
 
-  explGetUnsafe (Space _ cMap _ _) ety = do
+  explGetUnsafe (Space _ _ cMap _ _) ety = do
     Just cstr <- M.lookup ety <$> readIORef cMap
     MaxForce <$> getMaxForce cstr
 
@@ -167,19 +167,19 @@ instance Store (Space MaxBias) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return Nothing
       Just cstr -> Just . MaxBias <$> getMaxBias cstr
 
-  explSet (Space _ cMap _ _) ety (MaxBias vec) = do
+  explSet (Space _ _ cMap _ _) ety (MaxBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return ()
       Just cstr -> setMaxBias cstr vec
 
-  explGetUnsafe (Space _ cMap _ _) ety = do
+  explGetUnsafe (Space _ _ cMap _ _) ety = do
     Just cstr <- M.lookup ety <$> readIORef cMap
     MaxBias <$> getMaxBias cstr
 
@@ -207,19 +207,19 @@ instance Store (Space ErrorBias) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return Nothing
       Just cstr -> Just . ErrorBias <$> getErrorBias cstr
 
-  explSet (Space _ cMap _ _) ety (ErrorBias vec) = do
+  explSet (Space _ _ cMap _ _) ety (ErrorBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return ()
       Just cstr -> setErrorBias cstr vec
 
-  explGetUnsafe (Space _ cMap _ _) ety = do
+  explGetUnsafe (Space _ _ cMap _ _) ety = do
     Just cstr <- M.lookup ety <$> readIORef cMap
     ErrorBias <$> getErrorBias cstr
 
@@ -247,18 +247,18 @@ instance Store (Space CollideBodies) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explSetMaybe = defaultSetMaybe
 
-  explGet (Space _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return Nothing
       Just cstr -> Just . CollideBodies <$> getCollideBodies cstr
 
-  explSet (Space _ cMap _ _) ety (CollideBodies vec) = do
+  explSet (Space _ _ cMap _ _) ety (CollideBodies vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing   -> return ()
       Just cstr -> setCollideBodies cstr vec
 
-  explGetUnsafe (Space _ cMap _ _) ety = do
+  explGetUnsafe (Space _ _ cMap _ _) ety = do
     Just cstr <- M.lookup ety <$> readIORef cMap
     CollideBodies <$> getCollideBodies cstr
