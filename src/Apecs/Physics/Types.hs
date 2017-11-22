@@ -65,23 +65,13 @@ newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
 newtype CenterOfGravity = CenterOfGravity BVec
 
-data Shape = Shape ShapeType ShapeProperties
-           | Compound [Shape]
+data Shape = Shape ShapeType
+           | ShapeExtend (Entity Body) ShapeType
+           | ShapeRead -- ^ Shapes are write-only, this is returned when you attempt to read
 
-instance Monoid Shape where
-  mempty = Compound []
-
-  Compound [] `mappend` x           = x
-  x           `mappend` Compound [] = x
-  Compound as `mappend` Compound bs = Compound (as `mappend` bs)
-  Compound ss `mappend` s           = Compound (s:ss)
-  s           `mappend` Compound ss = Compound (s:ss)
-  sa          `mappend` sb          = Compound [sa, sb]
-
-type Verts = [Vec]
-data ShapeType = Circle BVec Double
-               | Segment Vec Vec Double
-               | Convex Verts Double
+data ShapeType = Circle  BVec        Double
+               | Segment (BVec,BVec) Double
+               | Convex  [BVec]      Double
                deriving (Eq, Show)
 
 data ShapeProperties = ShapeProperties
