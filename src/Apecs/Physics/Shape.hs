@@ -29,31 +29,10 @@ import           Linear.V2
 import           Apecs.Physics.Body           ()
 import           Apecs.Physics.Space          ()
 import           Apecs.Physics.Types
+import           Apecs.Stores                 (defaultSetMaybe)
 
 C.context (phycsCtx <> C.vecCtx)
 C.include "<chipmunk.h>"
-
-box :: Double -> Double -> Double -> ShapeProperties -> Shape
-box w h r props = Shape (Convex verts r) props
-  where
-    w' = w/2
-    h' = h/2
-    verts = [V2 w' h', V2 w' (-h'), V2 (-w') (-h'), V2 (-w') h']
-
-hollowBox :: Double -> Double -> Double -> ShapeProperties -> Shape
-hollowBox w h r props = line tl tr <> line tr br <> line br bl <> line bl tl
-  where
-    line v1 v2 = Shape (Segment v1 v2 r) props
-    w' = w/2
-    h' = h/2
-    tr = V2 w' h'
-    tl = V2 (-w') h'
-    br = V2 w' (-h')
-    bl = V2 (-w') (-h')
-
-toPrimitiveList :: Shape -> [Shape]
-toPrimitiveList (Compound shapes) = shapes >>= toPrimitiveList
-toPrimitiveList (Shape t p)       = [Shape t p]
 
 instance Component Shape where
   type Storage Shape = Space Shape
@@ -63,51 +42,37 @@ instance Has w Physics => Has w Shape where
 
 instance Store (Space Shape) where
   type Stores (Space Shape) = Shape
-  type SafeRW (Space Shape) = Shape
+  type SafeRW (Space Shape) = Maybe Shape
   initStore = error "Initializing space from non-Physics store"
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
 
-  explDestroy (Space eRef _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef eRef
-    case rd of
-      Nothing                    -> return ()
-      Just (BodyRecord b _ ptrs) -> do
-        forM_ ptrs destroyShape
-        modifyIORef' eRef (M.insert ety (BodyRecord b mempty []))
+  explDestroy (Space _ sMap _ _ _) ety = do
+    rd <- M.lookup ety <$> readIORef sMap
+    forM_ rd $ \ s -> do
+      destroyShape s
+      modifyIORef' sMap (M.delete ety)
 
-  explSetMaybe = explSet
-  explSet (Space eRef _ _ spcPtr) ety sh = do
-    rd <- M.lookup ety <$> readIORef eRef
-    case rd of
-      Nothing -> return ()
-      Just (BodyRecord b _ ptrs) -> do
-        forM_ ptrs destroyShape
-        shPtrs <- forM (toPrimitiveList sh)$ \(Shape shType prop) -> do
-          shPtr <- newShape spcPtr b shType ety
-          setProperties shPtr prop
-          return shPtr
-        modifyIORef' eRef (M.insert ety (BodyRecord b sh shPtrs))
+  explSetMaybe = defaultSetMaybe
+  explSet _ _ ShapeRead = return ()
+  explSet sp ety (Shape sh) = explSet sp ety (ShapeExtend (Entity ety) sh)
+  explSet sp@(Space bMap sMap _ _ spcPtr) ety (ShapeExtend (Entity bEty) sh) = do
+    rd <- M.lookup bEty <$> readIORef bMap
+    forM_ rd $ \b -> do
+      explDestroy sp ety
+      s <- newShape spcPtr b sh ety
+      modifyIORef' sMap (M.insert ety s)
 
-  explGetUnsafe = explGet
-  explGet (Space eRef _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef eRef
-    return $ case rd of
-      Nothing                  -> mempty
-      Just (BodyRecord _ sh _) -> sh
-
+  explGet s ety = do
+    e <- explExists s ety
+    if e then Just <$> explGetUnsafe s ety else return Nothing
+  explGetUnsafe _ _ = return (error "Shape is a read-only component")
 
 maskAll, maskNone :: Bitmask
 maskAll  = complement zeroBits
 maskNone = zeroBits
 maskList :: [Int] -> Bitmask
 maskList = foldr (flip setBit) maskNone
-
-defaultProperties :: ShapeProperties
-defaultProperties = ShapeProperties False 0 (ShapeDensity 1) 0 0 0 defaultFilter
-
-defaultFilter :: CollisionFilter
-defaultFilter = CollisionFilter 0 maskAll maskAll
 
 newShape :: SpacePtr -> Ptr Body -> ShapeType -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
@@ -119,8 +84,8 @@ newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr
       cpShapeSetUserData(sh, (void*) $(intptr_t ety));
       return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
-    go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya))
-                (V2 (realToFrac -> xb) (realToFrac -> yb))
+    go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya),
+                 V2 (realToFrac -> xb) (realToFrac -> yb))
                 (realToFrac -> radius)
        ) spacePtr = [C.block| cpShape* {
        const cpVect va = { $(double xa), $(double ya) };
@@ -143,21 +108,6 @@ destroyShape :: Ptr Shape -> IO ()
 destroyShape shapePtr = [C.block| void {
   cpShapeDestroy ($(cpShape* shapePtr));
   cpShapeFree ($(cpShape* shapePtr)); }|]
-
-getProperties :: Ptr Shape -> IO ShapeProperties
-getProperties shape = do
-  sensor     <- fromIntegral <$> [C.exp| int          { cpShapeGetSensor($(cpShape* shape))            }|]
-  elasticity <- realToFrac   <$> [C.exp| double       { cpShapeGetElasticity($(cpShape* shape))        }|]
-  mass       <- realToFrac   <$> [C.exp| double       { cpShapeGetMass($(cpShape* shape))              }|]
-  friction   <- realToFrac   <$> [C.exp| double       { cpShapeGetFriction($(cpShape* shape))          }|]
-  sx         <- realToFrac   <$> [C.exp| double       { cpShapeGetSurfaceVelocity($(cpShape* shape)).x }|]
-  sy         <- realToFrac   <$> [C.exp| double       { cpShapeGetSurfaceVelocity($(cpShape* shape)).y }|]
-  ctype      <-                  [C.exp| unsigned int { cpShapeGetCollisionType($(cpShape* shape))     }|]
-  group      <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).group      }|]
-  cats       <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).categories }|]
-  mask       <-                  [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).mask       }|]
-  return$ ShapeProperties (toEnum sensor) elasticity (ShapeMass mass) friction (V2 sx sy)
-                          ctype (CollisionFilter group (Bitmask cats) (Bitmask mask))
 
 getSensor :: Ptr Shape -> IO Bool
 getSensor shape = toEnum . fromIntegral <$> [C.exp| int {
@@ -191,36 +141,6 @@ getFilter shape = do
  cats  <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).categories }|]
  mask  <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).mask }|]
  return$ CollisionFilter group (Bitmask cats) (Bitmask mask)
-
-setProperties :: Ptr Shape -> ShapeProperties -> IO ()
-setProperties
-  shape
-  ( ShapeProperties
-      (fromIntegral . fromEnum -> sensor)
-      (realToFrac -> elasticity)
-      smass
-      (realToFrac -> friction)
-      (V2 (realToFrac -> sx) (realToFrac -> sy))
-      ctype
-      ( CollisionFilter
-          group
-          (Bitmask cats)
-          (Bitmask mask)
-      )
-  ) = do [C.block| void {
-            cpShapeSetSensor($(cpShape* shape), $(int sensor));
-            cpShapeSetElasticity($(cpShape* shape), $(double elasticity));
-            cpShapeSetFriction($(cpShape* shape), $(double friction));
-            const cpVect vec = { $(double sx), $(double sy) };
-            cpShapeSetSurfaceVelocity($(cpShape* shape), vec);
-            cpShapeSetCollisionType($(cpShape* shape), $(unsigned int ctype));
-            const cpShapeFilter filter = { $(unsigned int group)
-                                         , $(unsigned int cats)
-                                         , $(unsigned int mask) };
-            cpShapeSetFilter($(cpShape* shape), filter); }|]
-         case smass of
-           ShapeDensity (realToFrac -> density) -> [C.exp| void { cpShapeSetDensity ($(cpShape* shape), $(double density)) } |]
-           ShapeMass    (realToFrac -> mass)    -> [C.exp| void { cpShapeSetMass    ($(cpShape* shape), $(double mass))    } |]
 
 setSensor :: Ptr Shape -> Bool -> IO ()
 setSensor shape (fromIntegral . fromEnum -> isSensor) = [C.exp| void {
