@@ -110,7 +110,6 @@ setPosition bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
   if (cpBodyGetType(body) == CP_BODY_TYPE_STATIC)
     cpSpaceReindexShapesForBody(body->space, body);
   } |]
-  -- FIXME reindex
 
 instance Component Position where
   type Storage Position = Space Position

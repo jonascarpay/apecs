@@ -13,7 +13,7 @@ module Apecs.Physics (
   Mass (..), Moment (..), CenterOfGravity (..), Torque (..),
 
   -- * Shape
-  ShapeProperties (..), ShapeType (..), Shape (..),
+  ShapeProperties (..), ShapeType (..), Shape (..), Mass, Density, Sensor, Friction, Elasticity, SurfaceVelocity, CollisionFilter,
   defaultProperties, defaultFilter,
   hollowBox, box,
 
