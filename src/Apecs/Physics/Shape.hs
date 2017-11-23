@@ -46,10 +46,10 @@ instance Store (Space Shape) where
   explMembers (Space _ sMap _ _ _) = U.fromList . M.keys <$> readIORef sMap
   explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
 
-  explDestroy (Space _ sMap _ _ _) ety = do
+  explDestroy (Space _ sMap _ _ spc) ety = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd $ \ s -> do
-      destroyShape s
+      destroyShape spc s
       modifyIORef' sMap (M.delete ety)
 
   explSetMaybe = defaultSetMaybe
@@ -103,10 +103,11 @@ newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr
            cpShapeSetUserData(sh, (void*) $(intptr_t ety));
            return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
-destroyShape :: Ptr Shape -> IO ()
-destroyShape shapePtr = [C.block| void {
-  cpShapeDestroy ($(cpShape* shapePtr));
-  cpShapeFree ($(cpShape* shapePtr)); }|]
+destroyShape :: SpacePtr -> Ptr Shape -> IO ()
+destroyShape spacePtr shapePtr = withForeignPtr spacePtr $ \space -> [C.block| void {
+  cpShape *shape = $(cpShape* shapePtr);
+  cpSpaceRemoveShape($(cpSpace* space), shape);
+  cpShapeFree (shape); }|]
 
 -- Sensor
 getSensor :: Ptr Shape -> IO Bool

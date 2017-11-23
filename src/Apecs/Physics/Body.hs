@@ -48,10 +48,11 @@ setBodyType bodyPtr (fromIntegral . fromEnum -> bodyInt) =
 getBodyType :: Ptr Body -> IO Body
 getBodyType bodyPtr = toEnum . fromIntegral <$> [C.exp| int { cpBodyGetType($(cpBody* bodyPtr)) } |]
 
-destroyBody :: Ptr Body -> IO ()
-destroyBody bodyPtr = [C.block| void {
-  cpBodyDestroy ($(cpBody* bodyPtr));
-  cpBodyFree    ($(cpBody* bodyPtr)); }|]
+destroyBody :: SpacePtr -> Ptr Body -> IO ()
+destroyBody spacePtr bodyPtr = withForeignPtr spacePtr $ \space -> [C.block| void {
+  cpBody *body = $(cpBody* bodyPtr);
+  cpSpaceRemoveBody($(cpSpace* space), body);
+  cpBodyFree(body); }|]
 
 instance Component Body where
   type Storage Body = Space Body
@@ -79,10 +80,10 @@ instance Store (Space Body) where
     case rd of Nothing -> return Nothing
                Just b  -> Just <$> getBodyType b
 
-  explDestroy (Space bMap _ _ _ _) ety = do
+  explDestroy (Space bMap _ _ _ spc) ety = do
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
-    case rd of Just b -> destroyBody b
+    case rd of Just b -> destroyBody spc b
                _      -> return ()
 
   explMembers (Space bMap _ _ _ _) = U.fromList . M.keys <$> readIORef bMap

@@ -65,10 +65,11 @@ newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
     return cpSpaceAddConstraint($(cpSpace* space), constraint);
     } |]
 
-destroyConstraint :: Ptr Constraint -> IO ()
-destroyConstraint constraintPtr = [C.block| void {
-  cpConstraintDestroy ($(cpConstraint* constraintPtr));
-  cpConstraintFree    ($(cpConstraint* constraintPtr)); }|]
+destroyConstraint :: SpacePtr -> Ptr Constraint -> IO ()
+destroyConstraint spacePtr constraintPtr = withForeignPtr spacePtr $ \space -> [C.block| void {
+  cpConstraint *constraint = $(cpConstraint* constraintPtr);
+  cpSpaceRemoveConstraint($(cpSpace* space), constraint);
+  cpConstraintFree(constraint); }|]
 
 instance Component Constraint where
   type Storage Constraint = Space Constraint
@@ -93,10 +94,10 @@ instance Store (Space Constraint) where
         modifyIORef' cMap (M.insert ety cPtr)
       _ -> return ()
 
-  explDestroy (Space _ _ cMap _ _) ety = do
+  explDestroy (Space _ _ cMap _ spc) ety = do
     rd <- M.lookup ety <$> readIORef cMap
     modifyIORef' cMap (M.delete ety)
-    forM_ rd destroyConstraint
+    forM_ rd (destroyConstraint spc)
 
   explMembers (Space _ _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
 
