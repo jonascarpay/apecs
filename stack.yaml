@@ -2,6 +2,7 @@ resolver: lts-9.11
 packages:
 - .
 - phycs-gloss
+- phycs-examples
 extra-deps:
   - apecs-0.2.4.6
 flags: {}

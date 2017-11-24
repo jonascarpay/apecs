@@ -7,6 +7,7 @@ module Apecs.Physics (
 
   -- * Space
   Gravity (..),
+  stepPhysics,
 
   -- * Body
   Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
@@ -36,5 +37,5 @@ import           Apecs.Physics.Body       ()
 import           Apecs.Physics.Collision
 import           Apecs.Physics.Constraint ()
 import           Apecs.Physics.Shape
-import           Apecs.Physics.Space      ()
+import           Apecs.Physics.Space
 import           Apecs.Physics.Types
