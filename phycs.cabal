@@ -1,7 +1,7 @@
 name:                phycs
 version:             0.1.0.0
-synopsis:            2D game physics and rendering
-description:         2D game physics and rendering
+synopsis:            2D game physics
+description:         2D game physics
 homepage:            https://github.com/jonascarpay/phycs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -24,8 +24,7 @@ library
   default-language:
     Haskell2010
   exposed-modules:
-    Apecs.Physics,
-    Apecs.Physics.Render
+    Apecs.Physics
   other-modules:
     Apecs.Physics.Body,
     Apecs.Physics.Constraint,
@@ -93,49 +92,3 @@ library
     Chipmunk2D/src/cpSpaceStep.c
     Chipmunk2D/src/cpSpatialIndex.c
     Chipmunk2D/src/cpSweep1D.c
-
-executable helloworld
-  hs-source-dirs:
-    examples
-  default-language:
-    Haskell2010
-  main-is:
-    HelloWorld.hs
-  build-depends:
-    base, phycs
-  ghc-options:
-    -Wall
-    -Wno-orphans
-    -Wno-unused-do-bind
-    -Wno-name-shadowing
-
-executable tumbler
-  main-is:          Tumbler.hs
-  hs-source-dirs:   examples
-  default-language: Haskell2010
-  build-depends:    base, phycs, random
-
-executable chain
-  main-is:          Chain.hs
-  hs-source-dirs:   examples
-  default-language: Haskell2010
-  build-depends:    base, phycs
-
-executable constraintgallery
-  main-is:          ConstraintGallery.hs
-  hs-source-dirs:   examples
-  default-language: Haskell2010
-  build-depends:    base, phycs
-
-executable platform
-  main-is:          Platform.hs
-  hs-source-dirs:   examples
-  default-language: Haskell2010
-  build-depends:    base, phycs
-
-executable interactive
-  main-is:          Interactive.hs
-  hs-source-dirs:   examples
-  default-language: Haskell2010
-  build-depends:    base, phycs, apecs, random
-
