@@ -10,12 +10,11 @@ module Apecs.Physics (
 
   -- * Body
   Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
-  Mass (..), Moment (..), CenterOfGravity (..), Torque (..),
+  BodyMass (..), Moment (..), CenterOfGravity (..), Torque (..),
 
   -- * Shape
-  ShapeProperties (..), ShapeType (..), Shape (..), Mass, Density, Sensor, Friction, Elasticity, SurfaceVelocity, CollisionFilter,
-  defaultProperties, defaultFilter,
-  hollowBox, box,
+  ShapeType (..), Shape (..),
+  Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..), CollisionFilter (..),
 
   -- * Constraint
   Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), CollideBodies (..),

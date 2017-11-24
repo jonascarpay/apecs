@@ -36,10 +36,8 @@ library
     base >= 4.7 && < 5,
     apecs,
     containers,
-    gloss,
     inline-c,
     linear,
-    random,
     template-haskell,
     vector
   ghc-options:
