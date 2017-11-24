@@ -19,6 +19,9 @@ instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
 
 data GlossView = GlossView (V2 Double) Double
+instance Monoid GlossView where mempty = GlossView 0 1
+instance Component GlossView where
+  type Storage GlossView = Global GlossView
 
 applyView :: GlossView -> G.Picture -> G.Picture
 applyView (GlossView (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> scale)) =
@@ -35,7 +38,9 @@ fromShape (Convex verts _) = G.Polygon (v2ToTuple <$> verts)
 v2ToTuple :: V2 Double -> (Float, Float)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
-
-drawWorld :: (Has w Physics, Has w BodyPicture) => System w G.Picture
-drawWorld = fmap fold . cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) ->
-  return . G.Translate (realToFrac x) (realToFrac y) . G.Rotate (negate . radToDeg . realToFrac $ theta) $ pic
+drawWorld :: (Has w Physics, Has w BodyPicture, Has w GlossView) => System w G.Picture
+drawWorld = do
+  f <- cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) ->
+        return . G.Translate (realToFrac x) (realToFrac y) . G.Rotate (negate . radToDeg . realToFrac $ theta) $ pic
+  view <- getGlobal
+  return . applyView view . fold $ f
