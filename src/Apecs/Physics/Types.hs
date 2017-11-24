@@ -141,7 +141,7 @@ data ConstraintType
   | DampedSpring BVec BVec Double Double Double -- offA offB restlength stiffness damping
   | DampedRotarySpring Double Double Double -- restAngle stiffness damping
   | RotaryLimitJoint Double Double -- min max
-  | RatcherJoint Double Double -- phase ratchet
+  | RatchetJoint Double Double -- phase ratchet
   | GearJoint Double Double -- phase ratio
   | SimpleMotor Double -- rate
 

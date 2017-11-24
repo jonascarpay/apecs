@@ -55,7 +55,7 @@ instance Storable PointQueryResult where
   alignment _ = 8
   peek ptr = do
     sPtr :: Ptr Shape <- peekByteOff ptr 0
-    s <- [C.exp| intptr_t { cpShapeGetUserData($(cpShape* sPtr)) }|]
+    s <- [C.exp| intptr_t { (intptr_t) cpShapeGetUserData($(cpShape* sPtr)) }|]
     p :: V2 CDouble <- peekByteOff ptr 8
     d :: CDouble <- peekByteOff ptr 24
     g :: CDouble <- peekByteOff ptr 32

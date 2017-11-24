@@ -65,6 +65,77 @@ newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
     return cpSpaceAddConstraint($(cpSpace* space), constraint);
     } |]
 
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (PivotJoint2 (fmap realToFrac -> V2 ax ay) (fmap realToFrac -> V2 bx by)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpVect va = cpv( $(double ax), $(double ay) );
+    cpVect vb = cpv( $(double bx), $(double by) );
+    cpConstraint* constraint = cpPivotJointNew2($(cpBody* bodyA), $(cpBody* bodyB), va, vb);
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (GrooveJoint (fmap realToFrac -> V2 ax ay) (fmap realToFrac -> V2 bx by) (fmap realToFrac -> V2 ancx ancy)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpVect va = cpv( $(double ax), $(double ay) );
+    cpVect vb = cpv( $(double bx), $(double by) );
+    cpVect anchor = cpv( $(double ancx), $(double ancy) );
+    cpConstraint* constraint = cpGrooveJointNew($(cpBody* bodyA), $(cpBody* bodyB), va, vb, anchor);
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (DampedSpring (fmap realToFrac -> V2 ax ay) (fmap realToFrac -> V2 bx by) (realToFrac -> rl) (realToFrac -> stf) (realToFrac -> damping)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpVect va = cpv( $(double ax), $(double ay) );
+    cpVect vb = cpv( $(double bx), $(double by) );
+    cpConstraint* constraint = cpDampedSpringNew($(cpBody* bodyA), $(cpBody* bodyB), va, vb, $(double rl), $(double stf), $(double damping));
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (DampedRotarySpring (realToFrac -> ra) (realToFrac -> stf) (realToFrac -> damping)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpConstraint* constraint = cpDampedRotarySpringNew($(cpBody* bodyA), $(cpBody* bodyB), $(double ra), $(double stf), $(double damping));
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (RotaryLimitJoint  (realToFrac -> min) (realToFrac -> max)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpConstraint* constraint = cpRotaryLimitJointNew($(cpBody* bodyA), $(cpBody* bodyB), $(double min), $(double max));
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (RatchetJoint (realToFrac -> phase) (realToFrac -> ratchet)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpConstraint* constraint = cpRatchetJointNew($(cpBody* bodyA), $(cpBody* bodyB), $(double phase), $(double ratchet));
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (GearJoint (realToFrac -> phase) (realToFrac -> ratio)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpConstraint* constraint = cpGearJointNew($(cpBody* bodyA), $(cpBody* bodyB), $(double phase), $(double ratio));
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
+newConstraint spacePtr bodyA bodyB (fromIntegral -> ety)
+              (SimpleMotor (realToFrac -> rate)) =
+  withForeignPtr spacePtr $ \space -> [C.block| cpConstraint* {
+    cpConstraint* constraint = cpSimpleMotorNew($(cpBody* bodyA), $(cpBody* bodyB), $(double rate));
+    cpConstraintSetUserData(constraint, (void*) $(intptr_t ety));
+    return cpSpaceAddConstraint($(cpSpace* space), constraint);
+    } |]
+
 destroyConstraint :: SpacePtr -> Ptr Constraint -> IO ()
 destroyConstraint spacePtr constraintPtr = withForeignPtr spacePtr $ \space -> [C.block| void {
   cpConstraint *constraint = $(cpConstraint* constraintPtr);

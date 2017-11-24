@@ -15,6 +15,7 @@ module Apecs.Physics (
   -- * Shape
   ShapeType (..), Shape (..),
   Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..), CollisionFilter (..),
+  maskAll, maskNone, maskList,
 
   -- * Constraint
   Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), CollideBodies (..),
