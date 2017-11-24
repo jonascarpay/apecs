@@ -32,6 +32,7 @@ library
     Apecs.Physics.Shape,
     Apecs.Physics.Space,
     Apecs.Physics.Types
+    Apecs.Physics.Query
   build-depends:
     base >= 4.7 && < 5,
     apecs,
@@ -57,6 +58,7 @@ library
     src/Apecs/Physics/Collision.c
     src/Apecs/Physics/Shape.c
     src/Apecs/Physics/Space.c
+    src/Apecs/Physics/Query.c
 
     Chipmunk2D/src/chipmunk.c
     Chipmunk2D/src/cpBody.c

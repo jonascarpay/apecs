@@ -43,7 +43,8 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpConstraint",       [t| Constraint       |])
   , (C.TypeName "cpDataPointer",      [t| C.CUInt          |])
   , (C.TypeName "cpShape",            [t| Shape            |])
-  , (C.TypeName "cpVect",             [t| V2 Double        |])
+  , (C.TypeName "cpPointQueryInfo",   [t| PointQueryResult |])
+  , (C.TypeName "cpVect",             [t| V2 C.CDouble     |])
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
@@ -178,12 +179,25 @@ data Collision = Collision
   { collisionNormal :: Vec
   , collisionA      :: Entity Body
   , collisionB      :: Entity Body
-  }
+  } deriving (Eq, Show)
 
 data CollisionProperties = CollisionProperties
   { collisionElasticity      :: Double
   , collisionFriction        :: Double
   , collisionSurfaceVelocity :: Vec
-  }
+  } deriving (Eq, Show)
 
--- TODO: Presolve/Postsolve handlers
+data SegmentQueryResult = SegmentQueryResult
+  { sqShape        :: Entity Shape
+  , sqImpactPoint  :: Vec
+  , sqImpactNormal :: Vec
+  , sqImpactAlpha  :: Double
+  } deriving (Eq, Show)
+
+data PointQueryResult = PointQueryResult
+  { pqShape    :: Entity Shape
+  , pqPoint    :: WVec
+  , pqDistance :: Double
+  , pqGradient :: Double
+  } deriving (Eq, Show)
+
