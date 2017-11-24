@@ -4,7 +4,7 @@ If you want to help, I think it's easiest if you create an issue for the one you
 The name of the game is mostly to identify Chipmunk objects, create a safe wrapper, and then implement `Store (Space component)` instances for that object.
 
 ### Need
-- [x] Make separate example executables
+- [ ] Make separate example executables
 - [x] Constraints
 - [x] Collision Handling
 - [x] CollideBodies component for Constraints, currently hardcoded to never collide
@@ -13,7 +13,7 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [x] Implement body force components
 - [x] Implement remaining body components
 - [ ] Implement remaining global properties
-- [ ] Implement remaining constraints
+- [x] Implement remaining constraints
 - [ ] Free FunPtrs (we currently leak a small amount of memory)
 - [x] Add explicitly managed shapes whose properties you can change at runtime
 - [ ] Include entity index from data pointer in Chipmunk error messages
