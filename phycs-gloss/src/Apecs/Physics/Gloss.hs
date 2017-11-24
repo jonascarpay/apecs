@@ -5,8 +5,9 @@
 {-# LANGUAGE ViewPatterns               #-}
 
 module Apecs.Physics.Gloss
-  ( fromShape, drawWorld, BodyPicture(..),
-    ) where
+  ( BodyPicture (..), GlossView (..),
+    fromShape, drawWorld, applyView, mouseToWorld
+  ) where
 
 import           Apecs
 import           Apecs.Physics
@@ -15,11 +16,17 @@ import qualified Graphics.Gloss                as G
 import           Graphics.Gloss.Geometry.Angle (radToDeg)
 
 newtype BodyPicture = BodyPicture G.Picture deriving Monoid
+
 instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
 
-data GlossView = GlossView (V2 Double) Double
+data GlossView = GlossView
+  { gvOffset :: V2 Double
+  , gvScale  :: Double
+  }
+
 instance Monoid GlossView where mempty = GlossView 0 1
+
 instance Component GlossView where
   type Storage GlossView = Global GlossView
 
