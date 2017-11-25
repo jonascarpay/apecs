@@ -34,25 +34,33 @@ C.include "<chipmunk.h>"
 -- cpFloat cpShapeNearestPointQuery(cpShape *shape, cpVect p, cpPointQueryInfo *out)
 -- cpShape *cpSpacePointQueryNearest(cpSpace *space, cpVect point, cpFloat maxDistance, cpShapeFilter filter, cpPointQueryInfo *out)
 
-pointQuery :: Has w Physics => WVec -> Double -> CollisionFilter -> System w PointQueryResult
+pointQuery :: Has w Physics => WVec -> Double -> CollisionFilter -> System w (Maybe PointQueryResult)
 pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionFilter gr (Bitmask cs) (Bitmask mk)) = do
   Space _ _ _ _ spcPtr :: Space Physics <- getStore
   liftIO$ do
     pq <- malloc
-    withForeignPtr spcPtr $ \space -> [C.exp| void {
-      cpSpacePointQueryNearest(
-        $(cpSpace* space),
-        cpv($(double px), $(double py)),
-        $(double maxDistance),
-        cpShapeFilterNew($(unsigned int gr), $(unsigned int cs), $(unsigned int mk)),
-        $(cpPointQueryInfo* pq)) }|]
+    withForeignPtr spcPtr $ \space -> [C.block| void {
+      cpPointQueryInfo* pq = $(cpPointQueryInfo* pq);
+      cpSpacePointQueryNearest
+        ( $(cpSpace* space)
+        , cpv($(double px), $(double py))
+        , $(double maxDistance)
+        , cpShapeFilterNew($(unsigned int gr), $(unsigned int cs), $(unsigned int mk))
+        , pq);
+      if ((pq->shape) != NULL) {
+        pq->shape = cpShapeGetUserData(pq->shape);
+      } else {
+        pq->shape = -1;
+      } }|]
     res <- peek pq
     free pq
-    return res
+    if unEntity (pqShape res) == -1
+       then return Nothing
+       else return (Just res)
 
 instance Storable PointQueryResult where
-  sizeOf _ = sizeOf (undefined :: Ptr Shape) + 2*sizeOf (undefined :: CDouble) + sizeOf (undefined :: V2 CDouble)
-  alignment _ = 8
+  sizeOf ~_ = 40 -- sizeOf (undefined :: Ptr Shape) + 2*sizeOf (undefined :: CDouble) + sizeOf (undefined :: V2 CDouble)
+  alignment ~_ = 8
   peek ptr = do
     sPtr :: Ptr Shape <- peekByteOff ptr 0
     s <- [C.exp| intptr_t { (intptr_t) cpShapeGetUserData($(cpShape* sPtr)) }|]

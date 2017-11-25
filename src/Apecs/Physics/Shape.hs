@@ -33,6 +33,15 @@ import           Apecs.Stores         (defaultSetMaybe)
 C.context (phycsCtx <> C.vecCtx)
 C.include "<chipmunk.h>"
 
+maskAll, maskNone :: Bitmask
+maskAll  = complement zeroBits
+maskNone = zeroBits
+maskList :: [Int] -> Bitmask
+maskList = foldr (flip setBit) maskNone
+
+defaultFilter :: CollisionFilter
+defaultFilter = CollisionFilter 0 maskAll maskAll
+
 instance Component Shape where
   type Storage Shape = Space Shape
 
@@ -66,12 +75,6 @@ instance Store (Space Shape) where
     e <- explExists s ety
     if e then Just <$> explGetUnsafe s ety else return Nothing
   explGetUnsafe _ _ = return (error "Shape is a read-only component")
-
-maskAll, maskNone :: Bitmask
-maskAll  = complement zeroBits
-maskNone = zeroBits
-maskList :: [Int] -> Bitmask
-maskList = foldr (flip setBit) maskNone
 
 newShape :: SpacePtr -> Ptr Body -> ShapeType -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)

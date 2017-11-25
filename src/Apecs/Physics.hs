@@ -16,7 +16,7 @@ module Apecs.Physics (
   -- * Shape
   ShapeType (..), Shape (..),
   Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..), CollisionFilter (..),
-  maskAll, maskNone, maskList,
+  maskAll, maskNone, maskList, defaultFilter,
 
   -- * Constraint
   Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), CollideBodies (..),
@@ -25,6 +25,10 @@ module Apecs.Physics (
   Collision (..), CollisionHandler (..), defaultHandler,
   CollisionSource(..), BeginCB, SeparateCB, PreSolveCB, PostSolveCB,
   mkBeginCB, mkSeparateCB, mkPreSolveCB, mkPostSolveCB,
+
+  -- * Query
+  PointQueryResult (..),
+  pointQuery,
 
   module Apecs,
   module Linear.V2,
@@ -36,6 +40,7 @@ import           Linear.V2
 import           Apecs.Physics.Body       ()
 import           Apecs.Physics.Collision
 import           Apecs.Physics.Constraint ()
+import           Apecs.Physics.Query
 import           Apecs.Physics.Shape
 import           Apecs.Physics.Space
 import           Apecs.Physics.Types

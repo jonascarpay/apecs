@@ -4,7 +4,6 @@ version:             0.1.0.0
 -- description:
 homepage:            https://github.com/jonascarpay/phycs/phycs-gloss#readme
 license:             BSD3
-license-file:        LICENSE
 author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
 copyright:           MIT
