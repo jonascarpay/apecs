@@ -9,7 +9,7 @@
 
 Run `stack build && stack exec constraints` for a demonstration.
 
-Still under heavy development.
+phycs is almost feature-complete, expect a proper tutorial soon.
 Feel free to create an issue or PR for suggestions/questions/requests/critiques/spelling fixes/etc.
 See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code.
 
