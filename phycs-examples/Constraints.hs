@@ -28,7 +28,7 @@ initialize = do
 
   let commonProps = (Friction 0.4, Elasticity 0.8, Density 1)
 
-  let lineshape l = Segment (V2 (-l/2) 0, V2 (l/2) 0) 0
+  let lineshape l = Segment (V2 (-l/2) 0, V2 (l/2) 0) 0.01
       line l = ( StaticBody
                , Shape $ lineshape l
                , BodyPicture . color white . fromShape $ lineshape l
@@ -83,12 +83,12 @@ initialize = do
   drsB <- newEntity (paddle (V2 (-0.75) 0))
   newEntity (ConstraintExtend (cast drsA) (cast drsB) (DampedRotarySpring 0 1e-2 1e-4))
 
-  rlA <- newEntity (paddle (V2 (0.25) 0))
-  rlB <- newEntity (paddle (V2 (0.75) 0))
+  rlA <- newEntity (paddle (V2 0.25 0))
+  rlB <- newEntity (paddle (V2 0.75 0))
   newEntity (ConstraintExtend (cast rlA) (cast rlB) (RotaryLimitJoint 0 1))
 
-  motA <- newEntity (paddle (V2 (1.25) 0))
-  motB <- newEntity (paddle (V2 (1.75) 0))
+  motA <- newEntity (paddle (V2 1.25 0))
+  motB <- newEntity (paddle (V2 1.75 0))
   newEntity (ConstraintExtend (cast motA) (cast motB) (SimpleMotor pi))
 
   return ()
@@ -104,7 +104,7 @@ handle (EventKey (MouseButton LeftButton) Down _ mscreen) = do
   case pq of
     Nothing                         -> return ()
     Just (PointQueryResult s _ _ _) -> rmap $
-      \Target -> ( Constraint (cast s) (PivotJoint mpos), MaxForce 5, BodyPicture (color green $ G.Circle 0.03))
+      \Target -> ( Constraint (cast s) (PivotJoint mpos), MaxForce 2, BodyPicture (color green $ G.Circle 0.03))
 
 handle (EventKey (MouseButton LeftButton) Up _ _) =
   rmap' $ \Target -> Safe (Nothing,Nothing) :: Safe (Constraint, BodyPicture)
