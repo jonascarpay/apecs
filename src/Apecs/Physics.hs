@@ -2,11 +2,11 @@
 
 module Apecs.Physics (
 
-  -- * Global
+  -- * General
   Physics,
 
   -- * Space
-  Gravity (..),
+  Gravity (..), Iterations (..),
   stepPhysics,
 
   -- * Body

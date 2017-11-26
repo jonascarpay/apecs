@@ -99,3 +99,32 @@ instance Store (Space Gravity) where
   explSetMaybe  = explSet
   explGetUnsafe = explGet
 
+-- Iterations
+getIterations :: SpacePtr -> IO Int
+getIterations spacePtr = withForeignPtr spacePtr $ \space -> fromIntegral <$> [C.exp| int { cpSpaceGetIterations ($(cpSpace* space)) } |]
+
+setIterations :: SpacePtr -> Int -> IO ()
+setIterations spacePtr (fromIntegral -> its) = withForeignPtr spacePtr $ \space -> [C.block| void {
+  cpSpaceSetIterations($(cpSpace* space), $(int its));
+  } |]
+
+instance Component Iterations where
+  type Storage Iterations = Space Iterations
+
+instance Has w Physics => Has w Iterations where
+  getStore = (cast :: Space Physics -> Space Iterations) <$> getStore
+
+instance GlobalStore (Space Iterations)
+
+instance Store (Space Iterations) where
+  type Stores (Space Iterations) = Iterations
+  type SafeRW (Space Iterations) = Iterations
+  initStore = error "Initializing space from non-Physics store"
+  explDestroy _ _ = return ()
+  explMembers _   = return mempty
+  explExists _ _  = return False
+  explSet (Space _ _ _ _ spcPtr) _ (Iterations v) = setIterations spcPtr v
+  explGet (Space _ _ _ _ spcPtr) _ = Iterations <$> getIterations spcPtr
+  explSetMaybe  = explSet
+  explGetUnsafe = explGet
+
