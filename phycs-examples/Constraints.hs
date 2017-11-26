@@ -38,14 +38,21 @@ initialize = do
 
 handle :: Event -> System World ()
 
-handle (EventKey (MouseButton LeftButton) Down _ (x,y)) = do
-  view <- getGlobal
-  let mpos = mouseToWorld view (V2 (realToFrac x) (realToFrac y))
+handle (EventKey (MouseButton LeftButton) Down _ mscreen) = do
+  mpos <- mouseToWorld mscreen <$> getGlobal
   return ()
-  pq <- pointQuery mpos 1 defaultFilter
+  pq <- pointQuery mpos 0 defaultFilter
   case pq of
-    Nothing -> return ()
-    _       -> undefined
+    Nothing                         -> return ()
+    Just (PointQueryResult e w _ _) -> rmap $
+      \Target -> ( Constraint (cast e) (PivotJoint mpos), MaxForce 5000 )
+
+handle (EventKey (MouseButton LeftButton) Up _ _) = do
+  rmap' $ \Target -> Safe Nothing :: Safe Constraint
+
+handle (EventMotion mscreen) = do
+  mpos <- mouseToWorld mscreen <$> getGlobal
+  rmap $ \Target -> Position mpos
 
 handle _ = return ()
 

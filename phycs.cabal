@@ -43,6 +43,7 @@ library
     vector
   ghc-options:
     -Wall
+    -O2
     -Wno-orphans
     -Wno-unused-do-bind
     -Wno-name-shadowing

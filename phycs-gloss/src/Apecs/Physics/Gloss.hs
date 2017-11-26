@@ -34,8 +34,8 @@ applyView :: GlossView -> G.Picture -> G.Picture
 applyView (GlossView (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> scale)) =
   G.Translate x y . G.Scale scale scale
 
-mouseToWorld :: GlossView -> V2 Double -> V2 Double
-mouseToWorld (GlossView offset scale) mvec = (/scale) <$> mvec-offset
+mouseToWorld :: (Float,Float) -> GlossView -> V2 Double
+mouseToWorld (x,y) (GlossView offset scale) = (/scale) <$> (V2 (realToFrac x) (realToFrac y))-offset
 
 fromShape :: ShapeType -> G.Picture
 fromShape (Circle (V2 x y) radius) = G.Translate (realToFrac x) (realToFrac y) $ G.Circle (realToFrac radius)

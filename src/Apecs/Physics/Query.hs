@@ -40,18 +40,14 @@ pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionF
   liftIO$ do
     pq <- malloc
     withForeignPtr spcPtr $ \space -> [C.block| void {
-      cpPointQueryInfo* pq = $(cpPointQueryInfo* pq);
+      cpPointQueryInfo *pq = $(cpPointQueryInfo *pq);
       cpSpacePointQueryNearest
-        ( $(cpSpace* space)
+        ( $(cpSpace *space)
         , cpv($(double px), $(double py))
         , $(double maxDistance)
         , cpShapeFilterNew($(unsigned int gr), $(unsigned int cs), $(unsigned int mk))
         , pq);
-      if ((pq->shape) != NULL) {
-        pq->shape = cpShapeGetUserData(pq->shape);
-      } else {
-        pq->shape = -1;
-      } }|]
+      }|]
     res <- peek pq
     free pq
     if unEntity (pqShape res) == -1
@@ -63,7 +59,13 @@ instance Storable PointQueryResult where
   alignment ~_ = 8
   peek ptr = do
     sPtr :: Ptr Shape <- peekByteOff ptr 0
-    s <- [C.exp| intptr_t { (intptr_t) cpShapeGetUserData($(cpShape* sPtr)) }|]
+    s <- [C.block| intptr_t {
+            cpShape *shape = $(cpShape *sPtr);
+            if (shape==NULL) {
+              return -1;
+            } else {
+              return (intptr_t) cpShapeGetUserData(shape);
+            } }|]
     p :: V2 CDouble <- peekByteOff ptr 8
     d :: CDouble <- peekByteOff ptr 24
     g :: CDouble <- peekByteOff ptr 32

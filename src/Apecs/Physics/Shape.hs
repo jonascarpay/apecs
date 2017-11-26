@@ -421,3 +421,34 @@ instance Store (Space CollisionType) where
     Just s <- M.lookup ety <$> readIORef sMap
     CollisionType <$> getCollisionType s
 
+
+-- ShapeBody
+getShapeBody :: Ptr Shape -> IO C.CUIntPtr
+getShapeBody shape = [C.exp| uintptr_t {
+  cpBodyGetUserData(cpShapeGetBody($(cpShape* shape))) }|]
+
+instance Component ShapeBody where
+  type Storage ShapeBody = Space ShapeBody
+instance Has w Physics => Has w ShapeBody where
+  getStore = (cast :: Space Physics -> Space ShapeBody) <$> getStore
+
+instance Store (Space ShapeBody) where
+  type Stores (Space ShapeBody) = ShapeBody
+  type SafeRW (Space ShapeBody) = Maybe ShapeBody
+  initStore = error "Attempted to initialize a space from an ShapeBody component, use Physics instead"
+  explDestroy _ _ = return ()
+  explMembers s = explMembers (cast s :: Space Shape)
+  explExists s ety = explExists (cast s :: Space Shape) ety
+  explSetMaybe = defaultSetMaybe
+
+  explGet (Space _ sMap _ _ _) ety = do
+    rd <- M.lookup ety <$> readIORef sMap
+    case rd of
+      Nothing -> return Nothing
+      Just s  -> Just . ShapeBody . Entity . fromIntegral <$> getShapeBody s
+
+  explSet _ _ _ = return ()
+
+  explGetUnsafe (Space _ sMap _ _ _) ety = do
+    Just s <- M.lookup ety <$> readIORef sMap
+    ShapeBody . Entity . fromIntegral <$> getShapeBody s
