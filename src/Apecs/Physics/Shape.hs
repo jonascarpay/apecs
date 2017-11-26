@@ -42,6 +42,16 @@ maskList = foldr (flip setBit) maskNone
 defaultFilter :: CollisionFilter
 defaultFilter = CollisionFilter 0 maskAll maskAll
 
+boxShape :: Double -> Double -> Vec -> ShapeType
+boxShape w h offset = Convex ((+offset) <$> verts) 0
+  where
+    w' = w/2
+    h' = h/2
+    verts = [ V2 (-w') (-h')
+            , V2 (-w') h'
+            , V2 w' h'
+            , V2 w' (-h') ]
+
 instance Component Shape where
   type Storage Shape = Space Shape
 

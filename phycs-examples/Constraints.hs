@@ -5,6 +5,7 @@
 
 import           Apecs.Physics                    as P
 import           Apecs.Physics.Gloss
+import           Apecs.Util
 import           Control.Monad
 import           Graphics.Gloss                   as G
 import           Graphics.Gloss.Interface.IO.Game as G
@@ -39,13 +40,13 @@ initialize = do
              , BodyPicture . color red . fromShape $ ballshape
              , commonProps )
 
-  let boxshape = P.Convex [V2 0 0, V2 0 0.2, V2 0.2 0.2, V2 0.2 0] 0
+  let boxshape = Convex [V2 0 0, V2 0 0.2, V2 0.2 0.2, V2 0.2 0] 0
       box = ( DynamicBody
             , Shape boxshape
             , BodyPicture . color red . fromShape $ boxshape
             , commonProps )
 
-  let paddleshape = P.Convex [V2 (-w) (-h), V2 (-w) h, V2 w h, V2 w (-h)] 0
+  let paddleshape = Convex [V2 (-w) (-h), V2 (-w) h, V2 w h, V2 w (-h)] 0
       paddle pos = ( DynamicBody
                    , Position pos
                    , Shape paddleshape
@@ -99,7 +100,6 @@ handle (EventMotion mscreen) = do
 
 handle (EventKey (MouseButton LeftButton) Down _ mscreen) = do
   mpos <- mouseToWorld mscreen <$> getGlobal
-  return ()
   pq <- pointQuery mpos 0 defaultFilter
   case pq of
     Nothing                         -> return ()
