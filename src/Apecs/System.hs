@@ -23,7 +23,7 @@ runWith = flip runSystem
 
 -- | A slice containing all entities with component @c@
 {-# INLINE owners #-}
-owners :: forall w c. Has w c => System w (Slice c)
+owners :: forall c w. Has w c => System w (Slice c)
 owners = do s :: Storage c <- getStore
             liftIO$ Slice <$> explMembers s
 
@@ -152,7 +152,7 @@ rmap f = do sr :: Storage r <- getStore
 
 -- | Maps a function over all entities with a @r@, and writes or deletes their @w@
 {-# INLINE rmap' #-}
-rmap' :: forall world r w. (Has world w, Has world r, Store (Storage r), Store (Storage w))
+rmap' :: forall world r w. (Has world w, Has world r)
       => (r -> Safe w) -> System world ()
 rmap' f = do sr :: Storage r <- getStore
              sw :: Storage w <- getStore
@@ -163,7 +163,7 @@ rmap' f = do sr :: Storage r <- getStore
 
 -- | For all entities with a @w@, this map reads their @r@ and writes their @w@
 {-# INLINE wmap #-}
-wmap :: forall world r w. (Has world w, Has world r, Store (Storage r), Store (Storage w))
+wmap :: forall world r w. (Has world w, Has world r)
      => (Safe r -> w) -> System world ()
 wmap f = do sr :: Storage r <- getStore
             sw :: Storage w <- getStore
@@ -174,7 +174,7 @@ wmap f = do sr :: Storage r <- getStore
 
 -- | For all entities with a @w@, this map reads their @r@ and writes or deletes their @w@
 {-# INLINE wmap' #-}
-wmap' :: forall world r w. (Has world w, Has world r, Store (Storage r), Store (Storage w))
+wmap' :: forall world r w. (Has world w, Has world r)
       => (Safe r -> Safe w) -> System world ()
 wmap' f = do sr :: Storage r <- getStore
              sw :: Storage w <- getStore
