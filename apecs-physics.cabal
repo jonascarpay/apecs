@@ -1,8 +1,8 @@
-name:                phycs
+name:                apecs-physics
 version:             0.1.0.0
-synopsis:            2D game physics
-description:         2D game physics
-homepage:            https://github.com/jonascarpay/phycs#readme
+synopsis:            2D physics for apecs
+description:         2D physics for apecs
+homepage:            https://github.com/jonascarpay/apecs-physics#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Jonas Carpay

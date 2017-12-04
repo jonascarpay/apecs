@@ -1,8 +1,12 @@
 resolver: lts-9.11
 packages:
 - .
-- phycs-gloss
-- phycs-examples
+- apecs-physics-gloss
+- examples
+- location:
+    git: git@github.com:jonascarpay/apecs.git
+    commit: 53ee0ca34e97e8d73497c04eadabd50e6179baf0
+  extra-dep: true
 extra-deps:
   - apecs-0.2.4.6
 flags: {}

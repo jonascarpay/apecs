@@ -1,8 +1,8 @@
-name:                phycs-gloss
+name:                apecs-physics-gloss
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/jonascarpay/phycs/phycs-gloss#readme
+homepage:            https://github.com/jonascarpay/apecs-physics/apecs-physics-gloss#readme
 license:             BSD3
 author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
@@ -16,9 +16,9 @@ library
   hs-source-dirs:      src
   exposed-modules:     Apecs.Physics.Gloss
   ghc-options:         -O2
-  build-depends:       base >= 4.7 && < 5, phycs, gloss, apecs
+  build-depends:       base >= 4.7 && < 5, apecs-physics, gloss, apecs
   default-language:    Haskell2010
 
 source-repository head
   type:     git
-  location: https://github.com/jonascarpay/phycs
+  location: https://github.com/jonascarpay/apecs-physics

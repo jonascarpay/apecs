@@ -1,8 +1,3 @@
-This is how I keep track of the issues I still need to address.
-If you want to help, I think it's easiest if you create an issue for the one you are fixing and assigning yourself, but I'm open to ideas.
-
-The name of the game is mostly to identify Chipmunk objects, create a safe wrapper, and then implement `Store (Space component)` instances for that object.
-
 ### Need
 - [x] Make separate example executables
 - [x] Constraints
@@ -25,7 +20,6 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 - [x] Remaining collision properties
 - [ ] Apply(Impulse/Force)At(Local/World)
 - [x] Wildcard collision handlers
-- [ ] Remaining body/shape/space/constraint/etc. query functions
 - [x] Explicit gloss Picture component, make shapes write-only
 - [ ] Haddocks
 - [ ] Proper SpacePtr cleanup
@@ -37,12 +31,10 @@ The name of the game is mostly to identify Chipmunk objects, create a safe wrapp
 
 ### Want
 - [x] Move rendering to separate package?
-- [ ] Figure out how to solve orphan instances
-- [ ] More convenience shapes
+- [ ] Solve orphan instances
 - [ ] Consistent variable naming
 - [ ] Tests
 - [x] Render Constraints
 - [x] `playWorld` camera tracking?
 - [ ] Documentation/tutorials?
-- [ ] Proper conversion between C structs and data types, instead of field-by-field copying
 - [ ] Switch to normal FFI instead of inline-c?
