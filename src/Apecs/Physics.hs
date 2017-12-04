@@ -1,4 +1,4 @@
--- | Phycs prelude
+-- | apecs-physics prelude
 
 module Apecs.Physics (
 

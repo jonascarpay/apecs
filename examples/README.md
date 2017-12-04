@@ -1,1 +1,1 @@
-# phycs-examples
+# examples

@@ -1,6 +1,6 @@
-# phycs
+# apecs-physics
 
-2D physics engine for games, with optional simple rendering.
+2D physics for apecs, with optional simple rendering.
 
 - [apecs](https://github.com/jonascarpay/apecs) for syntax/interface/memory management with minimal overhead.
 - [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
@@ -9,7 +9,6 @@
 
 Run `stack build && stack exec constraints` for a demonstration.
 
-phycs is almost feature-complete, expect a proper tutorial, documentation, and a name change to something boring like apecs-physics.
 Feel free to create an issue or PR for suggestions/questions/requests/critiques/spelling fixes/etc.
-See [TODO.md](https://github.com/jonascarpay/phycs/blob/master/TODO.md) for suggestions if you want to help out with the code.
+See [TODO.md](https://github.com/jonascarpay/apecs-physics/blob/master/TODO.md) for suggestions if you want to help out with the code.
 
