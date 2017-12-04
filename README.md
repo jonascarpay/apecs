@@ -1,11 +1,8 @@
 # apecs-physics
 
-2D physics for apecs, with optional simple rendering.
-
-- [apecs](https://github.com/jonascarpay/apecs) for syntax/interface/memory management with minimal overhead.
-- [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
-- [gloss](https://github.com/benl23x5/gloss) for rendering. Can easily be replaced by your own rendering engine.
-- [inline-c](https://github.com/fpco/inline-c) for easy binding to Chipmunk.
+2D physics library for apecs.
+Uses [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
+The [apecs-physics-gloss](https://github.com/jonascarpay/apecs-physics/tree/master/apecs-physics-gloss) package provides a simple optional [gloss](https://github.com/benl23x5/gloss)-based renderer.
 
 Run `stack build && stack exec constraints` for a demonstration.
 
