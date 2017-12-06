@@ -20,6 +20,7 @@ import           Apecs.Stores        (defaultSetMaybe)
 import           Apecs.Types
 import           Control.Monad
 import qualified Data.IntMap         as M
+import qualified Data.IntSet         as S
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U
 import           Foreign.ForeignPtr  (withForeignPtr)
@@ -28,6 +29,8 @@ import qualified Language.C.Inline   as C
 import           Linear.V2
 
 import           Apecs.Physics.Space ()
+import           Apecs.Physics.Shape ()
+import           Apecs.Physics.Constraint ()
 import           Apecs.Physics.Types
 
 C.context phycsCtx
@@ -54,6 +57,9 @@ destroyBody spacePtr bodyPtr = withForeignPtr spacePtr $ \space -> [C.block| voi
   cpSpaceRemoveBody($(cpSpace* space), body);
   cpBodyFree(body); }|]
 
+fromBodyPtr :: Ptr Body -> BodyRecord
+fromBodyPtr ptr = BodyRecord ptr mempty mempty
+
 instance Component Body where
   type Storage Body = Space Body
 
@@ -68,30 +74,32 @@ instance Store (Space Body) where
   explSet (Space bMap _ _ _ spcPtr) ety btype = do
     rd <- M.lookup ety <$> readIORef bMap
     bdyPtr <- case rd of
-                Just bdyPtr -> return bdyPtr
+                Just (BodyRecord bdyPtr _ _) -> return bdyPtr
                 Nothing -> do
                   bdyPtr <- newBody spcPtr ety
-                  modifyIORef' bMap (M.insert ety bdyPtr)
+                  modifyIORef' bMap (M.insert ety $ fromBodyPtr bdyPtr)
                   return bdyPtr
     setBodyType bdyPtr btype
 
   explGet (Space bMap _ _ _ _) ety = do
     rd <- M.lookup ety <$> readIORef bMap
     case rd of Nothing -> return Nothing
-               Just b  -> Just <$> getBodyType b
+               Just (BodyRecord b _ _) -> Just <$> getBodyType b
 
-  explDestroy (Space bMap _ _ _ spc) ety = do
+  explDestroy sp@(Space bMap _ _ _ spc) ety = do
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
-    case rd of Just b -> destroyBody spc b
-               _      -> return ()
+    forM_ rd $ \(BodyRecord bPtr shapes constraints) -> do
+      forM_ (S.toList shapes) $ \s -> explDestroy (cast sp :: Space Shape) s
+      forM_ (S.toList constraints) $ \s -> explDestroy (cast sp :: Space Constraint) s
+      destroyBody spc bPtr
 
   explMembers (Space bMap _ _ _ _) = U.fromList . M.keys <$> readIORef bMap
 
   explExists (Space bMap _ _ _ _) ety = M.member ety <$> readIORef bMap
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     getBodyType b
 
   explSetMaybe = defaultSetMaybe
@@ -131,14 +139,14 @@ instance Store (Space Position) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . Position <$> getPosition b
+      Just (BodyRecord b _ _)  -> Just . Position <$> getPosition b
 
   explSet (Space bMap _ _ _ _) ety (Position pos) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \b -> setPosition b pos
+    forM_ rd$ \(BodyRecord b _ _) -> setPosition b pos
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Position <$> getPosition b
 
 -- Velocity
@@ -173,14 +181,14 @@ instance Store (Space Velocity) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . Velocity <$> getVelocity b
+      Just (BodyRecord b _ _)  -> Just . Velocity <$> getVelocity b
 
   explSet (Space bMap _ _ _ _) ety (Velocity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \b -> setVelocity b vel
+    forM_ rd$ \(BodyRecord b _ _) -> setVelocity b vel
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Velocity <$> getVelocity b
 
 -- Angle
@@ -217,14 +225,14 @@ instance Store (Space Angle) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . Angle <$> getAngle b
+      Just (BodyRecord b _ _)  -> Just . Angle <$> getAngle b
 
   explSet (Space bMap _ _ _ _) ety (Angle angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \b -> setAngle b angle
+    forM_ rd $ \(BodyRecord b _ _) -> setAngle b angle
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Angle <$> getAngle b
 
 -- AngularVelocity
@@ -261,14 +269,14 @@ instance Store (Space AngularVelocity) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . AngularVelocity <$> getAngularVelocity b
+      Just (BodyRecord b _ _)  -> Just . AngularVelocity <$> getAngularVelocity b
 
   explSet (Space bMap _ _ _ _) ety (AngularVelocity angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \b -> setAngularVelocity b angle
+    forM_ rd $ \(BodyRecord b _ _) -> setAngularVelocity b angle
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     AngularVelocity <$> getAngularVelocity b
 
 -- Force
@@ -303,14 +311,14 @@ instance Store (Space Force) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . Force <$> getForce b
+      Just (BodyRecord b _ _)  -> Just . Force <$> getForce b
 
   explSet (Space bMap _ _ _ _) ety (Force frc) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \b -> setForce b frc
+    forM_ rd$ \(BodyRecord b _ _) -> setForce b frc
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Force <$> getForce b
 
 -- BodyMass
@@ -347,14 +355,14 @@ instance Store (Space BodyMass) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . BodyMass <$> getBodyMass b
+      Just (BodyRecord b _ _)  -> Just . BodyMass <$> getBodyMass b
 
   explSet (Space bMap _ _ _ _) ety (BodyMass angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \b -> setBodyMass b angle
+    forM_ rd $ \(BodyRecord b _ _) -> setBodyMass b angle
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     BodyMass <$> getBodyMass b
 
 -- Moment
@@ -391,14 +399,14 @@ instance Store (Space Moment) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . Moment <$> getMoment b
+      Just (BodyRecord b _ _)  -> Just . Moment <$> getMoment b
 
   explSet (Space bMap _ _ _ _) ety (Moment angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \b -> setMoment b angle
+    forM_ rd $ \(BodyRecord b _ _) -> setMoment b angle
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Moment <$> getMoment b
 
 -- Torque
@@ -435,14 +443,14 @@ instance Store (Space Torque) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . Torque <$> getTorque b
+      Just (BodyRecord b _ _)  -> Just . Torque <$> getTorque b
 
   explSet (Space bMap _ _ _ _) ety (Torque angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \b -> setTorque b angle
+    forM_ rd $ \(BodyRecord b _ _) -> setTorque b angle
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Torque <$> getTorque b
 
 -- CenterOfGravity
@@ -477,13 +485,13 @@ instance Store (Space CenterOfGravity) where
     rd <- M.lookup ety <$> readIORef bMap
     case rd of
       Nothing -> return Nothing
-      Just b  -> Just . CenterOfGravity <$> getCenterOfGravity b
+      Just (BodyRecord b _ _)  -> Just . CenterOfGravity <$> getCenterOfGravity b
 
   explSet (Space bMap _ _ _ _) ety (CenterOfGravity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \b -> setCenterOfGravity b vel
+    forM_ rd$ \(BodyRecord b _ _) -> setCenterOfGravity b vel
 
   explGetUnsafe (Space bMap _ _ _ _) ety = do
-    Just b <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b
 

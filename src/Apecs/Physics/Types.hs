@@ -18,6 +18,7 @@ import           Apecs.Types
 import           Data.Bits
 import           Data.Char                 (intToDigit)
 import qualified Data.IntMap               as M
+import qualified Data.IntSet               as S
 import           Data.IORef
 import qualified Data.Map                  as Map
 import           Data.Monoid               ((<>))
@@ -100,14 +101,21 @@ data FrnSpace
 data FrnVec
 
 data Space c = Space
-  { spBodies      :: SpMap Body
-  , spShapes      :: SpMap Shape
-  , spConstraints :: SpMap Constraint
-  , spHandlers    :: SpMap CollisionHandler
+  { spBodies      :: IOMap BodyRecord
+  , spShapes      :: PtrMap Shape
+  , spConstraints :: PtrMap Constraint
+  , spHandlers    :: PtrMap CollisionHandler
   , spacePtr      :: SpacePtr
   }
 
-type SpMap a = IORef (M.IntMap (Ptr a))
+data BodyRecord = BodyRecord
+  { brPtr         :: Ptr Body
+  , brShapes      :: S.IntSet
+  , brConstraints :: S.IntSet
+  }
+
+type IOMap a = IORef (M.IntMap a)
+type PtrMap a = IOMap (Ptr a)
 type SpacePtr = ForeignPtr FrnSpace
 
 -- Space subcomponents

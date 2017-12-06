@@ -20,6 +20,7 @@ import           Apecs.Stores        (defaultSetMaybe)
 import           Apecs.Types
 import           Control.Monad
 import qualified Data.IntMap         as M
+import qualified Data.IntSet         as S
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U
 import           Foreign.ForeignPtr  (withForeignPtr)
@@ -27,7 +28,6 @@ import           Foreign.Ptr
 import qualified Language.C.Inline   as C
 import           Linear.V2
 
-import           Apecs.Physics.Body  ()
 import           Apecs.Physics.Space ()
 import           Apecs.Physics.Types
 
@@ -155,20 +155,38 @@ instance Store (Space Constraint) where
 
   explSet _ _ ConstraintRead = return ()
   explSet s ety (Constraint b ctype) = explSet s ety (ConstraintExtend (Entity ety) b ctype)
-  explSet sp@(Space bMap _ cMap _ spcPtr) ety (ConstraintExtend (Entity a) (Entity b) ctype) = do
-    explDestroy sp ety
-    ea <- M.lookup a <$> readIORef bMap
-    eb <- M.lookup b <$> readIORef bMap
-    case (ea,eb) of
-      (Just ba, Just bb) -> do
-        cPtr <- newConstraint spcPtr ba bb ety ctype
-        modifyIORef' cMap (M.insert ety cPtr)
+  explSet sp@(Space bMap _ cMap _ spcPtr) cEty (ConstraintExtend (Entity bEtyA) (Entity bEtyB) ctype) = do
+    explDestroy sp cEty
+    mBrA <- M.lookup bEtyA <$> readIORef bMap
+    mBrB <- M.lookup bEtyB <$> readIORef bMap
+    case (mBrA,mBrB) of
+      (Just brA, Just brB) -> do
+        cPtr <- newConstraint spcPtr (brPtr brA) (brPtr brB) cEty ctype
+
+        let brConstraintsA' = S.insert cEty (brConstraints brA)
+            brConstraintsB' = S.insert cEty (brConstraints brB)
+
+        modifyIORef' cMap (M.insert cEty cPtr)
+        modifyIORef' bMap ( M.insert bEtyA (brA {brConstraints = brConstraintsA'})
+                          . M.insert bEtyB (brB {brConstraints = brConstraintsB'}) )
       _ -> return ()
 
-  explDestroy (Space _ _ cMap _ spc) ety = do
-    rd <- M.lookup ety <$> readIORef cMap
-    modifyIORef' cMap (M.delete ety)
-    forM_ rd (destroyConstraint spc)
+  explDestroy (Space bMap _ cMap _ spc) cEty = do
+    rd <- M.lookup cEty <$> readIORef cMap
+    forM_ rd $ \cPtr -> do
+      bEtyA <- getBodyA cPtr
+      bEtyB <- getBodyB cPtr
+      bMapRd <- readIORef bMap
+
+      let Just bRecA = M.lookup bEtyA bMapRd
+          Just bRecB = M.lookup bEtyB bMapRd
+          brConstraintsA' = S.delete cEty (brConstraints bRecA)
+          brConstraintsB' = S.delete cEty (brConstraints bRecB)
+
+      modifyIORef' cMap (M.delete cEty)
+      modifyIORef' bMap ( M.insert bEtyA (bRecA {brConstraints = brConstraintsA'})
+                        . M.insert bEtyB (bRecB {brConstraints = brConstraintsB'}) )
+      destroyConstraint spc cPtr
 
   explMembers (Space _ _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
 
@@ -180,6 +198,14 @@ instance Store (Space Constraint) where
     if e then Just <$> explGetUnsafe s ety else return Nothing
   explGetUnsafe _ _ = return (error "Constraint is a read-only component")
 
+-- BodyAB
+getBodyA :: Ptr Constraint -> IO Int
+getBodyA c = fromIntegral <$> [C.exp| intptr_t {
+  (intptr_t) cpBodyGetUserData(cpConstraintGetBodyA($(cpConstraint* c))) }|]
+
+getBodyB :: Ptr Constraint -> IO Int
+getBodyB c = fromIntegral <$> [C.exp| intptr_t {
+  (intptr_t) cpBodyGetUserData(cpConstraintGetBodyB($(cpConstraint* c))) }|]
 
 -- MaxForce
 getMaxForce :: Ptr Constraint -> IO Double

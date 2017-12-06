@@ -16,6 +16,7 @@ import           Apecs.Types
 import           Control.Monad
 import           Data.Bits
 import qualified Data.IntMap          as M
+import qualified Data.IntSet          as S
 import           Data.IORef
 import           Data.Monoid          ((<>))
 import qualified Data.Vector.Storable as V
@@ -25,7 +26,6 @@ import           Foreign.Ptr
 import qualified Language.C.Inline    as C
 import           Linear.V2
 
-import           Apecs.Physics.Body   ()
 import           Apecs.Physics.Space  ()
 import           Apecs.Physics.Types
 import           Apecs.Stores         (defaultSetMaybe)
@@ -65,21 +65,30 @@ instance Store (Space Shape) where
   explMembers (Space _ sMap _ _ _) = U.fromList . M.keys <$> readIORef sMap
   explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
 
-  explDestroy (Space _ sMap _ _ spc) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd $ \ s -> do
-      destroyShape spc s
-      modifyIORef' sMap (M.delete ety)
+  explDestroy (Space bMap sMap _ _ spc) sEty = do
+    rd <- M.lookup sEty <$> readIORef sMap
+    forM_ rd $ \sPtr -> do
+      bEty <- fromIntegral <$> getShapeBody sPtr
+
+      Just bRec <- M.lookup bEty <$> readIORef bMap
+      let brShapes' = S.delete sEty (brShapes bRec)
+
+      modifyIORef' sMap (M.delete sEty)
+      modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
+      destroyShape spc sPtr
 
   explSetMaybe = defaultSetMaybe
   explSet _ _ ShapeRead = return ()
   explSet sp ety (Shape sh) = explSet sp ety (ShapeExtend (Entity ety) sh)
-  explSet sp@(Space bMap sMap _ _ spcPtr) ety (ShapeExtend (Entity bEty) sh) = do
+
+  explSet sp@(Space bMap sMap _ _ spcPtr) sEty (ShapeExtend (Entity bEty) sh) = do
+    explDestroy sp sEty
     rd <- M.lookup bEty <$> readIORef bMap
-    forM_ rd $ \b -> do
-      explDestroy sp ety
-      s <- newShape spcPtr b sh ety
-      modifyIORef' sMap (M.insert ety s)
+    forM_ rd $ \bRec -> do
+      s <- newShape spcPtr (brPtr bRec) sh sEty
+      let brShapes' = S.insert sEty (brShapes bRec)
+      modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
+      modifyIORef' sMap (M.insert sEty s)
 
   explGet s ety = do
     e <- explExists s ety
@@ -435,7 +444,7 @@ instance Store (Space CollisionType) where
 -- ShapeBody
 getShapeBody :: Ptr Shape -> IO C.CUIntPtr
 getShapeBody shape = [C.exp| uintptr_t {
-  cpBodyGetUserData(cpShapeGetBody($(cpShape* shape))) }|]
+  (intptr_t) cpBodyGetUserData(cpShapeGetBody($(cpShape* shape))) }|]
 
 instance Component ShapeBody where
   type Storage ShapeBody = Space ShapeBody

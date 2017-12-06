@@ -22,7 +22,7 @@
 - [x] Wildcard collision handlers
 - [x] Explicit gloss Picture component, make shapes write-only
 - [ ] Haddocks
-- [ ] Proper SpacePtr cleanup
+- [x] Proper SpacePtr cleanup
 - [x] Proper convex polygon rendering
 - [ ] Clean up pragmas
 - [x] Move examples to separate package

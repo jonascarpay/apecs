@@ -31,9 +31,7 @@ C.include "<chipmunk.h>"
 newSpace :: IO SpacePtr
 newSpace = do
     spaceRaw <- [C.exp| cpSpace* { cpSpaceNew() } |]
-    newForeignPtr spaceRaw $ do
-      error "deallocate other objects before removing the space"
-      [C.exp| void { cpSpaceFree($(cpSpace* spaceRaw)) } |] -- FIXME: deallocate all map entries
+    newForeignPtr spaceRaw [C.exp| void { cpSpaceFree($(cpSpace* spaceRaw)) } |]
 
 explStepPhysics :: SpacePtr -> Double -> IO ()
 explStepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space ->
