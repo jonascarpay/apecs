@@ -4,8 +4,8 @@
 {-# LANGUAGE TypeFamilies               #-}
 
 module Apecs.Physics.Gloss
-  ( BodyPicture (..), GlossView (..),
-    fromShape, drawWorld, applyView, mouseToWorld, v2ToTuple,
+  ( BodyPicture (..), Camera (..),
+    toPicture, drawWorld, applyView, mouseToWorld, v2ToTuple,
     defaultSimulate,
   ) where
 
@@ -21,39 +21,39 @@ newtype BodyPicture = BodyPicture G.Picture deriving Monoid
 instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
 
-data GlossView = GlossView
+data Camera = Camera
   { gvOffset :: V2 Double
   , gvScale  :: Double
   }
 
-instance Monoid GlossView where mempty = GlossView 0 1
+instance Monoid Camera where mempty = Camera 0 1
 
-instance Component GlossView where
-  type Storage GlossView = Global GlossView
+instance Component Camera where
+  type Storage Camera = Global Camera
 
-applyView :: GlossView -> G.Picture -> G.Picture
-applyView (GlossView (V2 x y) scale) =
+applyView :: Camera -> G.Picture -> G.Picture
+applyView (Camera (V2 x y) scale) =
   G.Scale (realToFrac scale) (realToFrac scale) .  G.Translate (realToFrac . negate $ x) (realToFrac . negate $ y)
 
-mouseToWorld :: (Float,Float) -> GlossView -> V2 Double
-mouseToWorld (x,y) (GlossView offset scale) = (/scale) <$> (V2 (realToFrac x) (realToFrac y))-offset
+mouseToWorld :: (Float,Float) -> Camera -> V2 Double
+mouseToWorld (x,y) (Camera offset scale) = (/scale) <$> (V2 (realToFrac x) (realToFrac y))-offset
 
-fromShape :: Convex -> G.Picture
-fromShape (Convex [V2 x y] radius) = G.Translate (realToFrac x) (realToFrac y) $ G.Circle (realToFrac radius)
-fromShape (Convex [a,b] _) = G.Line [v2ToTuple a, v2ToTuple b]
-fromShape (Convex verts _) = G.Polygon (v2ToTuple <$> verts)
+toPicture :: Convex -> G.Picture
+toPicture (Convex [V2 x y] radius) = G.Translate (realToFrac x) (realToFrac y) $ G.Circle (realToFrac radius)
+toPicture (Convex [a,b] _) = G.Line [v2ToTuple a, v2ToTuple b]
+toPicture (Convex verts _) = G.Polygon (v2ToTuple <$> verts)
 
 v2ToTuple :: V2 Double -> (Float, Float)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
-drawWorld :: (Has w Physics, Has w BodyPicture, Has w GlossView) => System w G.Picture
+drawWorld :: (Has w Physics, Has w BodyPicture, Has w Camera) => System w G.Picture
 drawWorld = do
   f <- cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) ->
         return . G.Translate (realToFrac x) (realToFrac y) . G.Rotate (negate . radToDeg . realToFrac $ theta) $ pic
   view <- getGlobal
   return . applyView view . fold $ f
 
-defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w GlossView) => w -> IO ()
+defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w Camera) => w -> IO ()
 defaultSimulate w =
   G.simulateIO (G.InWindow "Tumbler" (640,480) (100,100)) G.black 60 w render stepper
     where

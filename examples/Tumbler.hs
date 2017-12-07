@@ -10,17 +10,17 @@ import           Control.Monad
 import           Graphics.Gloss                       as G
 import           System.Random
 
-makeWorld "World" [''Physics, ''BodyPicture, ''GlossView]
+makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
 
 initialize :: System World ()
 initialize = do
-  setGlobal ( GlossView 0 50
+  setGlobal ( Camera 0 50
             , earthGravity )
 
   let sides = toEdges $ cRectangle 5
   tumbler <- newEntity ( KinematicBody
                        , AngularVelocity (-1)
-                       , BodyPicture . color white . foldMap fromShape $ sides )
+                       , BodyPicture . color white . foldMap toPicture $ sides )
 
   forM_ sides $ newEntity . ShapeExtend (cast tumbler) . setRadius 0.05
 
@@ -33,7 +33,7 @@ initialize = do
     newEntity ( DynamicBody
               , Position (V2 x y)
               , Shape ballshape
-              , BodyPicture . color (makeColor 1 c c 1) . fromShape $ ballshape
+              , BodyPicture . color (makeColor 1 c c 1) . toPicture $ ballshape
               , Density 1 )
 
   return ()

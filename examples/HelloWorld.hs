@@ -4,12 +4,12 @@
 import           Apecs.Physics
 import           Apecs.Physics.Gloss
 import           Control.Monad
-import           Graphics.Gloss      (color, red, white)
+import           Graphics.Gloss
 
-makeWorld "World" [''Physics, ''BodyPicture, ''GlossView]
+makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
 
 initialize = do
-  setGlobal ( GlossView (V2 0 1) 60
+  setGlobal ( Camera (V2 0 1) 60
             , earthGravity )
 
   let lineShape = hLine 6
@@ -17,7 +17,7 @@ initialize = do
             , Angle (-pi/20)
             , Shape lineShape
             , Elasticity 0.9
-            , BodyPicture . color white . fromShape $ lineShape )
+            , BodyPicture . color white . toPicture $ lineShape )
 
   let ballShape = cCircle 0.5
   newEntity ( DynamicBody
@@ -25,7 +25,7 @@ initialize = do
             , Position (V2 0 3)
             , Density 1
             , Elasticity 0.9
-            , BodyPicture . color red . fromShape $ ballShape )
+            , BodyPicture . color red . toPicture $ ballShape )
 
 main = do
   w <- initWorld

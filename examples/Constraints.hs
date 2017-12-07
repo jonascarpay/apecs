@@ -14,27 +14,27 @@ data Target = Target
 instance Component Target
   where type Storage Target = Unique Target
 
-makeWorld "World" [''Physics, ''BodyPicture, ''GlossView, ''Target]
+makeWorld "World" [''Physics, ''BodyPicture, ''Camera, ''Target]
 
-commonProps = (Friction 0.4, Elasticity 0.8, Density 1)
+material = (Friction 0.4, Elasticity 0.8, Density 1)
 
 initialize = do
-  setGlobal ( GlossView 0 150
+  setGlobal ( Camera 0 150
             , earthGravity )
 
   let gridLines' = gridLines (V2 4 3) 4 3
 
   grid <- newEntity ( StaticBody
-                    , commonProps
-                    , BodyPicture . color white . foldMap fromShape $ gridLines' )
+                    , material
+                    , BodyPicture . color white . foldMap toPicture $ gridLines' )
   forM_ gridLines' $ \line ->
-    newEntity ( ShapeExtend (cast grid) (setRadius 0.01 line), commonProps )
+    newEntity ( ShapeExtend (cast grid) (setRadius 0.01 line), material )
 
   let ballshape = cCircle 0.1
       ball = ( DynamicBody
              , Shape ballshape
-             , BodyPicture . color red . fromShape $ ballshape
-             , commonProps )
+             , BodyPicture . color red . toPicture $ ballshape
+             , material )
 
   springA <- newEntity (ball, Position (V2 (-1.7) 1))
   newEntity (ball, Position (V2 (-1.5) 1), Constraint (cast springA) $ DampedSpring 0 0 0.3 3 1e-4)
@@ -42,8 +42,8 @@ initialize = do
   let boxshape = oRectangle 0 0.2
       box = ( DynamicBody
             , Shape boxshape
-            , BodyPicture . color red . fromShape $ boxshape
-            , commonProps )
+            , BodyPicture . color red . toPicture $ boxshape
+            , material )
 
   pinB <- newEntity (box, Position (V2 (-0.3) 1))
   newEntity (box, Position (V2 (-0.55) 1), Constraint (cast pinB) (PinJoint (V2 0.2 0.2) (V2 0 0.2)))
@@ -59,9 +59,9 @@ initialize = do
       paddle pos = ( DynamicBody
                    , Position pos
                    , Shape paddleshape
-                   , BodyPicture . color green . fromShape $ paddleshape
+                   , BodyPicture . color green . toPicture $ paddleshape
                    , Constraint (cast grid) (PivotJoint pos)
-                   , commonProps )
+                   , material )
 
   drsA <- newEntity (paddle (V2 (-1.25) 0))
   drsB <- newEntity (paddle (V2 (-1.75) 0))
@@ -103,8 +103,8 @@ handle (EventKey (MouseButton RightButton) Down _ mscreen) = do
   newEntity ( DynamicBody
             , Position mpos
             , Shape sh
-            , BodyPicture . color blue . fromShape $ sh
-            , commonProps )
+            , BodyPicture . color blue . toPicture $ sh
+            , material )
   return ()
 
 handle _ = return ()
@@ -116,5 +116,5 @@ main = do
     where
       render w        = runSystem drawWorld w
       handler event w = runSystem (handle event) w >> return w
-      stepper dT w    = runSystem (stepPhysics (realToFrac dT)) w >> return w
+      stepper dT w    = runSystem (stepPhysics (1/60)) w >> return w
 

@@ -15,7 +15,7 @@ module Apecs.Physics (
   BodyMass (..), Moment (..), CenterOfGravity (..), Torque (..),
 
   -- * Shape
-  Convex (..), Shape (..),
+  Convex (..), Shape (Shape, ShapeExtend),
   Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..), CollisionFilter (..),
   maskAll, maskNone, maskList, defaultFilter, boxShape,
 
