@@ -7,18 +7,16 @@
 - [x] Add Gloss `play` version to allow interactive games
 - [x] Implement body force components
 - [x] Implement remaining body components
-- [ ] Implement remaining global properties
+- [ ] Conversion functions between body- and world space
 - [x] Implement remaining constraints
 - [ ] Free FunPtrs (we currently leak a small amount of memory)
 - [x] Add explicitly managed shapes whose properties you can change at runtime
-- [ ] Include entity index from data pointer in Chipmunk error messages
 - [x] Check(enforce?) proper deallocation of bodies/shapes/constraints on overwrites etc.
 - [ ] Remaining spatial queries
 - [ ] Fix issues on [travis](https://travis-ci.org/jonascarpay/phycs)
 - [ ] Hackage
 - [x] Presolve/Postsolve collision handlers
 - [x] Remaining collision properties
-- [ ] Apply(Impulse/Force)At(Local/World)
 - [x] Wildcard collision handlers
 - [x] Explicit gloss Picture component, make shapes write-only
 - [ ] Haddocks
@@ -26,9 +24,6 @@
 - [x] Proper convex polygon rendering
 - [ ] Clean up pragmas
 - [x] Move examples to separate package
-- [ ] Benchmarks
-- [ ] Performance tuning (inlining etc.)
-- [ ] Conditionally compiled (debug flag) warnings when setting e.g. position without a body, or density without a shape
 
 ### Want
 - [x] Move rendering to separate package?
@@ -39,3 +34,11 @@
 - [x] `playWorld` camera tracking?
 - [ ] Documentation/tutorials?
 - [ ] Switch to normal FFI instead of inline-c?
+- [ ] Better naming for shapes/convex
+- [ ] Get constaint properties (getConstraintImpulse, getPinJointDistance, etc.)
+- [ ] Include entity index from data pointer in Chipmunk error messages
+- [ ] Implement remaining global properties (errorbias etc.)
+- [ ] Apply(Impulse/Force)At(Local/World)
+- [ ] Benchmarks
+- [ ] Performance tuning (inlining etc.)
+- [ ] Conditionally compiled (debug flag) warnings when setting e.g. position without a body, or density without a shape

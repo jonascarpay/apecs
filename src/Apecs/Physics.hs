@@ -31,7 +31,7 @@ module Apecs.Physics (
   PointQueryResult (..),
   pointQuery,
 
-  -- * Geometr
+  -- * Geometry
   module Apecs.Physics.Geometry,
 
   module Apecs,

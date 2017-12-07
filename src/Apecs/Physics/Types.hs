@@ -49,12 +49,20 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
-data Physics -- Dummy component that adds a physics system to a World
+-- | Uninhabited data type for constructing a world with a chipmunk space.
+data Physics
 
+-- | Vector type used by the library
 type Vec = V2 Double
+-- | Type synonym indicating that a vector is expected to be in body-space coordinates
 type BVec = Vec
+-- | Type synonym indicating that a vector is expected to be in world-space coordinates
 type WVec = Vec
 
+-- | Added to a component to add it to the physics space.
+--   Deleting it will also delete all associated shapes and constraints.
+--   A body has a number of subcomponents: @Position@, @Velocity@, @Force@, @Torque@, @BodyMass@, @Moment@, @Angle@, @AngularVelocity@, and @CenterOfGravity@.
+--   These components cannot be added or removed from an entity, but rather are present as long as the entity has a @Body@.
 data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 
 newtype Position        = Position WVec
@@ -67,10 +75,14 @@ newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
 newtype CenterOfGravity = CenterOfGravity BVec
 
+-- | Shape component.
+--   Adding a shape to an entity that has no @Body@ is a noop.
 data Shape = Shape Convex
            | ShapeExtend (Entity Body) Convex
            | ShapeRead -- ^ Shapes are write-only, this is returned when you attempt to read
 
+-- | A convex polygon.
+--   Consists of a list of vertices, and a radius.
 data Convex = Convex [BVec] Double deriving (Eq, Show)
 
 newtype Sensor          = Sensor          Bool          deriving (Eq, Show)
