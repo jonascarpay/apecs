@@ -99,14 +99,14 @@ newShape :: SpacePtr -> Ptr Body -> ShapeType -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
   where
 
-    go (Circle (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> radius)) spacePtr = [C.block| cpShape* {
+    go (Convex [fmap realToFrac -> V2 x y] (realToFrac -> radius)) spacePtr = [C.block| cpShape* {
       const cpVect vec = { $(double x), $(double y) };
       cpShape* sh = cpCircleShapeNew($(cpBody* bodyPtr), $(double radius), vec);
       cpShapeSetUserData(sh, (void*) $(intptr_t ety));
       return cpSpaceAddShape( $(cpSpace* spacePtr), sh); } |]
 
-    go (Segment (V2 (realToFrac -> xa) (realToFrac -> ya),
-                 V2 (realToFrac -> xb) (realToFrac -> yb))
+    go (Convex [ fmap realToFrac -> V2 xa ya
+               , fmap realToFrac -> V2 xb yb ]
                 (realToFrac -> radius)
        ) spacePtr = [C.block| cpShape* {
        const cpVect va = { $(double xa), $(double ya) };

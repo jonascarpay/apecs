@@ -29,6 +29,7 @@ library
     Apecs.Physics.Body,
     Apecs.Physics.Constraint,
     Apecs.Physics.Collision,
+    Apecs.Physics.Geometry,
     Apecs.Physics.Shape,
     Apecs.Physics.Space,
     Apecs.Physics.Types

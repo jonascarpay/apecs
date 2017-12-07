@@ -5,6 +5,5 @@ packages:
 - examples
 extra-deps:
   - apecs-0.2.4.7
-  - simplemesh-0.1.0.0
 flags: {}
 extra-package-dbs: []

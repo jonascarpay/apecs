@@ -71,10 +71,7 @@ data Shape = Shape ShapeType
            | ShapeExtend (Entity Body) ShapeType
            | ShapeRead -- ^ Shapes are write-only, this is returned when you attempt to read
 
-data ShapeType = Circle  BVec        Double
-               | Segment (BVec,BVec) Double
-               | Convex  [BVec]      Double
-               deriving (Eq, Show)
+data ShapeType = Convex [BVec]      Double deriving (Eq, Show)
 
 newtype Sensor          = Sensor          Bool          deriving (Eq, Show)
 newtype Elasticity      = Elasticity      Double        deriving (Eq, Show)

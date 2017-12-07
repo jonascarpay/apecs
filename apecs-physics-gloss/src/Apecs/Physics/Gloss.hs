@@ -39,8 +39,8 @@ mouseToWorld :: (Float,Float) -> GlossView -> V2 Double
 mouseToWorld (x,y) (GlossView offset scale) = (/scale) <$> (V2 (realToFrac x) (realToFrac y))-offset
 
 fromShape :: ShapeType -> G.Picture
-fromShape (Circle (V2 x y) radius) = G.Translate (realToFrac x) (realToFrac y) $ G.Circle (realToFrac radius)
-fromShape (Segment (a,b) _) = G.Line [v2ToTuple a, v2ToTuple b]
+fromShape (Convex [V2 x y] radius) = G.Translate (realToFrac x) (realToFrac y) $ G.Circle (realToFrac radius)
+fromShape (Convex [a,b] _) = G.Line [v2ToTuple a, v2ToTuple b]
 fromShape (Convex verts _) = G.Polygon (v2ToTuple <$> verts)
 
 v2ToTuple :: V2 Double -> (Float, Float)

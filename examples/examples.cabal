@@ -19,7 +19,6 @@ executable helloworld
                      , apecs-physics
                      , apecs-physics-gloss
                      , gloss
-                     , simplemesh
   default-language:    Haskell2010
 
 executable tumbler
@@ -31,7 +30,6 @@ executable tumbler
                      , apecs-physics
                      , apecs-physics-gloss
                      , gloss
-                     , simplemesh
                      , random
   default-language:    Haskell2010
 
@@ -44,7 +42,6 @@ executable constraints
                      , apecs-physics
                      , apecs-physics-gloss
                      , gloss
-                     , simplemesh
   default-language:    Haskell2010
 
 source-repository head
