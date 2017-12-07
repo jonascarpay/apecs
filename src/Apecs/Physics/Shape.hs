@@ -42,7 +42,7 @@ maskList = foldr (flip setBit) maskNone
 defaultFilter :: CollisionFilter
 defaultFilter = CollisionFilter 0 maskAll maskAll
 
-boxShape :: Double -> Double -> Vec -> ShapeType
+boxShape :: Double -> Double -> Vec -> Convex
 boxShape w h offset = Convex ((+offset) <$> verts) 0
   where
     w' = w/2
@@ -95,7 +95,7 @@ instance Store (Space Shape) where
     if e then Just <$> explGetUnsafe s ety else return Nothing
   explGetUnsafe _ _ = return (error "Shape is a read-only component")
 
-newShape :: SpacePtr -> Ptr Body -> ShapeType -> Int -> IO (Ptr Shape)
+newShape :: SpacePtr -> Ptr Body -> Convex -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
   where
 

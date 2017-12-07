@@ -67,11 +67,11 @@ newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
 newtype CenterOfGravity = CenterOfGravity BVec
 
-data Shape = Shape ShapeType
-           | ShapeExtend (Entity Body) ShapeType
+data Shape = Shape Convex
+           | ShapeExtend (Entity Body) Convex
            | ShapeRead -- ^ Shapes are write-only, this is returned when you attempt to read
 
-data ShapeType = Convex [BVec]      Double deriving (Eq, Show)
+data Convex = Convex [BVec] Double deriving (Eq, Show)
 
 newtype Sensor          = Sensor          Bool          deriving (Eq, Show)
 newtype Elasticity      = Elasticity      Double        deriving (Eq, Show)

@@ -3,54 +3,54 @@ module Apecs.Physics.Geometry where
 import Apecs.Physics.Types
 import Linear
 
-vertices :: ShapeType -> [BVec]
+vertices :: Convex -> [BVec]
 vertices (Convex s _) = s
 
 -- | Map a function over all vertices
-mapVertices :: (BVec -> BVec) -> ShapeType -> ShapeType
+mapVertices :: (BVec -> BVec) -> Convex -> Convex
 mapVertices f (Convex s r) = Convex (f <$> s) r
 
 -- | Translates all vertices. The name shift is to prevent collisions with gloss
-shift :: BVec -> ShapeType -> ShapeType
+shift :: BVec -> Convex -> Convex
 shift = mapVertices . (+)
 
-getRadius :: ShapeType -> Double
+getRadius :: Convex -> Double
 getRadius (Convex _ r) = r
 
-setRadius :: Double -> ShapeType -> ShapeType
+setRadius :: Double -> Convex -> Convex
 setRadius r (Convex s _) = Convex s r
 
-cCircle, zCircle :: Double -> ShapeType
+cCircle, zCircle :: Double -> Convex
 cCircle r = oCircle 0 r
 zCircle = cCircle
 
-oCircle :: BVec -> Double -> ShapeType
+oCircle :: BVec -> Double -> Convex
 oCircle o r = Convex [o] r
 
-hLine, vLine :: Double -> ShapeType
+hLine, vLine :: Double -> Convex
 hLine l = Convex [V2 (-l/2) 0, V2 (l/2) 0] 0
 vLine l = Convex [V2 0 (l/2), V2 0 (-l/2)] 0
 
 -- | Centered rectangle with a given size
-cRectangle :: BVec -> ShapeType
+cRectangle :: BVec -> Convex
 cRectangle s = oRectangle (-s*0.5) s
 
 -- | Rectangle with a given origin and size
-oRectangle :: BVec -> BVec -> ShapeType
+oRectangle :: BVec -> BVec -> Convex
 oRectangle (V2 x y) (V2 w h) = Convex [V2 x y, V2 x (y+h), V2 (x+w) (y+h), V2 (x+w) y] 0
 
 -- | Rectangle with origin 0 and given size
-zRectangle :: BVec -> ShapeType
+zRectangle :: BVec -> Convex
 zRectangle s = oRectangle 0 s
 
 -- | Split a shape into its edges. Will return no edges for points, but returns 2 for a line (in opposite directions)
-toEdges :: ShapeType -> [ShapeType]
+toEdges :: Convex -> [Convex]
 toEdges (Convex [] r) = []
 toEdges (Convex [_] r) = []
 toEdges (Convex vs r) = zipWith (\h t -> Convex [h,t] r) vs (tail . cycle $ vs)
 
 -- | A set of lines forming a grid. Returns (r + c + 2) segments.
-gridLines :: Vec -> Int -> Int -> [ShapeType]
+gridLines :: Vec -> Int -> Int -> [Convex]
 gridLines size c r =
   [ shift (V2 x 0) (vLine h) | x <- xs ] ++
   [ shift (V2 0 y) (hLine w) | y <- ys ]
