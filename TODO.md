@@ -28,6 +28,7 @@
 - [x] Move examples to separate package
 - [ ] Benchmarks
 - [ ] Performance tuning (inlining etc.)
+- [ ] Conditionally compiled (debug flag) warnings when setting e.g. position without a body, or density without a shape
 
 ### Want
 - [x] Move rendering to separate package?

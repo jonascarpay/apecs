@@ -6,7 +6,7 @@
 
 module Apecs.Physics.Gloss
   ( BodyPicture (..), GlossView (..),
-    fromShape, drawWorld, applyView, mouseToWorld
+    fromShape, drawWorld, applyView, mouseToWorld, v2ToTuple,
   ) where
 
 import           Apecs

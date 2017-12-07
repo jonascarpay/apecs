@@ -3,11 +3,8 @@ packages:
 - .
 - apecs-physics-gloss
 - examples
-- location:
-    git: git@github.com:jonascarpay/apecs.git
-    commit: 53ee0ca34e97e8d73497c04eadabd50e6179baf0
-  extra-dep: true
 extra-deps:
-  - apecs-0.2.4.6
+  - apecs-0.2.4.7
+  - simplemesh-0.1.0.0
 flags: {}
 extra-package-dbs: []

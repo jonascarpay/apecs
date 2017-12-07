@@ -65,6 +65,9 @@ instance Store (Space Physics) where
   explSetMaybe _ _ _ = return ()
 
 -- Gravity
+earthGravity :: Gravity
+earthGravity = Gravity $ V2 0 (-9.81)
+
 getGravity :: SpacePtr -> IO (V2 Double)
 getGravity spacePtr = withForeignPtr spacePtr $ \space -> do
   x <- [C.exp| double { cpSpaceGetGravity ($(cpSpace* space)).x } |]

@@ -35,7 +35,7 @@ library
     Apecs.Physics.Query
   build-depends:
     base >= 4.7 && < 5,
-    apecs,
+    apecs >= 0.2.4.7,
     containers,
     inline-c,
     linear,

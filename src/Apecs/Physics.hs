@@ -8,6 +8,7 @@ module Apecs.Physics (
   -- * Space
   Gravity (..), Iterations (..),
   stepPhysics,
+  earthGravity,
 
   -- * Body
   Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),

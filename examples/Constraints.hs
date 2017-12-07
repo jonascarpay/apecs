@@ -7,6 +7,7 @@ import           Apecs.Physics                    as P
 import           Apecs.Physics.Gloss
 import           Apecs.Util
 import           Control.Monad
+import           Data.Mesh
 import           Graphics.Gloss                   as G
 import           Graphics.Gloss.Interface.IO.Game as G
 
@@ -20,7 +21,7 @@ initialize :: System World ()
 initialize = do
 
   setGlobal ( GlossView 0 150
-            , Gravity $ V2 0 (-10) )
+            , earthGravity )
 
   newEntity (StaticBody, Target)
 
@@ -40,7 +41,7 @@ initialize = do
              , BodyPicture . color red . fromShape $ ballshape
              , commonProps )
 
-  let boxshape = Convex [V2 0 0, V2 0 0.2, V2 0.2 0.2, V2 0.2 0] 0
+  let boxshape = Convex (vertices $ rectangle 0.2 0.2) 0
       box = ( DynamicBody
             , Shape boxshape
             , BodyPicture . color red . fromShape $ boxshape
