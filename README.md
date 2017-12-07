@@ -10,6 +10,8 @@ See [TODO.md](https://github.com/jonascarpay/apecs-physics/blob/master/TODO.md) 
 The examples directory contains a number of examples, each can be run with `stack build && stack <examplename>`:
 
 ### helloworld
+![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/helloworld.png)
+
 ```haskell
 makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
 ```
@@ -72,9 +74,9 @@ main = do
 `defaultSimulate` is a convenience wrapper around gloss' `simulateIO`.
 You can find its definition in `Apecs.Physics.Gloss`, in case you want to change the rendering behavior.
 
-![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/helloworld.png)
-
 ### tumbler
+![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/tumbler.png)
+
 ```haskell
 initialize :: System World ()
 initialize = do
@@ -131,9 +133,8 @@ If you don't, you will get a runtime error about simulating zero-mass `DynamicBo
 ```
 Finally, we randomly add a bunch of balls.
 
-![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/tumbler.png)
-
 ### constraints
+![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/constraints.png)
 The final example is a gallery of (some of) the available constraints.
 Drag shapes around with the left mouse button, create a new box with the right.
 
@@ -153,5 +154,3 @@ It also comes in the varieties `Constraint` and `ConstraintExtend`.
 
 Dragging an object with the mouse is also done using a constraint.
 The mouse position actually controls the position of a static body without shapes, and we use a PinJoint to attach whatever we are dragging to it.
-
-![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/constraints.png)

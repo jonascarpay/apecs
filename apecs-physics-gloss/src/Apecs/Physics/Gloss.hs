@@ -53,9 +53,9 @@ drawWorld = do
   view <- getGlobal
   return . applyView view . fold $ f
 
-defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w Camera) => w -> IO ()
-defaultSimulate w =
-  G.simulateIO (G.InWindow "Tumbler" (640,480) (100,100)) G.black 60 w render stepper
+defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w Camera) => w -> String -> IO ()
+defaultSimulate w name =
+  G.simulateIO (G.InWindow name (640,480) (100,100)) G.black 60 w render stepper
     where
       render w       = runSystem drawWorld w
       stepper _ dT w = runSystem (stepPhysics (1/60)) w >> return w

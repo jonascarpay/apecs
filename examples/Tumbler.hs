@@ -41,5 +41,5 @@ initialize = do
 main = do
   w <- initWorld
   runSystem initialize w
-  defaultSimulate w
+  defaultSimulate w "Tumbler"
 
