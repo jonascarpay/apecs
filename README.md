@@ -1,11 +1,13 @@
 # apecs
-##### [hackage](https://hackage.haskell.org/package/apecs) | [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html) | [tutorials](https://github.com/jonascarpay/apecs/blob/master/tutorials/)
+##### [hackage](https://hackage.haskell.org/package/apecs) | [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html) | [apecs-physics](https://github.com/jonascarpay/apecs-physics)
 
-apecs is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-It exposes a DSL that translates to fast storage operations, resulting in expressivity without sacrificing performance or safety.
+apecs is a framework for high-performance game programming in Haskell.
+At its core is an Entity Component System inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 
-There is an example below, and a tutorial can be found [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md).
-For a physics engine written on top of apecs, check out [phycs](https://github.com/jonascarpay/phycs).
+This repository contains the core ECS, which can be extended as desired.
+For example, [apecs-physics](https://github.com/jonascarpay/apecs-physics) is a 2D physics and rendering module for apecs.
+
+There is a code example below, and a basic tutorial can be found [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md).
 For a general introduction to ECS, see [this talk](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [here](https://en.wikipedia.org/wiki/Entity–component–system).
 
 ### Performance
