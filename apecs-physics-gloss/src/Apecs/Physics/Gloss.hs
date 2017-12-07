@@ -2,18 +2,19 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE ViewPatterns               #-}
 
 module Apecs.Physics.Gloss
   ( BodyPicture (..), GlossView (..),
     fromShape, drawWorld, applyView, mouseToWorld, v2ToTuple,
+    defaultSimulate,
   ) where
 
 import           Apecs
 import           Apecs.Physics
-import           Data.Foldable                 (fold)
-import qualified Graphics.Gloss                as G
-import           Graphics.Gloss.Geometry.Angle (radToDeg)
+import           Data.Foldable                        (fold)
+import qualified Graphics.Gloss                       as G
+import           Graphics.Gloss.Geometry.Angle        (radToDeg)
+import qualified Graphics.Gloss.Interface.IO.Simulate as G
 
 newtype BodyPicture = BodyPicture G.Picture deriving Monoid
 
@@ -31,8 +32,8 @@ instance Component GlossView where
   type Storage GlossView = Global GlossView
 
 applyView :: GlossView -> G.Picture -> G.Picture
-applyView (GlossView (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> scale)) =
-  G.Translate x y . G.Scale scale scale
+applyView (GlossView (V2 x y) scale) =
+  G.Scale (realToFrac scale) (realToFrac scale) .  G.Translate (realToFrac . negate $ x) (realToFrac . negate $ y)
 
 mouseToWorld :: (Float,Float) -> GlossView -> V2 Double
 mouseToWorld (x,y) (GlossView offset scale) = (/scale) <$> (V2 (realToFrac x) (realToFrac y))-offset
@@ -51,3 +52,10 @@ drawWorld = do
         return . G.Translate (realToFrac x) (realToFrac y) . G.Rotate (negate . radToDeg . realToFrac $ theta) $ pic
   view <- getGlobal
   return . applyView view . fold $ f
+
+defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w GlossView) => w -> IO ()
+defaultSimulate w =
+  G.simulateIO (G.InWindow "Tumbler" (640,480) (100,100)) G.black 60 w render stepper
+    where
+      render w       = runSystem drawWorld w
+      stepper _ dT w = runSystem (stepPhysics (1/60)) w >> return w

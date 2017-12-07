@@ -9,7 +9,6 @@ import           Apecs.Util
 import           Control.Monad
 import           Data.Mesh
 import           Graphics.Gloss                       as G
-import           Graphics.Gloss.Interface.IO.Simulate as G
 import           System.Random
 
 makeWorld "World" [''Physics, ''BodyPicture, ''GlossView]
@@ -44,8 +43,5 @@ initialize = do
 main = do
   w <- initWorld
   runSystem initialize w
-  simulateIO (InWindow "Tumbler" (640,480) (100,100)) black 60 w render stepper
-    where
-      render w       = runSystem drawWorld w
-      stepper _ dT w = runSystem (stepPhysics (realToFrac dT)) w >> return w
+  defaultSimulate w
 
