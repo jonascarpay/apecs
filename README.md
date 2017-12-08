@@ -135,10 +135,11 @@ Finally, we randomly add a bunch of balls.
 
 ### constraints
 ![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/constraints.png)
+
 The final example is a gallery of (some of) the available constraints.
 Drag shapes around with the left mouse button, create a new box with the right.
 
-This example is too large to fully include here, but if you have made it this far, I highly recommend looking at the source.
+This example is too large to fully include here, but if you have made it this far, I recommend looking at the source.
 Aside from demonstrating constraints, queries and interaction it also contains some neat tricks like:
 ```haskell
 let rubber = (Friction = 0.5, Elasticity = 0.5, Density = 1)
