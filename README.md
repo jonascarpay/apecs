@@ -42,14 +42,14 @@ makeWorld "World" [''Position, ''Velocity, ''Player] -- Generate World and insta
 
 game :: System World ()
 game = do
-  ety <- newEntity (Position 0) -- new entity with just a Position
+  ety <- newEntity (Position 0)              -- new entity with just a Position
   newEntity (Position 1, Velocity 1, Player) -- Tuples for easy composition
-  set ety (Velocity 2) -- set (over)writes components
+  set ety (Velocity 2)                       -- set (over)writes components
 
   -- rmap maps a pure function over all entities in its domain. prmap does the same, but in parallel
   rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  cmapM_ $ \(Position p) -> liftIO (print p) -- Print all positions
+  cmapM_ $ \(Position p) -> liftIO (print p)         -- Print all positions
   cmapM_ $ \(Player, Velocity v) -> liftIO (print v) -- Print player velocity
 
 main :: IO ()
