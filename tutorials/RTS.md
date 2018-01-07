@@ -7,7 +7,7 @@ Don't worry if you don't know SDL2, neither do I.
 We'll only be drawing single pixels to the screen, so it should be pretty easy to follow what's going on.
 The final result can be found [here](https://github.com/jonascarpay/apecs/blob/master/examples/RTS.hs).
 You can run it with `stack build && stack exec rts`.
-I will be skipping some details, so make sure to keep it handy if you want to follow along.
+I will be skipping some details, so make sure to keep the source code handy if you want to follow along.
 
 #### Entity Component Systems
 Entity Component Systems are frameworks for game engines.
@@ -18,8 +18,7 @@ An entity is essentially an ID and a collection of components.
 Components are pieces of data like position, velocity, health, or 3D model.
 
 The game logic is defined in systems that operate on the game world.
-An example of a system is one that looks at all entities with both a position and a velocity, and adds their velocity to their position.
-This is taking the [component pattern](http://gameprogrammingpatterns.com/component.html) to the extreme, where we can arbitrarily add and remove components from entities.
+The typical example of a system is one that looks at all entities with both a position and a velocity, and adds their velocity to their position.
 
 As in most ECS, components are stored together in memory, indexed by entity.
 This makes entities mostly implicit;
@@ -32,7 +31,6 @@ We start by defining our components.
 First up is position.
 A `Position` is just a two-dimensional vector of `Double`s.
 When defining a data type as a component, you have to specify how the component is stored in memory.
-At the root of a storage you'll generally find one of three kinds of storage; a `Map`, `Set`, or `Global`.
 In this case, we can simply store the position in a `Map`.
 ```haskell
 newtype Position = Position {getPos :: V2 Double} deriving (Show, Num)
@@ -100,10 +98,10 @@ instance World `Has` EntityCounter where getStore = System $ asks entityCounter
 When actually executing the game, we produce a world in the IO monad like this:
 ```haskell
 initWorld = do
-  positions  <- initStore -- initStore = initStoreWith (), used to initialize most stores
+  positions  <- initStore
   targets    <- initStore
   selected   <- initStore
-  mouseState <- initStore -- A global needs to be initialized with a value
+  mouseState <- initStore
   counter    <- initStore
   return $ World positions targets selected counter
 ```
