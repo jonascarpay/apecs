@@ -4,7 +4,7 @@
 [![apecs on Stackage LTS 9](http://stackage.org/package/apecs/badge/lts-9)](http://stackage.org/lts-9/package/apecs)
 [![apecs on Stackage LTS 10](http://stackage.org/package/apecs/badge/lts-10)](http://stackage.org/lts-10/package/apecs)
 
-apecs is an _Entity Component System_ (ECS) inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
+apecs is an _Entity Component System_ inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 It consists of expressive DSL for mutable storage operations, and a collection of component stores, both of which can be easily extended.
 
 #### Links
