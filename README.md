@@ -1,6 +1,6 @@
 # apecs
 [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
-[![Hackage](https://img.shields.io/hackage/v/apecs.svg)]()
+[![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs)
 [![apecs on Stackage LTS 9](http://stackage.org/package/apecs/badge/lts-9)](http://stackage.org/lts-9/package/apecs)
 [![apecs on Stackage LTS 10](http://stackage.org/package/apecs/badge/lts-10)](http://stackage.org/lts-10/package/apecs)
 
@@ -10,8 +10,8 @@ It consists of expressive DSL for mutable storage operations, and a collection o
 #### Links
 - [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
 - [introducory tutorial](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
-- [apecs-physics](https://github.com/jonascarpay/apecs-physics)
 - [performance guide](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md)
+- [apecs-physics](https://github.com/jonascarpay/apecs-physics)
 
 #### Performance
 [ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest Rust ECS frameworks.
