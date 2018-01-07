@@ -1,78 +1,56 @@
 # apecs
-##### [hackage](https://hackage.haskell.org/package/apecs) | [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html) | [apecs-physics](https://github.com/jonascarpay/apecs-physics)
+[![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
+[![Hackage](https://img.shields.io/hackage/v/apecs.svg)]()
+[![apecs on Stackage LTS 9](http://stackage.org/package/apecs/badge/lts-9)](http://stackage.org/lts-9/package/apecs)
+[![apecs on Stackage LTS 10](http://stackage.org/package/apecs/badge/lts-10)](http://stackage.org/lts-10/package/apecs)
 
-apecs is a framework for high-performance game programming in Haskell.
-At its core is an _Entity Component System_ inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-This repository contains the core ECS, which can be extended as desired.
-For example, [apecs-physics](https://github.com/jonascarpay/apecs-physics) is a 2D physics and rendering module.
+apecs is an _Entity Component System_ (ECS) inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
+It consists of expressive DSL for mutable storage operations, and a collection of component stores, both of which can be easily extended.
 
-There is a code example below, and a basic tutorial can be found [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md).
-For a general introduction to ECS, see [this talk](https://www.youtube.com/watch?v=lNTaC-JWmdI&feature=youtu.be&t=218) or [here](https://en.wikipedia.org/wiki/Entity–component–system).
+#### Links
+- [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
+- [introducory tutorial](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
+- [apecs-physics](https://github.com/jonascarpay/apecs-physics)
+- [performance guide](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md)
 
-### Performance
-Performance is good.
-Running [ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest Rust ECS frameworks.
-
-|               | pos_vel build | pos_vel step | parallel build | parallel step |
-| ------------- | ------------- | ------------ | -------------- | ------------- |
-| apecs         | 239           | 34           | 777            | 371           |
-| calx          | 261           | 21           | 442            | 72            |
-| constellation | 306           | 10           | 567            | 256           |
-| froggy        | 594           | 13           | 1565           | 97            |
-| specs         | 753           | 38           | 1016           | 205           |
+#### Performance
+[ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest Rust ECS frameworks.
 
 ![Benchmarks](/bench/chart.png)
 
-There is a performance guide [here](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md).
-
-### Example
+#### Example
 ```haskell
+{-# LANGUAGE DataKinds, TypeFamilies, MultiParamTypeClasses #-}
+
 import Apecs
-import Apecs.Stores (Cache)
-import Apecs.Concurrent (prmap)
 import Linear
 
 newtype Position = Position (V2 Double) deriving Show
--- Turn Position into a component by specifiying the type of its Storage
+-- To declare a component, we need to specify how to store it
 instance Component Position where
-  -- The simplest store is a Map
-  type Storage Position = Map Position
+  type Storage Position = Map Position -- The simplest store is a Map
 
 newtype Velocity = Velocity (V2 Double)
 instance Component Velocity where
-  -- We can add a Cache for faster access
-  type Storage Velocity = Cache 100 (Map Velocity)
+  type Storage Velocity = Cache 100 (Map Velocity) -- Caches allow fast access
 
 data Player = Player -- A single constructor component for tagging the player
 instance Component Player where
-  -- Unique contains at most one component. See the Stores module.
-  type Storage Player = Unique Player
+  type Storage Player = Unique Player -- Unique contains at most one component
 
--- Generate a world type and instances
-makeWorld "World" [''Position, ''Velocity, ''Player]
+makeWorld "World" [''Position, ''Velocity, ''Player] -- Generate World and instances
 
 game :: System World ()
 game = do
-  -- Create new entities
-  ety <- newEntity (Position 0)
-  -- Components can be composed using tuples
-  newEntity (Position 0, Velocity 1)
-  newEntity (Position 1, Velocity 1, Player)
+  ety <- newEntity (Position 0) -- new entity with just a Position
+  newEntity (Position 1, Velocity 1, Player) -- Tuples for easy composition
+  set ety (Velocity 2) -- set (over)writes components
 
-  -- set (over)writes components
-  set ety (Velocity 2)
+  -- rmap maps a pure function over all entities in its domain. prmap does the same, but in parallel
+  rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  let stepVelocity (Position p, Velocity v) = Position (v+p)
-
-  -- Side effects
-  liftIO$ putStrLn "Stepping velocities"
-  -- rmap maps a pure function over all entities in its domain
-  rmap stepVelocity
-  -- prmap n does the same, but in parallel
-  prmap 2 stepVelocity
-
-  -- Print all positions
-  cmapM_ $ \(Position p) -> liftIO (print p)
+  cmapM_ $ \(Position p) -> liftIO (print p) -- Print all positions
+  cmapM_ $ \(Player, Velocity v) -> liftIO (print v) -- Print player velocity
 
 main :: IO ()
 main = initWorld >>= runSystem game

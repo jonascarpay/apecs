@@ -14,18 +14,16 @@ Entity Component Systems are frameworks for game engines.
 The concept is as follows:
 
 Your game world consists of entities.
-An entity is an ID and a collection of components.
-Examples of components include position, velocity, health, and 3D model.
-All of the entity's state is captured by the components it holds.
-The game logic is then defined in systems that operate on the game world.
-This is taking the [component pattern](http://gameprogrammingpatterns.com/component.html) to the extreme, where we can arbitrarily add and remove components from entities.
+An entity is essentially an ID and a collection of components.
+Components are pieces of data like position, velocity, health, or 3D model.
+
+The game logic is defined in systems that operate on the game world.
 An example of a system is one that looks at all entities with both a position and a velocity, and adds their velocity to their position.
+This is taking the [component pattern](http://gameprogrammingpatterns.com/component.html) to the extreme, where we can arbitrarily add and remove components from entities.
 
-What makes most ECS fast is that we can store components of the same type together.
-In fact, by storing each component together with the ID of the entity it belongs to, an entity becomes implicit altogether;
+As in most ECS, components are stored together in memory, indexed by entity.
+This makes entities mostly implicit;
 an entity can be said to exist as long as there is at least one component associating itself with that entity's ID.
-
-Once you understand this, the API is relatively straightforward.
 
 #### Components
 In our game, we want to be able to select units and order them around.
