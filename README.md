@@ -5,11 +5,11 @@
 [![apecs on Stackage LTS 10](http://stackage.org/package/apecs/badge/lts-10)](http://stackage.org/lts-10/package/apecs)
 
 apecs is an _Entity Component System_ inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-It consists of expressive DSL for mutable storage operations, and a collection of component stores, both of which can be easily extended.
+It provides a collection of mutable component stores, and an expressive DSL for operating on those stores, both easily extended.
 
 #### Links
 - [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
-- [introducory tutorial](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
+- [introductory tutorial](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
 - [performance guide](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md)
 - [apecs-physics](https://github.com/jonascarpay/apecs-physics)
 
@@ -23,7 +23,7 @@ It consists of expressive DSL for mutable storage operations, and a collection o
 {-# LANGUAGE DataKinds, TypeFamilies, MultiParamTypeClasses #-}
 
 import Apecs
-import Linear
+import Linear (V2)
 
 newtype Position = Position (V2 Double) deriving Show
 -- To declare a component, we need to specify how to store it
