@@ -20,9 +20,10 @@ It provides a collection of mutable component stores, and an expressive DSL for 
 
 #### Example
 ```haskell
-{-# LANGUAGE DataKinds, TypeFamilies, MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
+import Apecs.Stores
 import Linear (V2)
 
 newtype Position = Position (V2 Double) deriving Show
