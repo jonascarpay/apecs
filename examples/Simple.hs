@@ -10,7 +10,7 @@ newtype Position = Position (V2 Double) deriving Show
 instance Component Position where
   type Storage Position = Map Position -- The simplest store is a Map
 
-newtype Velocity = Velocity (V2 Double)
+newtype Velocity = Velocity (V2 Double) deriving Show
 instance Component Velocity where
   type Storage Velocity = Cache 100 (Map Velocity) -- Caches allow fast access
 
@@ -18,20 +18,21 @@ data Player = Player deriving Show -- A single constructor component for tagging
 instance Component Player where
   type Storage Player = Unique Player -- Unique contains at most one component
 
-makeWorld "World" [''Position, ''Velocity, ''Player] -- Generate World and instances
+data Flying = Flying
+instance Component Flying where
+  type Storage Flying = Map Flying
+
+makeWorld "World" [''Position, ''Velocity, ''Player, ''Flying] -- Generate World and instances
 
 game :: System World ()
 game = do
-  ety <- newEntity (Position 0) -- new entity with just a Position
-  newEntity (Position 1, Velocity 1, Player) -- Tuples for easy composition
-  set ety (Velocity 2) -- set (over)writes components
+  newEntity (Position 0, Velocity 1)
+  newEntity (Position 1, Velocity 1, Player)
+  newEntity (Position 1, Velocity 2, Flying)
 
-  -- rmap maps a pure function over all entities in its domain. prmap does the same, but in parallel
-  rmap $ \(Position p, Velocity v) -> Position (v+p)
+  cmap   $ \(Position p, Velocity v) -> Position (v+p)
 
-  -- cmapM_ $ \(Position p) -> liftIO (print p) -- Print all positions
-  -- cmapM_ $ \(Player, Velocity v) -> liftIO (print v) -- Print player velocity
-  cmapM_ $ \(Velocity v, m :: Maybe Player ) -> liftIO (print m) -- Print player velocity
+  cmapM_ $ \(Position _, Entity e, p :: Maybe Player) -> liftIO . print $ (e, p) -- Print player velocity
 
 main :: IO ()
 main = initWorld >>= runSystem game

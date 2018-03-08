@@ -13,7 +13,7 @@ module Apecs (
     initStore,
     get, get', set, modify,
     destroy, exists, resetStore,
-    cmap,
+    cmap, cmapM_,
 
   -- * Other
     runSystem, runWith,
