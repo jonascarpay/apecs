@@ -17,7 +17,6 @@ module Apecs.Stores
 
 import           Control.Monad.Reader
 import qualified Data.IntMap.Strict          as M
-import qualified Data.IntSet                 as S
 import           Data.IORef
 import           Data.Maybe                  (fromJust)
 import           Data.Proxy

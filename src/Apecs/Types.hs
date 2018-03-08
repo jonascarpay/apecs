@@ -26,7 +26,7 @@ newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Mona
 
 -- | A component is defined by the type of its storage
 --   The storage in turn supplies runtime types for the component.
---   For the component to be valid, its Storage must be in instance of Store.
+--   For the component to be valid, its Storage must be an instance of Store.
 class (Elem (Storage c) ~ c, Store (Storage c)) => Component c where
   type Storage c
 
@@ -51,21 +51,20 @@ class Store s where
   explGet :: s -> Int -> IO (SafeRW s)
   -- | Writes a component
   explSet :: s -> Int -> Elem s -> IO ()
+  -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
+  explGetUnsafe :: s -> Int -> IO (Elem s)
+  -- | Either writes or deletes a component
+  explSetMaybe :: s -> Int -> SafeRW s -> IO ()
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
+  -- | Returns an unboxed vector of member indices
+  explMembers :: s -> IO (U.Vector Int)
+
   -- | Returns whether there is a component for the given index
   explExists :: s -> Int -> IO Bool
   explExists s n = do
     mems <- explMembers s
     return $ U.elem n mems
-
-  -- | Returns an unboxed vector of member indices
-  explMembers :: s -> IO (U.Vector Int)
-
-  -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
-  explGetUnsafe :: s -> Int -> IO (Elem s)
-  -- | Either writes or deletes a component
-  explSetMaybe :: s -> Int -> SafeRW s -> IO ()
 
   -- | Removes all components.
   --   Equivalent to calling @explDestroy@ on each member
@@ -146,3 +145,41 @@ T.makeInstances [2..6]
 
 instance (GlobalStore a, GlobalStore b) => GlobalStore (a,b) where
 instance (GlobalStore a, GlobalStore b, GlobalStore c) => GlobalStore (a,b,c) where
+
+
+{--}
+data Not a = Not
+newtype NotStore a = NotStore (Storage a)
+
+instance Component a => Component (Not a) where
+  type Storage (Not a) = NotStore a
+
+instance (Has w a) => Has w (Not a) where
+  getStore = NotStore <$> getStore
+
+instance Component a => Store (NotStore a) where
+  type Elem (NotStore a) = Not a
+  explGetUnsafe _ _ = return Not
+  explSet (NotStore sa) ety _ = explDestroy sa ety
+  explExists (NotStore sa) ety = not <$> explExists sa ety
+  explMembers _ = return mempty
+
+
+newtype MaybeStore a = MaybeStore (Storage a)
+instance Component a => Component (Maybe a) where
+  type Storage (Maybe a) = MaybeStore a
+
+instance (Has w a) => Has w (Maybe a) where
+  getStore = MaybeStore <$> getStore
+
+instance Component a => Store (MaybeStore a) where
+  type Elem (MaybeStore a) = Maybe a
+  explGetUnsafe (MaybeStore sa) ety = do
+    e <- explExists sa ety
+    if e then Just <$> explGetUnsafe sa ety
+         else return Nothing
+  explSet (MaybeStore sa) ety Nothing = explDestroy sa ety
+  explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
+  explExists _ _ = return True
+  explMembers _ = return mempty
+--}

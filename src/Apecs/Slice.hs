@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 
--- | This module is designed to be imported with qualified
+-- | This module is intended to be imported qualified
 module Apecs.Slice where
 
 import           Control.Monad.Reader (liftIO)
