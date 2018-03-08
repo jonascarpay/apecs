@@ -6,7 +6,7 @@ module Apecs (
   -- * Types
     System(..),
     Component(..), Entity(..), Slice, Has(..), Safe(..), cast,
-    Map, Set, Unique, Global, Flag(..),
+    Map, Unique, Global,
 
   -- * Store wrapper functions
     initStore,

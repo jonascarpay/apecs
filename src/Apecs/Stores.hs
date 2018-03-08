@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 
 module Apecs.Stores
-  ( Map, Set, Flag(..), Cache, Unique,
+  ( Map, Cache, Unique,
     Global,
     Cachable,
     defaultSetMaybe,
@@ -70,48 +70,6 @@ instance Store (Map c) where
   {-# INLINE explCmapM #-}
   {-# INLINE explCimapM_ #-}
   {-# INLINE explCimapM #-}
-
--- | Class for flags, used by @Set@ to yield runtime representations.
-class Flag c where
-  flag :: c
-
--- | A store that keeps membership, but holds no values.
---   Produces @flag@ runtime values.
-newtype Set c = Set (IORef S.IntSet)
-instance Flag c => Store (Set c) where
-  type Stores (Set c) = c
-  type SafeRW (Set c) = Bool
-  initStore = Set <$> newIORef mempty
-  explDestroy (Set ref) ety = modifyIORef' ref (S.delete ety)
-  explMembers (Set ref) = U.fromList . S.toList <$> readIORef ref
-  explReset (Set ref) = writeIORef ref mempty
-  explExists (Set ref) ety = S.member ety <$> readIORef ref
-  explImapM_  (Set ref) ma = liftIO (readIORef ref) >>= mapM_ ma . S.toList
-  explImapM   (Set ref) ma = liftIO (readIORef ref) >>= mapM  ma . S.toList
-  {-# INLINE explDestroy #-}
-  {-# INLINE explMembers #-}
-  {-# INLINE explExists #-}
-  {-# INLINE explReset #-}
-  {-# INLINE explImapM_ #-}
-  {-# INLINE explImapM #-}
-
-  explGetUnsafe _ _ = return flag
-  explGet (Set ref) ety = S.member ety <$> readIORef ref
-  explSet (Set ref) ety _ = modifyIORef' ref $ S.insert ety
-  explSetMaybe s ety False = explDestroy s ety
-  explSetMaybe s ety True  = explSet s ety flag
-  explCmap _ _ = return ()
-  explModify _ _ _ = return ()
-  explCmapM   s m = explImapM  s (m . const flag)
-  explCmapM_  s m = explImapM_ s (m . const flag)
-  explCimapM  s m = explImapM  s (m . flip  (,) flag)
-  explCimapM_ s m = explImapM_ s (m . flip  (,) flag)
-  {-# INLINE explGetUnsafe #-}
-  {-# INLINE explGet #-}
-  {-# INLINE explSet #-}
-  {-# INLINE explSetMaybe #-}
-  {-# INLINE explCmap #-}
-  {-# INLINE explModify #-}
 
 -- | A Unique contains at most one component.
 --   Writing to it overwrites both the previous component and its owner.
