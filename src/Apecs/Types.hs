@@ -69,6 +69,8 @@ T.makeInstances [2..6]
 
 -- | Psuedocomponent indicating the absence of @a@.
 data Not a = Not
+
+-- | Pseudostore used to produce values of type @Not a@
 newtype NotStore a = NotStore (Storage a)
 
 instance Component a => Component (Not a) where
@@ -79,12 +81,14 @@ instance (Has w a) => Has w (Not a) where
 
 instance Component a => Store (NotStore a) where
   type Elem (NotStore a) = Not a
+  initStore = error "Initializing Pseudostore"
   explGet _ _ = return Not
   explSet (NotStore sa) ety _ = explDestroy sa ety
   explExists (NotStore sa) ety = not <$> explExists sa ety
   explMembers _ = return mempty
+  explDestroy sa ety = explSet sa ety Not
 
-
+-- | Pseudostore used to produce values of type @Maybe a@
 newtype MaybeStore a = MaybeStore (Storage a)
 instance Component a => Component (Maybe a) where
   type Storage (Maybe a) = MaybeStore a
@@ -94,6 +98,7 @@ instance (Has w a) => Has w (Maybe a) where
 
 instance Component a => Store (MaybeStore a) where
   type Elem (MaybeStore a) = Maybe a
+  initStore = error "Initializing Pseudostore"
   explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
     if e then Just <$> explGet sa ety
@@ -102,3 +107,21 @@ instance Component a => Store (MaybeStore a) where
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
   explExists _ _ = return True
   explMembers _ = return mempty
+  explDestroy (MaybeStore sa) ety = explDestroy sa ety
+
+-- | Pseudostore used to produce components of type @Entity@
+data EntityStore = EntityStore
+instance Component Entity where
+  type Storage Entity = EntityStore
+
+instance (Has w Entity) where
+  getStore = return EntityStore
+
+instance Store EntityStore where
+  type Elem EntityStore = Entity
+  initStore = error "Initializing Pseudostore"
+  explGet _ ety = return $ Entity ety
+  explSet _ _ _ = liftIO$ putStrLn "Warning: Writing Entity is undefined"
+  explExists _ _ = return True
+  explMembers _ = return mempty
+  explDestroy _ _ = return ()

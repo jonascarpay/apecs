@@ -86,15 +86,7 @@ instance (Log l (Elem s), Cachable s) => Store (Logger l s) where
   explMembers (Logger _ s) = explMembers s
   {-# INLINE explReset #-}
   explReset (Logger l s) = logReset l >> explReset s
-  {-# INLINE explImapM_ #-}
-  explImapM_ (Logger _ s) = explImapM_ s
-  {-# INLINE explImapM #-}
-  explImapM (Logger _ s) = explImapM s
 
-  type SafeRW (Logger l s) = SafeRW s
-
-  {-# INLINE explGetUnsafe #-}
-  explGetUnsafe (Logger _ s) ety = explGetUnsafe s ety
   {-# INLINE explGet #-}
   explGet (Logger _ s) ety = explGet s ety
   {-# INLINE explSet #-}
@@ -102,26 +94,6 @@ instance (Log l (Elem s), Cachable s) => Store (Logger l s) where
     mc <- explGet s ety
     logOnSet l (Entity ety) mc x
     explSet s ety x
-
-  {-# INLINE explSetMaybe #-}
-  explSetMaybe s ety (Nothing) = explDestroy s ety
-  explSetMaybe s ety (Just x)  = explSet s ety x
-
-  {-# INLINE explModify #-}
-  explModify (Logger l s) ety f = do
-    mc <- explGet s ety
-    case mc of
-      Just c  -> explSet (Logger l s) ety (f c)
-      Nothing -> return ()
-
-  {-# INLINE explCmapM_ #-}
-  explCmapM_  (Logger _ s) = explCmapM_  s
-  {-# INLINE explCmapM #-}
-  explCmapM   (Logger _ s) = explCmapM   s
-  {-# INLINE explCimapM_ #-}
-  explCimapM_ (Logger _ s) = explCimapM_ s
-  {-# INLINE explCimapM #-}
-  explCimapM  (Logger _ s) = explCimapM  s
 
 -- | Composite Log consisting of 1 Log
 newtype LVec1 l c = LVec1 (l c)
