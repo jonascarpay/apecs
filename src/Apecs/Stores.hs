@@ -32,12 +32,12 @@ newtype Map c = Map (IORef (M.IntMap c))
 instance Store (Map c) where
   type Elem (Map c) = c
   initStore = Map <$> newIORef mempty
-  explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
-  explMembers (Map ref)     = U.fromList . M.keys <$> readIORef ref
-  explExists  (Map ref) ety = M.member ety <$> readIORef ref
-  explReset   (Map ref)     = writeIORef ref mempty
-  explGet (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
-  explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
+  explGet     (Map ref) ety   = fromJust . M.lookup ety <$> readIORef ref
+  explSet     (Map ref) ety x = modifyIORef' ref $ M.insert ety x
+  explExists  (Map ref) ety   = M.member ety <$> readIORef ref
+  explDestroy (Map ref) ety   = modifyIORef' ref (M.delete ety)
+  explMembers (Map ref)       = U.fromList . M.keys <$> readIORef ref
+  explReset   (Map ref)       = writeIORef ref mempty
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
   {-# INLINE explDestroy #-}
@@ -50,9 +50,10 @@ instance Store (Map c) where
 data Unique c = Unique (IORef Int) (IORef c)
 instance Store (Unique c) where
   type Elem (Unique c) = c
-  initStore = Unique <$> newIORef (-1) <*> newIORef undefined
+  initStore = Unique <$> newIORef (-1) <*> newIORef (error "Uninitialized Unique value")
+  explGet     (Unique _ cref) _ = readIORef cref
+  explSet     (Unique eref cref) ety x = writeIORef eref ety >> writeIORef cref x
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
-
   explMembers (Unique eref _) = f <$> readIORef eref
     where f (-1) = mempty
           f x    = U.singleton x
@@ -62,42 +63,28 @@ instance Store (Unique c) where
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
-
-  explGet (Unique _ cref) _ = readIORef cref
-
-  explSet       (Unique eref cref) ety x = writeIORef eref ety >> writeIORef cref x
   {-# INLINE explSet #-}
+  {-# INLINE explGet #-}
 
--- | Constant value. Not very practical, but fun to write.
---   Contains `mempty`
-newtype Const c = Const c
-instance Monoid c => Store (Const c) where
-  type Elem (Const c) = c
-  initStore = return$ Const mempty
-  explDestroy _ _ = return ()
-  explExists  _ _  = return False
-  explMembers _ = return mempty
-  explReset _ = return ()
-  explGet (Const c) _ = return c
-  explSet       _ _ _ = return ()
-
--- | Global value.
+-- | A Global contains exactly one component.
 --   Initialized with 'mempty'
 newtype Global c = Global (IORef c)
 instance Monoid c => Store (Global c) where
   type Elem   (Global c) = c
   initStore = Global <$> newIORef mempty
-
-  explDestroy _ _ = return ()
-  explExists _ _ = return True
   explGet (Global ref) _   = readIORef ref
-  explSet       (Global ref) _ c = writeIORef ref c
+  explSet (Global ref) _ c = writeIORef ref c
+  explExists  _ _ = return True
+  explDestroy s _ = explSet s 0 mempty
   explMembers = return mempty
-
+  {-# INLINE explDestroy #-}
+  {-# INLINE explMembers #-}
+  {-# INLINE explExists #-}
+  {-# INLINE explSet #-}
+  {-# INLINE explGet #-}
 
 -- | A cache around another store.
---   The wrapped store must produce safe representations using Maybe.
---   Note that iterating over a cache is linear in its size, so large, sparsely populated caches might actually decrease performance.
+--   Note that iterating over a cache is linear in cache size, so sparsely populated caches might actually decrease performance.
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
