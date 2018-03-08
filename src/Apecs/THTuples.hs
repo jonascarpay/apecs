@@ -18,7 +18,7 @@ instance (Has w a, Has w b) => Has w (a,b) where
   getStore = (,) <$> getStore <*> getStore
 
 instance (Store a, Store b) => Store (a,b) where
-  type Stores (a, b) = (Stores a, Stores b)
+  type Elem (a, b) = (Elem a, Elem b)
   type SafeRW (a, b) = (SafeRW a, SafeRW b)
   initStore = (,) <$> initStore <*> initStore
 
@@ -78,7 +78,7 @@ tupleInstances n = do
       sequenceAll = foldl1 (\a x -> AppE (AppE (VarE$ mkName ">>") a) x)
 
       strN  = mkName "Store"
-      strsN = mkName "Stores"
+      strsN = mkName "Elem"
       safeN = mkName "SafeRW"
 
       strT  var = ConT strN  `AppT` var

@@ -23,7 +23,6 @@ library
     Apecs,
     Apecs.Types,
     Apecs.Stores,
-    Apecs.Logs,
     Apecs.System,
     Apecs.Concurrent,
     Apecs.Slice,

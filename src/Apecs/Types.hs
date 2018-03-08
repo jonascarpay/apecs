@@ -27,7 +27,7 @@ newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Mona
 -- | A component is defined by the type of its storage
 --   The storage in turn supplies runtime types for the component.
 --   For the component to be valid, its Storage must be in instance of Store.
-class (Stores (Storage c) ~ c, Store (Storage c)) => Component c where
+class (Elem (Storage c) ~ c, Store (Storage c)) => Component c where
   type Storage c
 
 -- | A world `Has` a component if it can produce its Storage
@@ -40,7 +40,7 @@ newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
 -- | Holds components indexed by entities
 class Store s where
   -- | The type of components stored by this Store
-  type Stores s
+  type Elem s
   -- | Return type for safe reads writes to the store
   type SafeRW s
 
@@ -50,7 +50,7 @@ class Store s where
   -- | Retrieves a component from the store
   explGet :: s -> Int -> IO (SafeRW s)
   -- | Writes a component
-  explSet :: s -> Int -> Stores s -> IO ()
+  explSet :: s -> Int -> Elem s -> IO ()
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns whether there is a component for the given index
@@ -63,7 +63,7 @@ class Store s where
   explMembers :: s -> IO (U.Vector Int)
 
   -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
-  explGetUnsafe :: s -> Int -> IO (Stores s)
+  explGetUnsafe :: s -> Int -> IO (Elem s)
   -- | Either writes or deletes a component
   explSetMaybe :: s -> Int -> SafeRW s -> IO ()
 
@@ -88,48 +88,48 @@ class Store s where
   -- | Modifies an element in the store.
   --   Equivalent to reading a value, and then writing the result of the function application.
   {-# INLINE explModify #-}
-  explModify :: s -> Int -> (Stores s -> Stores s) -> IO ()
+  explModify :: s -> Int -> (Elem s -> Elem s) -> IO ()
   explModify s ety f = do etyExists <- explExists s ety
                           when etyExists $ explGetUnsafe s ety >>= explSet s ety . f
 
   -- | Maps over all elements of this store.
   --   Equivalent to getting a list of all entities with this component, and then explModifying each of them.
-  explCmap :: s -> (Stores s -> Stores s) -> IO ()
+  explCmap :: s -> (Elem s -> Elem s) -> IO ()
   {-# INLINE explCmap #-}
   explCmap s f = explMembers s >>= U.mapM_ (\ety -> explModify s ety f)
 
-  explCmapM_ :: MonadIO m => s -> (Stores s -> m a) -> m ()
+  explCmapM_ :: MonadIO m => s -> (Elem s -> m a) -> m ()
   {-# INLINE explCmapM_ #-}
   explCmapM_ s sys = do
     sl <- liftIO$ explMembers s
-    U.forM_ sl $ \ety -> do x :: Stores s <- liftIO$ explGetUnsafe s ety
+    U.forM_ sl $ \ety -> do x :: Elem s <- liftIO$ explGetUnsafe s ety
                             sys x
 
-  explCimapM_ :: MonadIO m => s -> ((Int, Stores s) -> m a) -> m ()
+  explCimapM_ :: MonadIO m => s -> ((Int, Elem s) -> m a) -> m ()
   {-# INLINE explCimapM_ #-}
   explCimapM_ s sys = do
     sl <- liftIO$ explMembers s
-    U.forM_ sl $ \ety -> do x :: Stores s <- liftIO$ explGetUnsafe s ety
+    U.forM_ sl $ \ety -> do x :: Elem s <- liftIO$ explGetUnsafe s ety
                             sys (ety,x)
 
-  explCmapM  :: MonadIO m => s -> (Stores s -> m a) -> m [a]
+  explCmapM  :: MonadIO m => s -> (Elem s -> m a) -> m [a]
   {-# INLINE explCmapM #-}
   explCmapM s sys = do
     sl <- liftIO$ explMembers s
     for (U.toList sl) $ \ety -> do
-      x :: Stores s <- liftIO$ explGetUnsafe s ety
+      x :: Elem s <- liftIO$ explGetUnsafe s ety
       sys x
 
-  explCimapM :: MonadIO m => s -> ((Int, Stores s) -> m a) -> m [a]
+  explCimapM :: MonadIO m => s -> ((Int, Elem s) -> m a) -> m [a]
   {-# INLINE explCimapM #-}
   explCimapM s sys = do
     sl <- liftIO$ explMembers s
     for (U.toList sl) $ \ety -> do
-      x :: Stores s <- liftIO$ explGetUnsafe s ety
+      x :: Elem s <- liftIO$ explGetUnsafe s ety
       sys (ety,x)
 
 -- | Class of storages for global values
-class (SafeRW s ~ Stores s, Store s) => GlobalStore s where
+class (SafeRW s ~ Elem s, Store s) => GlobalStore s where
 
 -- | Casts for entities and slices
 class Cast m where cast :: forall a. m a -> forall b. m b

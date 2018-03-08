@@ -29,9 +29,9 @@ import           GHC.TypeLits
 import           Apecs.Types
 
 -- | Default version of @explSetMaybe@, for your convenience.
---   Can be used when 'SafeRW s ~ Maybe (Stores s)'.
+--   Can be used when 'SafeRW s ~ Maybe (Elem s)'.
 {-# INLINE defaultSetMaybe #-}
-defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Stores s)) => s -> Int -> Maybe (Stores s) -> IO ()
+defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Elem s)) => s -> Int -> Maybe (Elem s) -> IO ()
 defaultSetMaybe s e Nothing  = explDestroy s e
 defaultSetMaybe s e (Just c) = explSet s e c
 
@@ -39,7 +39,7 @@ defaultSetMaybe s e (Just c) = explSet s e c
 --   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
 instance Store (Map c) where
-  type Stores (Map c) = c
+  type Elem (Map c) = c
   initStore = Map <$> newIORef mempty
   explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
   explMembers (Map ref)     = U.fromList . M.keys <$> readIORef ref
@@ -75,7 +75,7 @@ instance Store (Map c) where
 --   Writing to it overwrites both the previous component and its owner.
 data Unique c = Unique (IORef Int) (IORef c)
 instance Store (Unique c) where
-  type Stores (Unique c) = c
+  type Elem (Unique c) = c
   type SafeRW (Unique c) = Maybe c
   initStore = Unique <$> newIORef (-1) <*> newIORef undefined
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
@@ -137,7 +137,7 @@ instance Store (Unique c) where
 --   Contains `mempty`
 newtype Const c = Const c
 instance Monoid c => Store (Const c) where
-  type Stores (Const c) = c
+  type Elem (Const c) = c
   initStore = return$ Const mempty
   explDestroy _ _ = return ()
   explExists  _ _  = return False
@@ -157,7 +157,7 @@ instance Monoid c => GlobalStore (Const c) where
 newtype Global c = Global (IORef c)
 instance Monoid c => GlobalStore (Global c) where
 instance Monoid c => Store (Global c) where
-  type Stores   (Global c) = c
+  type Elem   (Global c) = c
   initStore = Global <$> newIORef mempty
 
   type SafeRW (Global c) = c
@@ -174,14 +174,14 @@ instance Monoid c => Store (Global c) where
 --   The wrapped store must produce safe representations using Maybe.
 --   Note that iterating over a cache is linear in its size, so large, sparsely populated caches might actually decrease performance.
 data Cache (n :: Nat) s =
-  Cache Int (UM.IOVector Int) (VM.IOVector (Stores s)) s
+  Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
-class (Store s, SafeRW s ~ Maybe (Stores s)) => Cachable s
+class (Store s, SafeRW s ~ Maybe (Elem s)) => Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
 instance (KnownNat n, Cachable s) => Store (Cache n s) where
-  type Stores (Cache n s) = Stores s
+  type Elem (Cache n s) = Elem s
   initStore = do
     let n = fromIntegral$ natVal (Proxy @n)
     tags <- UM.replicate n (-1)
