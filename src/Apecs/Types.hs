@@ -34,27 +34,18 @@ class (Elem (Storage c) ~ c, Store (Storage c)) => Component c where
 class Component c => Has w c where
   getStore :: System w (Storage c)
 
--- | Represents a safe access to @c@. A safe access is either a read that might fail, or a write that might delete.
-newtype Safe c = Safe {getSafe :: SafeRW (Storage c)}
-
 -- | Holds components indexed by entities
 class Store s where
   -- | The type of components stored by this Store
   type Elem s
-  -- | Return type for safe reads writes to the store
-  type SafeRW s
 
   -- Initialize the store with its initialization arguments.
   initStore :: IO s
 
-  -- | Retrieves a component from the store
-  explGet :: s -> Int -> IO (SafeRW s)
   -- | Writes a component
   explSet :: s -> Int -> Elem s -> IO ()
   -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
-  explGetUnsafe :: s -> Int -> IO (Elem s)
-  -- | Either writes or deletes a component
-  explSetMaybe :: s -> Int -> SafeRW s -> IO ()
+  explGet :: s -> Int -> IO (Elem s)
   -- | Destroys the component for the given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns an unboxed vector of member indices
@@ -74,62 +65,6 @@ class Store s where
     sl <- explMembers s
     U.mapM_ (explDestroy s) sl
 
-  -- | Monadically iterates over member indices
-  explImapM_ :: MonadIO m => s -> (Int -> m a) -> m ()
-  {-# INLINE explImapM_ #-}
-  explImapM_ s ma = liftIO (explMembers s) >>= mapM_ ma . U.toList
-
-  -- | Monadically iterates over member indices
-  explImapM :: MonadIO m => s -> (Int -> m a) -> m [a]
-  {-# INLINE explImapM #-}
-  explImapM s ma = liftIO (explMembers s) >>= mapM ma . U.toList
-
-  -- | Modifies an element in the store.
-  --   Equivalent to reading a value, and then writing the result of the function application.
-  {-# INLINE explModify #-}
-  explModify :: s -> Int -> (Elem s -> Elem s) -> IO ()
-  explModify s ety f = do etyExists <- explExists s ety
-                          when etyExists $ explGetUnsafe s ety >>= explSet s ety . f
-
-  -- | Maps over all elements of this store.
-  --   Equivalent to getting a list of all entities with this component, and then explModifying each of them.
-  explCmap :: s -> (Elem s -> Elem s) -> IO ()
-  {-# INLINE explCmap #-}
-  explCmap s f = explMembers s >>= U.mapM_ (\ety -> explModify s ety f)
-
-  explCmapM_ :: MonadIO m => s -> (Elem s -> m a) -> m ()
-  {-# INLINE explCmapM_ #-}
-  explCmapM_ s sys = do
-    sl <- liftIO$ explMembers s
-    U.forM_ sl $ \ety -> do x :: Elem s <- liftIO$ explGetUnsafe s ety
-                            sys x
-
-  explCimapM_ :: MonadIO m => s -> ((Int, Elem s) -> m a) -> m ()
-  {-# INLINE explCimapM_ #-}
-  explCimapM_ s sys = do
-    sl <- liftIO$ explMembers s
-    U.forM_ sl $ \ety -> do x :: Elem s <- liftIO$ explGetUnsafe s ety
-                            sys (ety,x)
-
-  explCmapM  :: MonadIO m => s -> (Elem s -> m a) -> m [a]
-  {-# INLINE explCmapM #-}
-  explCmapM s sys = do
-    sl <- liftIO$ explMembers s
-    for (U.toList sl) $ \ety -> do
-      x :: Elem s <- liftIO$ explGetUnsafe s ety
-      sys x
-
-  explCimapM :: MonadIO m => s -> ((Int, Elem s) -> m a) -> m [a]
-  {-# INLINE explCimapM #-}
-  explCimapM s sys = do
-    sl <- liftIO$ explMembers s
-    for (U.toList sl) $ \ety -> do
-      x :: Elem s <- liftIO$ explGetUnsafe s ety
-      sys (ety,x)
-
--- | Class of storages for global values
-class (SafeRW s ~ Elem s, Store s) => GlobalStore s where
-
 -- | Casts for entities and slices
 class Cast m where cast :: forall a. m a -> forall b. m b
 
@@ -143,10 +78,6 @@ instance Cast Slice where
 -- Tuple Instances
 T.makeInstances [2..6]
 
-instance (GlobalStore a, GlobalStore b) => GlobalStore (a,b) where
-instance (GlobalStore a, GlobalStore b, GlobalStore c) => GlobalStore (a,b,c) where
-
-
 {--}
 data Not a = Not
 newtype NotStore a = NotStore (Storage a)
@@ -159,7 +90,7 @@ instance (Has w a) => Has w (Not a) where
 
 instance Component a => Store (NotStore a) where
   type Elem (NotStore a) = Not a
-  explGetUnsafe _ _ = return Not
+  explGet _ _ = return Not
   explSet (NotStore sa) ety _ = explDestroy sa ety
   explExists (NotStore sa) ety = not <$> explExists sa ety
   explMembers _ = return mempty
@@ -174,9 +105,9 @@ instance (Has w a) => Has w (Maybe a) where
 
 instance Component a => Store (MaybeStore a) where
   type Elem (MaybeStore a) = Maybe a
-  explGetUnsafe (MaybeStore sa) ety = do
+  explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
-    if e then Just <$> explGetUnsafe sa ety
+    if e then Just <$> explGet sa ety
          else return Nothing
   explSet (MaybeStore sa) ety Nothing = explDestroy sa ety
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x

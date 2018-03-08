@@ -25,8 +25,7 @@ library
     Apecs.Stores,
     Apecs.System,
     Apecs.Concurrent,
-    Apecs.Reactive,
-    Apecs.Slice,
+    -- Apecs.Reactive,
     Apecs.TH,
     Apecs.Util
   other-modules:

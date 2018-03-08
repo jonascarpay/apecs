@@ -22,19 +22,14 @@ instance (Store a, Store b) => Store (a,b) where
   type SafeRW (a, b) = (SafeRW a, SafeRW b)
   initStore = (,) <$> initStore <*> initStore
 
-  explGet       (sa,sb) ety = (,) <$> explGet sa ety <*> explGet sb ety
   explSet       (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
   explReset     (sa,sb) = explReset sa >> explReset sb
   explDestroy   (sa,sb) ety = explDestroy sa ety >> explDestroy sb ety
   explExists    (sa,sb) ety = explExists sa ety >>= \case False -> return False
                                                           True  -> explExists sb ety
   explMembers   (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
-  explGetUnsafe (sa,sb) ety = (,) <$> explGetUnsafe sa ety <*> explGetUnsafe sb ety
-  explSetMaybe  (sa,sb) ety (wa,wb) = explSetMaybe sa ety wa >> explSetMaybe sb ety wb
-  {-# INLINE explGetUnsafe #-}
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
-  {-# INLINE explSetMaybe #-}
   {-# INLINE explMembers #-}
   {-# INLINE explReset #-}
   {-# INLINE explDestroy #-}
@@ -79,11 +74,9 @@ tupleInstances n = do
 
       strN  = mkName "Store"
       strsN = mkName "Elem"
-      safeN = mkName "SafeRW"
 
       strT  var = ConT strN  `AppT` var
       strsT var = ConT strsN `AppT` var
-      safeT var = ConT safeN `AppT` var
 
       sNs = [ mkName $ "s_" ++ show i | i <- [0..n-1]]
       sPat = ConP tupleName (VarP <$> sNs)
@@ -95,33 +88,27 @@ tupleInstances n = do
       wPat = ConP tupleName (VarP <$> wNs)
       wEs = VarE <$> wNs
 
-      explGetN       = mkName "explGet"
-      explSetN       = mkName "explSet"
-      explResetN     = mkName "explReset"
-      explDestroyN   = mkName "explDestroy"
-      explExistsN    = mkName "explExists"
-      explMembersN   = mkName "explMembers"
-      explGetUnsafeN = mkName "explGetUnsafe"
-      explSetMaybeN  = mkName "explSetMaybe"
-      initStoreN     = mkName "initStore"
+      explSetN     = mkName "explSet"
+      explResetN   = mkName "explReset"
+      explDestroyN = mkName "explDestroy"
+      explExistsN  = mkName "explExists"
+      explMembersN = mkName "explMembers"
+      explGetN     = mkName "explGet"
+      initStoreN   = mkName "initStore"
 
-      explGetE       = VarE explGetN
-      explSetE       = VarE explSetN
-      explResetE     = VarE explResetN
-      explDestroyE   = VarE explDestroyN
-      explExistsE    = VarE explExistsN
-      explMembersE   = VarE explMembersN
-      explGetUnsafeE = VarE explGetUnsafeN
-      explSetMaybeE  = VarE explSetMaybeN
+      explSetE     = VarE explSetN
+      explResetE   = VarE explResetN
+      explDestroyE = VarE explDestroyN
+      explExistsE  = VarE explExistsN
+      explMembersE = VarE explMembersN
+      explGetE     = VarE explGetN
 
-      explGetF sE = AppE explGetE sE `AppE` etyE
       explSetF sE wE = AppE explSetE sE `AppE` etyE `AppE` wE
       explResetF sE = AppE explResetE sE
       explDestroyF sE = AppE explDestroyE sE `AppE` etyE
       explExistsF sE = AppE explExistsE sE
       explMembersF sE = AppE explMembersE sE
-      explGetUnsafeF sE = AppE explGetUnsafeE sE `AppE` etyE
-      explSetMaybeF sE wE = AppE explSetMaybeE sE `AppE` etyE `AppE` wE
+      explGetF sE = AppE explGetE sE `AppE` etyE
 
       explExistsAnd va vb = AppE (AppE (VarE '(>>=)) va)
                                  (LamCaseE [ Match (ConP 'False []) (NormalB$ AppE (VarE 'return) (ConE 'False)) []
@@ -132,11 +119,6 @@ tupleInstances n = do
 
       strI = InstanceD Nothing (strT <$> vars) (strT varTuple)
         [ TySynInstD strsN $ TySynEqn [varTuple] (tupleUpT $ fmap strsT vars)
-        , TySynInstD safeN $ TySynEqn [varTuple] (tupleUpT $ fmap safeT vars)
-
-        , FunD explGetN [Clause [sPat, etyPat]
-            (NormalB$ liftAll tuplE (explGetF <$> sEs)) [] ]
-        , PragmaD$ InlineP explGetN Inline FunLike AllPhases
 
         , FunD explSetN [Clause [sPat, etyPat, wPat]
             (NormalB$ sequenceAll (zipWith explSetF sEs wEs)) [] ]
@@ -158,13 +140,9 @@ tupleInstances n = do
             (NormalB$ foldl explMembersFold (explMembersF (head sEs)) (explExistsF <$> tail sEs)) [] ]
         , PragmaD$ InlineP explMembersN Inline FunLike AllPhases
 
-        , FunD explGetUnsafeN [Clause [sPat, etyPat]
-            (NormalB$ liftAll tuplE (explGetUnsafeF <$> sEs)) [] ]
-        , PragmaD$ InlineP explGetUnsafeN Inline FunLike AllPhases
-
-        , FunD explSetMaybeN [Clause [sPat, etyPat, wPat]
-            (NormalB$ sequenceAll (zipWith explSetMaybeF sEs wEs)) [] ]
-        , PragmaD$ InlineP explSetMaybeN Inline FunLike AllPhases
+        , FunD explGetN [Clause [sPat, etyPat]
+            (NormalB$ liftAll tuplE (explGetF <$> sEs)) [] ]
+        , PragmaD$ InlineP explGetN Inline FunLike AllPhases
 
         , FunD initStoreN [Clause []
             (NormalB$ liftAll tuplE (VarE initStoreN <$ sEs)) [] ]

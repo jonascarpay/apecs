@@ -20,9 +20,7 @@ module Apecs.Util (
 
   -- * Timing
   timeSystem, timeSystem_,
-
-  -- * List functions
-  listAllE, listAllC, listAllEC,
+  setGlobal, getGlobal,
 
   ) where
 
@@ -49,8 +47,8 @@ instance Component EntityCounter where
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w (Entity ())
-nextEntity = do n <- getGlobal
-                setGlobal (n+1)
+nextEntity = do n <- get proxy
+                set proxy (n+1)
                 return (Entity . getSum . getCounter $ n)
 
 -- | Writes the given components to a new entity, and yields that entity
@@ -64,18 +62,6 @@ newEntity c = do ety <- nextEntity
 -- | Explicitly invoke the garbage collector
 runGC :: System w ()
 runGC = liftIO performMajorGC
-
--- | imapM return
-listAllE :: Has w c => System w [Entity c]
-listAllE = imapM return
-
--- | cmapM return
-listAllC :: Has w c => System w [c]
-listAllC = cmapM return
-
--- | cimapM return
-listAllEC :: Has w c => System w [(Entity c, c)]
-listAllEC = cimapM return
 
 -- $hash
 -- The following functions are for spatial hashing.
@@ -143,3 +129,9 @@ timeSystem sys = do
 -- | Runs a system, discards its output, and gives its execution time in seconds
 timeSystem_ :: System w a -> System w Double
 timeSystem_ = fmap fst . timeSystem
+
+getGlobal :: forall w c. Has w c => System w c
+setGlobal = set (Entity (-1))
+
+setGlobal :: forall w c e. Has w c => c -> System w ()
+getGlobal = get (Entity (-1))

@@ -12,7 +12,6 @@ module Apecs.Stores
   ( Map, Cache, Unique,
     Global,
     Cachable,
-    defaultSetMaybe,
   ) where
 
 import           Control.Monad.Reader
@@ -27,13 +26,6 @@ import           GHC.TypeLits
 
 import           Apecs.Types
 
--- | Default version of @explSetMaybe@, for your convenience.
---   Can be used when 'SafeRW s ~ Maybe (Elem s)'.
-{-# INLINE defaultSetMaybe #-}
-defaultSetMaybe :: (Store s, SafeRW s ~ Maybe (Elem s)) => s -> Int -> Maybe (Elem s) -> IO ()
-defaultSetMaybe s e Nothing  = explDestroy s e
-defaultSetMaybe s e (Just c) = explSet s e c
-
 -- | A map from Data.Intmap.Strict. O(log(n)) for most operations.
 --   Yields safe runtime representations of type @Maybe c@.
 newtype Map c = Map (IORef (M.IntMap c))
@@ -44,38 +36,20 @@ instance Store (Map c) where
   explMembers (Map ref)     = U.fromList . M.keys <$> readIORef ref
   explExists  (Map ref) ety = M.member ety <$> readIORef ref
   explReset   (Map ref)     = writeIORef ref mempty
+  explGet (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
+  explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
+  {-# INLINE explGet #-}
+  {-# INLINE explSet #-}
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
-  type SafeRW (Map c) = Maybe c
-  explGetUnsafe (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
-  explGet       (Map ref) ety = M.lookup ety <$> readIORef ref
-  explSet       (Map ref) ety x = modifyIORef' ref $ M.insert ety x
-  explSetMaybe = defaultSetMaybe
-  explModify    (Map ref) ety f = modifyIORef' ref $ M.adjust f ety
-  explCmap      (Map ref) f = modifyIORef' ref $ M.map f
-  explCmapM_    (Map ref) ma = liftIO (readIORef ref) >>= mapM_ ma
-  explCmapM     (Map ref) ma = liftIO (readIORef ref) >>= mapM  ma . M.elems
-  explCimapM_   (Map ref) ma = liftIO (readIORef ref) >>= mapM_ ma . M.assocs
-  explCimapM    (Map ref) ma = liftIO (readIORef ref) >>= mapM  ma . M.assocs
-  {-# INLINE explGetUnsafe #-}
-  {-# INLINE explGet #-}
-  {-# INLINE explSet #-}
-  {-# INLINE explSetMaybe #-}
-  {-# INLINE explCmap #-}
-  {-# INLINE explModify #-}
-  {-# INLINE explCmapM_ #-}
-  {-# INLINE explCmapM #-}
-  {-# INLINE explCimapM_ #-}
-  {-# INLINE explCimapM #-}
 
 -- | A Unique contains at most one component.
 --   Writing to it overwrites both the previous component and its owner.
 data Unique c = Unique (IORef Int) (IORef c)
 instance Store (Unique c) where
   type Elem (Unique c) = c
-  type SafeRW (Unique c) = Maybe c
   initStore = Unique <$> newIORef (-1) <*> newIORef undefined
   explDestroy (Unique eref _) ety = do e <- readIORef eref; when (e==ety) (writeIORef eref (-1))
 
@@ -84,53 +58,15 @@ instance Store (Unique c) where
           f x    = U.singleton x
   explReset   (Unique eref _) = writeIORef eref (-1)
   explExists  (Unique eref _) ety = (==ety) <$> readIORef eref
-  explImapM_  (Unique eref _) ma = do e <- liftIO (readIORef eref); when (e /= -1) (void$ ma e)
-  explImapM   (Unique eref _) ma = do
-    e <- liftIO (readIORef eref)
-    if e /= -1 then return [] else pure <$> ma e
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
   {-# INLINE explReset #-}
-  {-# INLINE explImapM_ #-}
-  {-# INLINE explImapM #-}
 
-  explGetUnsafe (Unique _ cref) _ = readIORef cref
-  explGet       (Unique eref cref) ety = do
-    e <- readIORef eref
-    if e == ety && e /= -1 then Just <$> readIORef cref else return Nothing
+  explGet (Unique _ cref) _ = readIORef cref
 
   explSet       (Unique eref cref) ety x = writeIORef eref ety >> writeIORef cref x
-  explSetMaybe = defaultSetMaybe
-  explCmap      (Unique eref cref) f = readIORef eref >>= \e -> unless (e == -1) $ modifyIORef' cref f
-  explModify    (Unique eref cref) ety f = do
-    e <- readIORef eref
-    when (e==ety && e /= -1) (modifyIORef' cref f)
-
-  explCmapM (Unique eref cref) ma = do
-    e <- liftIO$ readIORef eref
-    if e /= -1 then liftIO (readIORef cref) >>= fmap pure . ma
-               else return []
-
-  explCmapM_ (Unique eref cref) ma = do
-    e <- liftIO$ readIORef eref
-    when (e /= -1) . void $ liftIO (readIORef cref) >>= ma
-
-  explCimapM (Unique eref cref) ma = do
-    e <- liftIO$ readIORef eref
-    if e /= -1 then liftIO (readIORef cref) >>= fmap pure . ma . (,) e
-               else return []
-
-  explCimapM_ (Unique eref cref) ma = do
-    e <- liftIO$ readIORef eref
-    when (e /= -1) . void $ liftIO (readIORef cref) >>= ma . (,) e
-
-  {-# INLINE explGetUnsafe #-}
-  {-# INLINE explGet #-}
   {-# INLINE explSet #-}
-  {-# INLINE explSetMaybe #-}
-  {-# INLINE explCmap #-}
-  {-# INLINE explModify #-}
 
 -- | Constant value. Not very practical, but fun to write.
 --   Contains `mempty`
@@ -142,30 +78,20 @@ instance Monoid c => Store (Const c) where
   explExists  _ _  = return False
   explMembers _ = return mempty
   explReset _ = return ()
-  type SafeRW (Const c) = c
-  explGetUnsafe (Const c) _ = return c
-  explGet       (Const c) _ = return c
+  explGet (Const c) _ = return c
   explSet       _ _ _ = return ()
-  explSetMaybe  _ _ _ = return ()
-  explModify    _ _ _ = return ()
-  explCmap       _ _ = return ()
-instance Monoid c => GlobalStore (Const c) where
 
 -- | Global value.
 --   Initialized with 'mempty'
 newtype Global c = Global (IORef c)
-instance Monoid c => GlobalStore (Global c) where
 instance Monoid c => Store (Global c) where
   type Elem   (Global c) = c
   initStore = Global <$> newIORef mempty
 
-  type SafeRW (Global c) = c
   explDestroy _ _ = return ()
-  explExists _ _ = return False
-  explGetUnsafe (Global ref) _ = readIORef ref
-  explGet (Global ref) _ = readIORef ref
-  explSet (Global ref) _ c = writeIORef ref c
-  explSetMaybe = explSet
+  explExists _ _ = return True
+  explGet (Global ref) _   = readIORef ref
+  explSet       (Global ref) _ c = writeIORef ref c
   explMembers = return mempty
 
 
@@ -175,7 +101,7 @@ instance Monoid c => Store (Global c) where
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
-class (Store s, SafeRW s ~ Maybe (Elem s)) => Cachable s
+class Store s => Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
@@ -211,33 +137,12 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
     forM_ [0..n-1] $ \e -> UM.write tags e (-1)
     explReset s
 
-  {-# INLINE explImapM_ #-}
-  explImapM_ (Cache _ tags _ s) ma = do
-    liftIO (U.freeze tags) >>= U.mapM_ ma . U.filter (/= (-1))
-    explImapM_ s ma
-
-  {-# INLINE explImapM #-}
-  explImapM (Cache _ tags _ s) ma = do
-    as1 <- liftIO (U.freeze tags) >>= mapM ma . U.toList . U.filter (/= (-1))
-    as2 <- explImapM s ma
-    return (as1 ++ as2)
-
-  type SafeRW (Cache n s) = SafeRW s
-
-  {-# INLINE explGetUnsafe #-}
-  explGetUnsafe (Cache n tags cache s) ety = do
-    let index = ety `rem` n
-    tag <- UM.unsafeRead tags index
-    if tag == ety
-       then VM.unsafeRead cache index
-       else explGetUnsafe s ety
-
   {-# INLINE explGet #-}
   explGet (Cache n tags cache s) ety = do
     let index = ety `rem` n
     tag <- UM.unsafeRead tags index
     if tag == ety
-       then Just <$> VM.unsafeRead cache index
+       then VM.unsafeRead cache index
        else explGet s ety
 
   {-# INLINE explSet #-}
@@ -249,39 +154,3 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
       explSet s tag cached
     UM.unsafeWrite tags  index ety
     VM.unsafeWrite cache index x
-
-  {-# INLINE explSetMaybe #-}
-  explSetMaybe = defaultSetMaybe
-
-  {-# INLINE explCmap #-}
-  explCmap (Cache n tags cache s) f = do
-    forM_ [0..n-1] $ \e -> do
-      tag <- UM.read tags e
-      unless (tag == (-1)) (VM.modify cache f e)
-    explCmap s f
-
-  {-# INLINE explModify #-}
-  explModify (Cache n tags cache s) ety f = do
-    let index = ety `rem` n
-    tag <- UM.read tags index
-    if tag == ety
-       then VM.modify cache f ety
-       else explModify s ety f
-
-  {-# INLINE explCmapM_ #-}
-  explCmapM_ (Cache n tags cache s) ma = do
-    forM_ [0..n-1] $ \e -> do
-      tag <- liftIO$ UM.read tags e
-      unless (tag == (-1)) $ do
-        r <- liftIO$ VM.read cache e
-        void$ ma r
-    explCmapM_ s ma
-
-  {-# INLINE explCimapM_ #-}
-  explCimapM_ (Cache n tags cache s) ma = do
-    forM_ [0..n-1] $ \e -> do
-      tag <- liftIO$ UM.read tags e
-      unless (tag == (-1)) $ do
-        r <- liftIO$ VM.read cache e
-        void$ ma (e, r)
-    explCimapM_ s ma

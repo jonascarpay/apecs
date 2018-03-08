@@ -23,7 +23,6 @@ import qualified Data.IntSet          as S
 import           Data.IORef
 import qualified Data.Vector.Mutable  as VM
 
-import qualified Apecs.Slice          as Sl
 import           Apecs.Stores
 import           Apecs.Types
 
@@ -194,6 +193,7 @@ instance (Bounded c, Enum c) => Log EnumTable c where
   {-# INLINE logReset #-}
   logReset (EnumTable vec) = forM_ [0..VM.length vec - 1] (\e -> VM.write vec e mempty)
 
+{-- TODO --
 -- | Query the @EnumTable@ by an index (the result of @fromEnum@).
 --   Will return an empty slice if @index < 0@ of @index >= fromEnum (maxBound)@.
 {-# INLINE byIndex #-}
@@ -207,3 +207,4 @@ byIndex (EnumTable vec) c
 --   Will not perform bound checks, so crashes if `fromEnum c < 0 && fromEnum c > fromEnum maxBound `.
 byEnum :: Enum c => EnumTable c -> c -> System w (Slice c)
 byEnum (EnumTable vec) c = liftIO$ Sl.fromList . S.toList <$> VM.read vec (fromEnum c)
+--}

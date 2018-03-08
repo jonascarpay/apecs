@@ -19,18 +19,3 @@ executable simple
     Haskell2010
   ghc-options:
     -fno-warn-unused-top-binds
-
-executable rts
-  main-is:
-    RTS.hs
-  build-depends:
-    base,
-    apecs,
-    sdl2,
-    random,
-    linear
-  default-language:
-    Haskell2010
-  ghc-options:
-    -Odph
-    -fno-warn-unused-top-binds

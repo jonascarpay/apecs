@@ -1,6 +1,8 @@
-{-# LANGUAGE DataKinds, TypeFamilies, MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds, ScopedTypeVariables, TypeApplications, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
+import Apecs.Stores
+import Apecs.Types
 import Linear
 
 newtype Position = Position (V2 Double) deriving Show
@@ -12,7 +14,7 @@ newtype Velocity = Velocity (V2 Double)
 instance Component Velocity where
   type Storage Velocity = Cache 100 (Map Velocity) -- Caches allow fast access
 
-data Player = Player -- A single constructor component for tagging the player
+data Player = Player deriving Show -- A single constructor component for tagging the player
 instance Component Player where
   type Storage Player = Unique Player -- Unique contains at most one component
 
@@ -27,8 +29,9 @@ game = do
   -- rmap maps a pure function over all entities in its domain. prmap does the same, but in parallel
   rmap $ \(Position p, Velocity v) -> Position (v+p)
 
-  cmapM_ $ \(Position p) -> liftIO (print p) -- Print all positions
-  cmapM_ $ \(Player, Velocity v) -> liftIO (print v) -- Print player velocity
+  -- cmapM_ $ \(Position p) -> liftIO (print p) -- Print all positions
+  -- cmapM_ $ \(Player, Velocity v) -> liftIO (print v) -- Print player velocity
+  cmapM_ $ \(Velocity v, m :: Maybe Player ) -> liftIO (print m) -- Print player velocity
 
 main :: IO ()
 main = initWorld >>= runSystem game
