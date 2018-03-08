@@ -10,7 +10,6 @@
 module Apecs.Types where
 
 import           Control.Monad.Reader
-import           Data.Traversable     (for)
 import qualified Data.Vector.Unboxed  as U
 
 import qualified Apecs.THTuples       as T
@@ -44,9 +43,9 @@ class Store s where
 
   -- | Writes a component
   explSet :: s -> Int -> Elem s -> IO ()
-  -- | Unsafe index to the store. What happens if the component does not exist is left undefined.
+  -- | Reads a component from the store. What happens if the component does not exist is left undefined.
   explGet :: s -> Int -> IO (Elem s)
-  -- | Destroys the component for the given index.
+  -- | Destroys the component for a given index.
   explDestroy :: s -> Int -> IO ()
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
@@ -78,7 +77,7 @@ instance Cast Slice where
 -- Tuple Instances
 T.makeInstances [2..6]
 
-{--}
+-- | Psuedocomponent indicating the absence of @a@.
 data Not a = Not
 newtype NotStore a = NotStore (Storage a)
 
@@ -113,4 +112,3 @@ instance Component a => Store (MaybeStore a) where
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
   explExists _ _ = return True
   explMembers _ = return mempty
---}
