@@ -25,15 +25,17 @@ runWith = flip runSystem
 --   For composite components, this indicates whether the component
 --   has all its constituents
 {-# INLINE exists #-}
-exists :: forall w c. Has w c => Entity c -> System w Bool
-exists (Entity n) = do s :: Storage c <- getStore
-                       liftIO$ explExists s n
+exists :: forall w c. Has w c => Entity -> c -> System w Bool
+exists (Entity ety) _ = do
+  s :: Storage c <- getStore
+  liftIO$ explExists s ety
 
 -- | Destroys the component @c@ for the given entity
 {-# INLINE destroy #-}
-destroy :: forall w c. Has w c => Entity c -> System w ()
-destroy (Entity n) = do s :: Storage c <- getStore
-                        liftIO$ explDestroy s n
+destroy :: forall w c. Has w c => Entity -> c -> System w ()
+destroy (Entity ety) _ = do
+  s :: Storage c <- getStore
+  liftIO$ explDestroy s ety
 
 -- | Removes all components. Equivalent to manually iterating and deleting, but usually optimized.
 {-# INLINE resetStore #-}
@@ -42,43 +44,44 @@ resetStore _ = do s :: Storage c <- getStore
                   liftIO$ explReset s
 
 {-# INLINE get #-}
-get :: forall w c. Has w c => Entity c -> System w c
-get (Entity ety) = do s :: Storage c <- getStore
-                      liftIO$ explGet s ety
+get :: forall w c. Has w (Maybe c) => Entity -> System w (Maybe c)
+get (Entity ety) = do
+  s :: Storage (Maybe c) <- getStore
+  liftIO$ explGet s ety
+
+{-# INLINE get' #-}
+get' :: forall w c. Has w c => Entity -> System w c
+get' (Entity ety) = do
+  s :: Storage c <- getStore
+  liftIO$ explGet s ety
 
 -- | Writes a component to a given entity. Will overwrite existing components.
 --   The type was originally 'Entity c -> c -> System w ()', but is relaxed to 'Entity e'
 --   so you don't always have to write 'set . cast'
 {-# INLINE set #-}
-set :: forall w c e. Has w c => Entity e -> c -> System w ()
+set :: forall w c. Has w c => Entity -> c -> System w ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
   liftIO$ explSet s ety x
 
--- | Applies a function if possible. Equivalent to reading, mapping, and writing, but stores can provide optimized implementations.
+-- | Applies a function, if possible.
 {-# INLINE modify #-}
-modify :: forall w c. Has w c => Entity c -> (c -> c) -> System w ()
+modify :: forall w c. Has w c => Entity -> (c -> c) -> System w ()
 modify (Entity ety) f = do
   s :: Storage c <- getStore
   liftIO$ do
     x <- explGet s ety
     explSet s ety (f x)
 
-{--
-{-# INLINE cmapM #-}
-cmapM :: forall w c a. Has w c => (c -> System w a) -> System w [a]
-cmapM sys = do s :: Storage c <- getStore
-               explCmapM s sys
---}
-
 -- | Maps a function over all entities with a @r@, and writes their @w@
-{-# INLINE rmap #-}
-rmap :: forall world r w. (Has world w, Has world r)
-      => (r -> w) -> System world ()
-rmap f = do sr :: Storage r <- getStore
-            sc :: Storage w <- getStore
-            liftIO$ do sl <- explMembers sr
-                       U.forM_ sl $ \ e -> do
-                          r <- explGet sr e
-                          explSet sc e (f r)
-
+{-# INLINE cmap #-}
+cmap :: forall world cx cy. (Has world cx, Has world cy)
+     => (cx -> cy) -> System world ()
+cmap f = do
+  sx :: Storage cx <- getStore
+  sy :: Storage cy <- getStore
+  liftIO$ do
+    sl <- explMembers sx
+    U.forM_ sl $ \ e -> do
+      r <- explGet sx e
+      explSet sy e (f r)

@@ -5,18 +5,15 @@ It selectively re-exports the user-facing functions from the submodules.
 module Apecs (
   -- * Types
     System(..),
-    Component(..), Entity(..), Slice, Has(..), cast,
+    Component(..), Entity(..), Slice, Has(..),
     Map, Unique, Global,
     Not(..),
 
   -- * Store wrapper functions
     initStore,
+    get, get', set, modify,
     destroy, exists, resetStore,
-    get, set, modify,
-    rmap,
-
-  -- ** GlobalRW wrapper functions
-    getGlobal, setGlobal,
+    cmap,
 
   -- * Other
     runSystem, runWith,

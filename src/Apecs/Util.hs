@@ -9,7 +9,7 @@
 module Apecs.Util (
   -- * Utility
   initStore, runGC,
-  proxy,
+  global,
 
   -- * EntityCounter
   EntityCounter, nextEntity, newEntity,
@@ -20,7 +20,6 @@ module Apecs.Util (
 
   -- * Timing
   timeSystem, timeSystem_,
-  setGlobal, getGlobal,
 
   ) where
 
@@ -34,30 +33,29 @@ import           Apecs.Stores
 import           Apecs.System
 import           Apecs.Types
 
--- | A proxy entity for TODO
-proxy :: Entity c
-proxy = Entity (-1)
+global :: Entity
+global = Entity (-1)
 
 -- | Secretly just an int in a newtype
-newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Num, Eq, Show)
+newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Eq, Show)
 
 instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
-nextEntity :: Has w EntityCounter => System w (Entity ())
-nextEntity = do n <- get proxy
-                set proxy (n+1)
-                return (Entity . getSum . getCounter $ n)
+nextEntity :: Has w EntityCounter => System w Entity
+nextEntity = do EntityCounter n <- get' global
+                set global (EntityCounter $ n+1)
+                return (Entity . getSum $ n)
 
 -- | Writes the given components to a new entity, and yields that entity
 {-# INLINE newEntity #-}
 newEntity :: (Store (Storage c), Has w c, Has w EntityCounter)
-          => c -> System w (Entity c)
+          => c -> System w Entity
 newEntity c = do ety <- nextEntity
                  set ety c
-                 return (cast ety)
+                 return ety
 
 -- | Explicitly invoke the garbage collector
 runGC :: System w ()
@@ -129,9 +127,3 @@ timeSystem sys = do
 -- | Runs a system, discards its output, and gives its execution time in seconds
 timeSystem_ :: System w a -> System w Double
 timeSystem_ = fmap fst . timeSystem
-
-getGlobal :: forall w c. Has w c => System w c
-setGlobal = set (Entity (-1))
-
-setGlobal :: forall w c e. Has w c => c -> System w ()
-getGlobal = get (Entity (-1))

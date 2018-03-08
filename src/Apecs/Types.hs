@@ -14,11 +14,11 @@ import qualified Data.Vector.Unboxed  as U
 
 import qualified Apecs.THTuples       as T
 
--- | An Entity is really just an Int. The type variable is used to keep track of reads and writes, but can be freely cast.
-newtype Entity c = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
+-- | An Entity is really just an Int in a newtype.
+newtype Entity = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
 
 -- | A slice is a list of entities, represented by a Data.Unbox.Vector of Ints.
-newtype Slice c = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)
+newtype Slice = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)
 
 -- | A system is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
@@ -63,16 +63,6 @@ class Store s where
   explReset s = do
     sl <- explMembers s
     U.mapM_ (explDestroy s) sl
-
--- | Casts for entities and slices
-class Cast m where cast :: forall a. m a -> forall b. m b
-
-instance Cast Entity where
-  {-# INLINE cast #-}
-  cast (Entity ety) = Entity ety
-instance Cast Slice where
-  {-# INLINE cast #-}
-  cast (Slice vec) = Slice vec
 
 -- Tuple Instances
 T.makeInstances [2..6]
