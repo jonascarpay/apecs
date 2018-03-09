@@ -19,9 +19,9 @@ import Data.List (sort)
 import Apecs
 import Apecs.Types
 import Apecs.Stores
-import Apecs.Logs
 import Apecs.Util
-import qualified Apecs.Slice as Sl
+
+{--
 
 type Vec = (Double, Double)
 
@@ -152,5 +152,8 @@ prop_global = assertSys initGProp $ do
   G x <- getGlobal
   return $ x == True
 
+
 return []
 main = $quickCheckAll
+--}
+main = return ()

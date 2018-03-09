@@ -66,6 +66,17 @@ cmap f = do
       explSet sy e (f r)
 
 -- | Monadically iterates over all entites with a cx
+{-# INLINE cmapM #-}
+cmapM :: forall world c a. Has world c
+      => (c -> System world a) -> System world [a]
+cmapM sys = do
+  s :: Storage c <- getStore
+  sl <- liftIO$ explMembers s
+  forM (U.toList sl) $ \ ety -> do
+    x <- liftIO$ explGet s ety
+    sys x
+
+-- | Monadically iterates over all entites with a cx
 {-# INLINE cmapM_ #-}
 cmapM_ :: forall world c. Has world c
        => (c -> System world ()) -> System world ()

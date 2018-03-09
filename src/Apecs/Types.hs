@@ -10,15 +10,13 @@
 module Apecs.Types where
 
 import           Control.Monad.Reader
+import           Data.Functor.Identity
 import qualified Data.Vector.Unboxed  as U
 
 import qualified Apecs.THTuples       as T
 
 -- | An Entity is really just an Int in a newtype.
 newtype Entity = Entity {unEntity :: Int} deriving (Eq, Ord, Show)
-
--- | A slice is a list of entities, represented by a Data.Unbox.Vector of Ints.
-newtype Slice = Slice {unSlice :: U.Vector Int} deriving (Show, Monoid)
 
 -- | A system is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
@@ -64,6 +62,21 @@ class Store s where
     sl <- explMembers s
     U.mapM_ (explDestroy s) sl
 
+instance Component c => Component (Identity c) where
+  type Storage (Identity c) = Identity (Storage c)
+
+instance Has w c => Has w (Identity c) where
+  getStore = Identity <$> getStore
+
+instance Store s => Store (Identity s) where
+  type Elem (Identity s) = Identity (Elem s)
+  initStore = error "Initializing Pseudostore"
+  explGet (Identity s) e = Identity <$> explGet s e
+  explSet (Identity s) e (Identity x) = explSet s e x
+  explExists  (Identity s) = explExists s
+  explMembers (Identity s) = explMembers s
+  explDestroy (Identity s) = explDestroy s
+
 -- Tuple Instances
 T.makeInstances [2..6]
 
@@ -71,16 +84,16 @@ T.makeInstances [2..6]
 data Not a = Not
 
 -- | Pseudostore used to produce values of type @Not a@
-newtype NotStore a = NotStore (Storage a)
+newtype NotStore s = NotStore s
 
-instance Component a => Component (Not a) where
-  type Storage (Not a) = NotStore a
+instance Component c => Component (Not c) where
+  type Storage (Not c) = NotStore (Storage c)
 
-instance (Has w a) => Has w (Not a) where
+instance (Has w c) => Has w (Not c) where
   getStore = NotStore <$> getStore
 
-instance Component a => Store (NotStore a) where
-  type Elem (NotStore a) = Not a
+instance Store s => Store (NotStore s) where
+  type Elem (NotStore s) = Not (Elem s)
   initStore = error "Initializing Pseudostore"
   explGet _ _ = return Not
   explSet (NotStore sa) ety _ = explDestroy sa ety
@@ -89,15 +102,15 @@ instance Component a => Store (NotStore a) where
   explDestroy sa ety = explSet sa ety Not
 
 -- | Pseudostore used to produce values of type @Maybe a@
-newtype MaybeStore a = MaybeStore (Storage a)
-instance Component a => Component (Maybe a) where
-  type Storage (Maybe a) = MaybeStore a
+newtype MaybeStore s = MaybeStore s
+instance Component c => Component (Maybe c) where
+  type Storage (Maybe c) = MaybeStore (Storage c)
 
-instance (Has w a) => Has w (Maybe a) where
+instance (Has w c) => Has w (Maybe c) where
   getStore = MaybeStore <$> getStore
 
-instance Component a => Store (MaybeStore a) where
-  type Elem (MaybeStore a) = Maybe a
+instance Store s => Store (MaybeStore s) where
+  type Elem (MaybeStore s) = Maybe (Elem s)
   initStore = error "Initializing Pseudostore"
   explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
@@ -108,6 +121,48 @@ instance Component a => Store (MaybeStore a) where
   explExists _ _ = return True
   explMembers _ = return mempty
   explDestroy (MaybeStore sa) ety = explDestroy sa ety
+
+-- | Pseudostore used to produce values of type @Either p q@
+data EitherStore sp sq = EitherStore sp sq
+instance (Component p, Component q) => Component (Either p q) where
+  type Storage (Either p q) = EitherStore (Storage p) (Storage q)
+
+instance (Has w p, Has w q) => Has w (Either p q) where
+  getStore = EitherStore <$> getStore <*> getStore
+
+instance (Store sp, Store sq) => Store (EitherStore sp sq) where
+  type Elem (EitherStore sp sq) = Either (Elem sp) (Elem sq)
+  initStore = error "Initializing Pseudostore"
+  explGet (EitherStore sp sq) ety = do
+    e <- explExists sp ety
+    if e then Left <$> explGet sp ety
+         else Right <$> explGet sq ety
+  explSet (EitherStore sp _) ety (Left p) = explSet sp ety p
+  explSet (EitherStore _ sq) ety (Right q) = explSet sq ety q
+  explExists (EitherStore sp sq) ety = do
+    e <- explExists sp ety
+    if e then return True
+         else explExists sq ety
+  explMembers _ = return mempty
+  explDestroy _ _ = return ()
+
+data Filter c = Filter deriving (Eq, Show)
+newtype FilterStore s = FilterStore s
+
+instance Component c => Component (Filter c) where
+  type Storage (Filter c) = FilterStore (Storage c)
+
+instance Has w c => Has w (Filter c) where
+  getStore = FilterStore <$> getStore
+
+instance Store s => Store (FilterStore s) where
+  type Elem (FilterStore s) = Filter (Elem s)
+  initStore = error "Initializing Pseudostore"
+  explGet _ _ = return Filter
+  explSet _ _ _ = return ()
+  explExists (FilterStore s) ety = explExists s ety
+  explMembers (FilterStore s) = explMembers s
+  explDestroy _ _ = return ()
 
 -- | Pseudostore used to produce components of type @Entity@
 data EntityStore = EntityStore
