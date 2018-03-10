@@ -31,7 +31,7 @@ import           System.Mem           (performMajorGC)
 
 import           Apecs.Stores
 import           Apecs.System
-import           Apecs.Types
+import           Apecs.Core
 
 global :: Entity
 global = Entity (-1)

@@ -30,6 +30,6 @@ import           Control.Monad.Reader (ask, asks, lift, liftIO)
 import           Apecs.Stores
 import           Apecs.System
 import           Apecs.TH
-import           Apecs.Types
+import           Apecs.Core
 import           Apecs.Util
 

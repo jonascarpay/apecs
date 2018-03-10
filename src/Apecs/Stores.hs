@@ -24,7 +24,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           GHC.TypeLits
 
-import           Apecs.Types
+import           Apecs.Core
 
 -- | A map from Data.Intmap.Strict. O(log(n)) for most operations.
 --   Yields safe runtime representations of type @Maybe c@.

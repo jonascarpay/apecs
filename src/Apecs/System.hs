@@ -9,7 +9,7 @@ module Apecs.System where
 import           Control.Monad.Reader
 import qualified Data.Vector.Unboxed  as U
 
-import           Apecs.Types
+import           Apecs.Core
 
 -- | Run a system with a game world
 {-# INLINE runSystem #-}

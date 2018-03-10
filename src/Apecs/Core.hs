@@ -7,7 +7,7 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Apecs.Types where
+module Apecs.Core where
 
 import           Control.Monad.Reader
 import           Data.Functor.Identity
@@ -32,6 +32,12 @@ class Component c => Has w c where
   getStore :: System w (Storage c)
 
 -- | Holds components indexed by entities
+--
+--   Laws:
+--
+--      * For all entities in @exmplMembers s@, @explExists s ety@ must be true.
+--
+--      * If for some entity @explExists s ety@, @explGet s ety@ should safely return a non-bottom value.
 class Store s where
   -- | The type of components stored by this Store
   type Elem s
@@ -70,7 +76,7 @@ instance Store s => Store (Identity s) where
   explDestroy (Identity s) = explDestroy s
 
 -- Tuple Instances
-T.makeInstances [2..6]
+T.makeInstances [2..8]
 
 -- | Psuedocomponent indicating the absence of @a@.
 data Not a = Not
