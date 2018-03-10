@@ -23,7 +23,6 @@ instance (Store a, Store b) => Store (a,b) where
   initStore = (,) <$> initStore <*> initStore
 
   explSet       (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
-  explReset     (sa,sb) = explReset sa >> explReset sb
   explDestroy   (sa,sb) ety = explDestroy sa ety >> explDestroy sb ety
   explExists    (sa,sb) ety = explExists sa ety >>= \case False -> return False
                                                           True  -> explExists sb ety
@@ -31,7 +30,6 @@ instance (Store a, Store b) => Store (a,b) where
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
   {-# INLINE explMembers #-}
-  {-# INLINE explReset #-}
   {-# INLINE explDestroy #-}
   {-# INLINE explExists #-}
 --}
@@ -89,7 +87,6 @@ tupleInstances n = do
       wEs = VarE <$> wNs
 
       explSetN     = mkName "explSet"
-      explResetN   = mkName "explReset"
       explDestroyN = mkName "explDestroy"
       explExistsN  = mkName "explExists"
       explMembersN = mkName "explMembers"
@@ -97,14 +94,12 @@ tupleInstances n = do
       initStoreN   = mkName "initStore"
 
       explSetE     = VarE explSetN
-      explResetE   = VarE explResetN
       explDestroyE = VarE explDestroyN
       explExistsE  = VarE explExistsN
       explMembersE = VarE explMembersN
       explGetE     = VarE explGetN
 
       explSetF sE wE = AppE explSetE sE `AppE` etyE `AppE` wE
-      explResetF sE = AppE explResetE sE
       explDestroyF sE = AppE explDestroyE sE `AppE` etyE
       explExistsF sE = AppE explExistsE sE
       explMembersF sE = AppE explMembersE sE
@@ -123,10 +118,6 @@ tupleInstances n = do
         , FunD explSetN [Clause [sPat, etyPat, wPat]
             (NormalB$ sequenceAll (zipWith explSetF sEs wEs)) [] ]
         , PragmaD$ InlineP explSetN Inline FunLike AllPhases
-
-        , FunD explResetN [Clause [sPat]
-            (NormalB$ sequenceAll (explResetF <$> sEs)) [] ]
-        , PragmaD$ InlineP explResetN Inline FunLike AllPhases
 
         , FunD explDestroyN [Clause [sPat, etyPat]
             (NormalB$ sequenceAll (explDestroyF <$> sEs)) [] ]

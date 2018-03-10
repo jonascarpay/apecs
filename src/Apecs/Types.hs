@@ -54,14 +54,6 @@ class Store s where
     mems <- explMembers s
     return $ U.elem n mems
 
-  -- | Removes all components.
-  --   Equivalent to calling @explDestroy@ on each member
-  {-# INLINE explReset #-}
-  explReset :: s -> IO ()
-  explReset s = do
-    sl <- explMembers s
-    U.mapM_ (explDestroy s) sl
-
 instance Component c => Component (Identity c) where
   type Storage (Identity c) = Identity (Storage c)
 

@@ -95,13 +95,6 @@ destroy (Entity ety) _ = do
   s :: Storage c <- getStore
   liftIO$ explDestroy s ety
 
--- | Removes all components. Equivalent to manually iterating and deleting, but usually optimized.
---   Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
-{-# INLINE resetStore #-}
-resetStore :: forall w c p. Has w c => p c -> System w ()
-resetStore _ = do s :: Storage c <- getStore
-                  liftIO$ explReset s
-
 -- | Applies a function, if possible.
 {-# INLINE modify #-}
 modify :: forall w c. Has w c => Entity -> (c -> c) -> System w ()

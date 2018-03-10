@@ -37,13 +37,11 @@ instance Store (Map c) where
   explExists  (Map ref) ety   = M.member ety <$> readIORef ref
   explDestroy (Map ref) ety   = modifyIORef' ref (M.delete ety)
   explMembers (Map ref)       = U.fromList . M.keys <$> readIORef ref
-  explReset   (Map ref)       = writeIORef ref mempty
   {-# INLINE explGet #-}
   {-# INLINE explSet #-}
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
-  {-# INLINE explReset #-}
 
 -- | A Unique contains at most one component.
 --   Writing to it overwrites both the previous component and its owner.
@@ -57,12 +55,10 @@ instance Store (Unique c) where
   explMembers (Unique eref _) = f <$> readIORef eref
     where f (-1) = mempty
           f x    = U.singleton x
-  explReset   (Unique eref _) = writeIORef eref (-1)
   explExists  (Unique eref _) ety = (==ety) <$> readIORef eref
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
-  {-# INLINE explReset #-}
   {-# INLINE explSet #-}
   {-# INLINE explGet #-}
 
@@ -76,7 +72,7 @@ instance Monoid c => Store (Global c) where
   explSet (Global ref) _ c = writeIORef ref c
   explExists  _ _ = return True
   explDestroy s _ = explSet s 0 mempty
-  explMembers = return mempty
+  explMembers _ = return $ U.singleton (-1)
   {-# INLINE explDestroy #-}
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
@@ -118,11 +114,6 @@ instance (KnownNat n, Cachable s) => Store (Cache n s) where
     cached <- U.filter (/= (-1)) <$> U.freeze tags
     stored <- explMembers s
     return $! cached U.++ stored
-
-  {-# INLINE explReset #-}
-  explReset (Cache n tags _ s) = do
-    forM_ [0..n-1] $ \e -> UM.write tags e (-1)
-    explReset s
 
   {-# INLINE explGet #-}
   explGet (Cache n tags cache s) ety = do
