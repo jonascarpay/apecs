@@ -22,14 +22,8 @@ runWith :: w -> System w a -> IO a
 runWith = flip runSystem
 
 {-# INLINE get #-}
-get :: forall w c. Has w (Maybe c) => Entity -> System w (Maybe c)
+get :: forall w c. Has w c => Entity -> System w c
 get (Entity ety) = do
-  s :: Storage (Maybe c) <- getStore
-  liftIO$ explGet s ety
-
-{-# INLINE get' #-}
-get' :: forall w c. Has w c => Entity -> System w c
-get' (Entity ety) = do
   s :: Storage c <- getStore
   liftIO$ explGet s ety
 

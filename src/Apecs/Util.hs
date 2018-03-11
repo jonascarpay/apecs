@@ -45,7 +45,7 @@ instance Component EntityCounter where
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
 nextEntity :: Has w EntityCounter => System w Entity
-nextEntity = do EntityCounter n <- get' global
+nextEntity = do EntityCounter n <- get global
                 set global (EntityCounter $ n+1)
                 return (Entity . getSum $ n)
 

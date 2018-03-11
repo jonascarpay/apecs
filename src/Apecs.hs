@@ -4,7 +4,7 @@ It selectively re-exports the user-facing functions from the submodules.
 -}
 module Apecs (
   -- * Types
-    System,
+    System(..),
     Component(..), Entity(..), Has(..),
     Not(..),
 
@@ -12,7 +12,7 @@ module Apecs (
 
   -- * Store wrapper functions
     initStore,
-    get, get', set,
+    get, set,
     cmap, cmapM, cmapM_,
     modify, destroy, exists,
 
