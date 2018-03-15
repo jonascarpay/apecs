@@ -1,6 +1,4 @@
 resolver: lts-9.2
 packages:
-- .
-- ..
-flags: {}
-extra-package-dbs: []
+  - .
+  - ..

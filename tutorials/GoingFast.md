@@ -1,4 +1,10 @@
 ## apecs tutorial
+
+##### Warning!
+With the release of apecs 0.3, this tutorial does not (fully) apply anymore.
+The main difference is that mapping operations have been consolidated in `cmap`.
+I will either update or delete this tutorial soon.
+
 ### Making games fast
 
 As promised, a guide on how to make games fast.

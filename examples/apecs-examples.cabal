@@ -17,20 +17,11 @@ executable simple
     base, apecs, linear
   default-language:
     Haskell2010
-  ghc-options:
-    -fno-warn-unused-top-binds
 
-executable rts
+executable shmup
   main-is:
-    RTS.hs
+    Shmup.hs
   build-depends:
-    base,
-    apecs,
-    sdl2,
-    random,
-    linear
+    base, apecs, linear, gloss, random
   default-language:
     Haskell2010
-  ghc-options:
-    -Odph
-    -fno-warn-unused-top-binds

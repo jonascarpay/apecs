@@ -5,22 +5,20 @@ It selectively re-exports the user-facing functions from the submodules.
 module Apecs (
   -- * Types
     System(..),
-    Component(..), Entity(..), Slice, Has(..), Safe(..), cast,
-    Map, Set, Unique, Global, Flag(..),
+    Component(..), Entity(..), Has(..),
+    Not(..),
+
+    Map, Unique, Global,
 
   -- * Store wrapper functions
     initStore,
-    destroy, exists, owners, resetStore,
-    get, getUnsafe, set, set', modify,
-    cmap, cmapM, cmapM_, cimapM, cimapM_,
-    rmap', rmap, wmap, wmap', cmap',
-
-  -- ** GlobalRW wrapper functions
-    getGlobal, setGlobal, modifyGlobal,
+    get, set,
+    cmap, cmapM, cmapM_,
+    modify, destroy, exists,
 
   -- * Other
     runSystem, runWith,
-    runGC, EntityCounter, newEntity,
+    runGC, EntityCounter, newEntity, global, proxy,
     makeWorld,
 
   -- * Re-exports
@@ -32,6 +30,6 @@ import           Control.Monad.Reader (ask, asks, lift, liftIO)
 import           Apecs.Stores
 import           Apecs.System
 import           Apecs.TH
-import           Apecs.Types
+import           Apecs.Core
 import           Apecs.Util
 

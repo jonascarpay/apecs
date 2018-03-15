@@ -1,5 +1,5 @@
 name:                apecs
-version:             0.2.4.7
+version:             0.3.0.0
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -21,12 +21,10 @@ library
     src
   exposed-modules:
     Apecs,
-    Apecs.Types,
+    Apecs.Core,
     Apecs.Stores,
-    Apecs.Logs,
     Apecs.System,
     Apecs.Concurrent,
-    Apecs.Slice,
     Apecs.TH,
     Apecs.Util
   other-modules:

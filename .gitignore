@@ -1,3 +1,4 @@
+*.nix
 tags
 
 # Created by https://www.gitignore.io/api/haskell
@@ -25,3 +26,20 @@ cabal.project.local
 .HTF/
 
 # End of https://www.gitignore.io/api/haskell
+
+# Created by https://www.gitignore.io/api/vim
+
+### Vim ###
+# swap
+.sw[a-p]
+.*.sw[a-p]
+# session
+Session.vim
+# temporary
+.netrwhist
+*~
+# auto-generated tag files
+tags
+
+
+# End of https://www.gitignore.io/api/vim
