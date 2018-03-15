@@ -17,11 +17,13 @@ import Data.IORef
 import Data.List (sort)
 
 import Apecs
-import Apecs.Types
+import Apecs.Core
 import Apecs.Stores
 import Apecs.Util
 
 {--
+
+Need to be rewritten for apecs 0.3!
 
 type Vec = (Double, Double)
 
