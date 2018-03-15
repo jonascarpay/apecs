@@ -53,6 +53,10 @@ matrix:
     compiler: ": #GHC 8.0.2"
     addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
 
+  - env: BUILD=cabal GHCVER=8.2.2 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
+    compiler: ": #GHC 8.2.2"
+    addons: {apt: {packages: [cabal-install-1.24,ghc-8.2.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
+
   # Build with the newest GHC and cabal-install. This is an accepted failure,
   # see below.
   - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
@@ -82,11 +86,6 @@ matrix:
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default osx"
     os: osx
-
-  # Travis includes an macOS which is incompatible with GHC 7.8.4
-  #- env: BUILD=stack ARGS="--resolver lts-2"
-  #  compiler: ": #stack 7.8.4 osx"
-  #  os: osx
 
   - env: BUILD=stack ARGS="--resolver lts-7"
     compiler: ": #stack 8.0.1 osx"
