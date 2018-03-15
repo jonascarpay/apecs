@@ -25,7 +25,7 @@ posVelInit = do replicateM_ 1000 (newEntity (ECSPos 0, ECSVel 1))
                 replicateM_ 9000 (newEntity (ECSPos 0))
 
 posVelStep :: System PosVel ()
-posVelStep = rmap $ \(ECSVel v, ECSPos p) -> ECSPos (p+v)
+posVelStep = cmap $ \(ECSVel v, ECSPos p) -> ECSPos (p+v)
 
 main :: IO ()
 main = C.defaultMainWith (C.defaultConfig {timeLimit = 10})

@@ -9,7 +9,7 @@
 module Apecs.Util (
   -- * Utility
   initStore, runGC,
-  global,
+  global, proxy,
 
   -- * EntityCounter
   EntityCounter, nextEntity, newEntity,
@@ -35,6 +35,9 @@ import           Apecs.Core
 
 global :: Entity
 global = Entity (-1)
+
+proxy :: forall t. t
+proxy = error "proxy entity"
 
 -- | Secretly just an int in a newtype
 newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Eq, Show)
@@ -62,8 +65,8 @@ runGC :: System w ()
 runGC = liftIO performMajorGC
 
 -- $hash
--- The following functions are for spatial hashing.
--- The idea is that your spatial hash is defined by two vectors;
+-- The following are helper functions for spatial hashing.
+-- Your spatial hash is defined by two vectors;
 --
 --   - The cell size vector contains real components and dictates
 --     how large each cell in your table is in world space units.
@@ -71,10 +74,6 @@ runGC = liftIO performMajorGC
 --   - The table size vector contains integral components and dictates how
 --     many cells your field consists of in each direction.
 --     It is used by @flatten@ to translate a table-space index vector into a flat integer
---
--- There is currently no dedicated spatial hashing log, but you can use
--- an EnumTable by defining an instance Enum Vec with
--- > fromEnum = flatten size . quantize cell
 
 -- | Quantize turns a world-space coordinate into a table-space coordinate by dividing
 --   by the given cell size and rounding towards negative infinity.

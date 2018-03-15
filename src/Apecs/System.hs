@@ -37,12 +37,10 @@ set (Entity ety) x = do
   liftIO$ explSet s ety x
 
 -- | Returns whether the given entity has component @c@
---   For composite components, this indicates whether the component
---   has all its constituents
---   Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
+--   Note that @c@ is a phantom argument, used only to convey the type of the entity to be queried.
 {-# INLINE exists #-}
 exists :: forall w c. Has w c => Entity -> c -> System w Bool
-exists (Entity ety) _ = do
+exists (Entity ety) ~_ = do
   s :: Storage c <- getStore
   liftIO$ explExists s ety
 
@@ -72,8 +70,8 @@ cmapM sys = do
 
 -- | Monadically iterates over all entites with a cx
 {-# INLINE cmapM_ #-}
-cmapM_ :: forall world c. Has world c
-       => (c -> System world ()) -> System world ()
+cmapM_ :: forall world c a. Has world c
+       => (c -> System world a) -> System world ()
 cmapM_ sys = do
   s :: Storage c <- getStore
   sl <- liftIO$ explMembers s
@@ -85,7 +83,7 @@ cmapM_ sys = do
 -- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
 {-# INLINE destroy #-}
 destroy :: forall w c. Has w c => Entity -> c -> System w ()
-destroy (Entity ety) _ = do
+destroy (Entity ety) ~_ = do
   s :: Storage c <- getStore
   liftIO$ explDestroy s ety
 
@@ -97,3 +95,11 @@ modify (Entity ety) f = do
   liftIO$ do
     x <- explGet s ety
     explSet s ety (f x)
+
+-- | Counts the number of entities with a @c@
+{-# INLINE count #-}
+count :: forall w c. Has w c => c -> System w Int
+count ~_ = do
+  s :: Storage c <- getStore
+  sl <- liftIO$ explMembers s
+  return $ U.length sl
