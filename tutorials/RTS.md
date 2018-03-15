@@ -1,4 +1,11 @@
 ## apecs tutorial
+
+##### Warning!
+With the release of apecs 0.3, this tutorial does not fully apply anymore.
+The main difference is that mapping operations have been consolidated in `cmap`.
+There is a new example game, `shmup` in the examples project.
+I will either update or delete this tutorial soon.
+
 ### An RTS-like game
 
 In this tutorial we'll take a look at how to write a simple RTS-like game using apecs.
