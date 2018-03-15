@@ -1,9 +1,9 @@
 ## apecs tutorial
 
 ##### Warning!
-With the release of apecs 0.3, this tutorial does not fully apply anymore.
+With the release of apecs 0.3, this tutorial does not (fully) apply anymore.
 The main difference is that mapping operations have been consolidated in `cmap`.
-There is a new example game, `shmup` in the examples project.
+The rts executable has been removed and there is a new example game, `shmup`, in the examples project.
 I will either update or delete this tutorial soon.
 
 ### An RTS-like game
