@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
-import Apecs.Stores
 import Apecs.Core
 import Linear
 

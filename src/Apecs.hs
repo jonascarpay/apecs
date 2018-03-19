@@ -3,15 +3,14 @@ This module forms the apecs Prelude.
 It selectively re-exports the user-facing functions from the submodules.
 -}
 module Apecs (
-  -- * Types
-    System(..),
-    Component(..), Entity(..), Has(..),
-    Not(..),
+  -- * Core types
+    System(..), Component(..), Entity(..), Has(..), Not(..),
 
-    Map, Unique, Global,
-
-  -- * Store wrapper functions
+  -- * Stores
+    Map, Unique, Global, Cache,
     initStore,
+
+  -- * Systems
     get, set,
     cmap, cmapM, cmapM_,
     modify, destroy, exists,

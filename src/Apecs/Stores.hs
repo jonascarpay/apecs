@@ -26,8 +26,7 @@ import           GHC.TypeLits
 
 import           Apecs.Core
 
--- | A map from Data.Intmap.Strict. O(log(n)) for most operations.
---   Yields safe runtime representations of type @Maybe c@.
+-- | A map based on @Data.Intmap.Strict@. O(log(n)) for most operations.
 newtype Map c = Map (IORef (M.IntMap c))
 instance Store (Map c) where
   type Elem (Map c) = c
@@ -43,8 +42,9 @@ instance Store (Map c) where
   {-# INLINE explMembers #-}
   {-# INLINE explExists #-}
 
--- | A Unique contains at most one component.
+-- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
+--   Its main purpose is to be a @Map@ optimized for when only ever one component inhabits it.
 data Unique c = Unique (IORef Int) (IORef c)
 instance Store (Unique c) where
   type Elem (Unique c) = c
@@ -64,6 +64,8 @@ instance Store (Unique c) where
 
 -- | A Global contains exactly one component.
 --   Initialized with 'mempty'
+--   The store will return true for every existence check, but only ever gives (-1) as its inhabitant.
+--   The entity argument is ignored when setting/getting a global.
 newtype Global c = Global (IORef c)
 instance Monoid c => Store (Global c) where
   type Elem   (Global c) = c
@@ -84,6 +86,7 @@ instance Monoid c => Store (Global c) where
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
+-- | An empty type class indicating that the store behaves like a regular map, and can therefore safely be cached.
 class Store s => Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)

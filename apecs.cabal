@@ -1,5 +1,5 @@
 name:                apecs
-version:             0.3.0.0
+version:             0.3.0.1
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -8,7 +8,7 @@ maintainer:          jonascarpay@gmail.com
 category:            Game, Control, Data
 build-type:          Simple
 cabal-version:       >=1.10
-extra-source-files:  README.md, tutorials/RTS.md
+extra-source-files:  README.md,
 synopsis:            A fast ECS for game engine programming
 description:         A fast ECS for game engine programming
 

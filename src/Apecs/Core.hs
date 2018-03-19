@@ -15,7 +15,7 @@ import qualified Data.Vector.Unboxed  as U
 
 import qualified Apecs.THTuples       as T
 
--- | An Entity is really just an Int in a newtype.
+-- | An Entity is really just an Int in a newtype, used to index into a component store.
 newtype Entity = Entity Int deriving (Eq, Ord, Show)
 
 -- | A system is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
@@ -42,7 +42,7 @@ class Store s where
   -- | The type of components stored by this Store
   type Elem s
 
-  -- Initialize the store with its initialization arguments.
+  -- | Initialize the store with its initialization arguments.
   initStore :: IO s
 
   -- | Writes a component
