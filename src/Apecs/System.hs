@@ -79,6 +79,17 @@ cmapM_ sys = do
     x <- liftIO$ explGet s ety
     sys x
 
+-- | Get all components @c@.
+--   Call as @[(c,Entity)]@ to read the entity/index.
+{-# INLINE getAll #-}
+getAll :: forall world c. Has world c
+      => System world [c]
+getAll = do
+  s :: Storage c <- getStore
+  sl <- liftIO$ explMembers s
+  forM (U.toList sl) $ liftIO . explGet s
+
+
 -- | Destroys component @c@ for the given entity.
 -- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
 {-# INLINE destroy #-}

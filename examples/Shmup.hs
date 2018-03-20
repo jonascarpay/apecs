@@ -63,14 +63,16 @@ step dT = do
   clearBullets
   stepParticles
   handleCollisions
-  triggerEvery 0.6 spawnEnemies
+  triggerEvery 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
+  triggerEvery 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
   incrTime
   where
-    triggerEvery period sys = do
-      Time t <- get global
-      when (floor (t/period) /= floor ((t+dT)/period)) (void sys)
-    clampPlayer = cmap $ \(Player, Position (V2 x y)) -> Position (V2 (min xmax . max xmin $ x) y)
     stepPosition = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
+    clampPlayer = cmap $ \(Player, Position (V2 x y)) -> Position (V2 (min xmax . max xmin $ x) y)
+    triggerEvery period phase sys = do
+      Time t <- get global
+      let t' = t + phase
+      when (floor (t'/period) /= floor ((t'+dT)/period)) (void sys)
     incrTime = cmap $ \(Time t) -> Time (t+dT)
     clearBullets = cmapM_ $ \(Bullet, Position (V2 x y), ety) ->
       when (y > 170) $ do
@@ -92,12 +94,9 @@ step dT = do
       if t < 0
          then destroy ety (proxy :: (Particle, Movable))
          else set ety (Particle col (t-dT))
-    spawnEnemies = do
-      newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
-      newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
 draw :: System' Picture
-draw = fmap (mconcat.mconcat) $
+draw = (mconcat.mconcat) <$>
   sequence [cmapM playerPic, cmapM targetPic, cmapM bulletPic, cmapM particlePic, cmapM scorePic]
   where
     translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
