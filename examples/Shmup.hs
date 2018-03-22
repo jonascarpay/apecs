@@ -57,6 +57,7 @@ initialize = void $ newEntity (Player, Position playerPos, Velocity 0)
 
 step :: Double -> System' ()
 step dT = do
+  incrTime
   stepPosition
   clampPlayer
   clearTargets
@@ -65,15 +66,14 @@ step dT = do
   handleCollisions
   triggerEvery 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
   triggerEvery 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
-  incrTime
   where
+    incrTime = cmap $ \(Time t) -> Time (t+dT)
     stepPosition = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
     clampPlayer = cmap $ \(Player, Position (V2 x y)) -> Position (V2 (min xmax . max xmin $ x) y)
     triggerEvery period phase sys = do
       Time t <- get global
       let t' = t + phase
       when (floor (t'/period) /= floor ((t'+dT)/period)) (void sys)
-    incrTime = cmap $ \(Time t) -> Time (t+dT)
     clearBullets = cmapM_ $ \(Bullet, Position (V2 x y), ety) ->
       when (y > 170) $ do
         destroy ety (proxy :: (Bullet, Movable))
@@ -96,18 +96,18 @@ step dT = do
          else set ety (Particle col (t-dT))
 
 draw :: System' Picture
-draw = (mconcat.mconcat) <$>
-  sequence [cmapM playerPic, cmapM targetPic, cmapM bulletPic, cmapM particlePic, cmapM scorePic]
+draw = do
+  p <- toPic $ \(Player, Position p) -> color white  . translate' p . scale 10 20 $ triangle
+  t <- toPic $ \(Target, Position p) -> color red    . translate' p . scale 10 10 $ diamond
+  b <- toPic $ \(Bullet, Position p) -> color yellow . translate' p . scale 4  4   $ diamond
+  s <- toPic $ \(Score s) -> color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
+  pt <- toPic $ \(Particle col _, Position p, Velocity (V2 vx vy)) -> color col . translate' p $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
+  return $ mconcat [p,t,b,s,pt]
   where
+    toPic f = mconcat . fmap f <$> getAll
     translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
     triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
     diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
-    playerPic (Player, Position p) = return . color white  . translate' p . scale 10 20 $ triangle
-    targetPic (Target, Position p) = return . color red    . translate' p . scale 10 10 $ diamond
-    bulletPic (Bullet, Position p) = return . color yellow . translate' p . scale 4  4   $ diamond
-    scorePic (Score s) = return . color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
-    particlePic (Particle col _, Position p, Velocity (V2 vx vy)) =
-      return . color col . translate' p $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
 
 handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) =
   cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
