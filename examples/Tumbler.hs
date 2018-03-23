@@ -14,15 +14,15 @@ makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
 
 initialize :: System World ()
 initialize = do
-  setGlobal ( Camera 0 50
-            , earthGravity )
+  set global ( Camera 0 50
+             , earthGravity )
 
   let sides = toEdges $ cRectangle 5
   tumbler <- newEntity ( KinematicBody
                        , AngularVelocity (-1)
                        , BodyPicture . color white . foldMap toPicture $ sides )
 
-  forM_ sides $ newEntity . ShapeExtend (cast tumbler) . setRadius 0.05
+  forM_ sides $ newEntity . ShapeExtend tumbler . setRadius 0.05
 
   replicateM_ 200 $ do
     x <- liftIO$ randomRIO (-2, 2)

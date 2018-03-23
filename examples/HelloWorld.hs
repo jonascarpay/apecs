@@ -9,8 +9,8 @@ import           Graphics.Gloss
 makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
 
 initialize = do
-  setGlobal ( Camera (V2 0 1) 60
-            , earthGravity )
+  set global ( Camera (V2 0 1) 60
+             , earthGravity )
 
   let lineShape = hLine 6
   newEntity ( StaticBody

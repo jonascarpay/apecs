@@ -15,7 +15,7 @@ executable helloworld
   main-is:             HelloWorld.hs
   ghc-options:         -O2
   build-depends:       base
-                     , apecs
+                     , apecs >= 0.3.0.2
                      , apecs-physics
                      , apecs-physics-gloss
                      , gloss
@@ -26,7 +26,7 @@ executable tumbler
   main-is:             Tumbler.hs
   ghc-options:         -O2
   build-depends:       base
-                     , apecs
+                     , apecs >= 0.3.0.2
                      , apecs-physics
                      , apecs-physics-gloss
                      , gloss
@@ -38,7 +38,7 @@ executable constraints
   main-is:             Constraints.hs
   ghc-options:         -O2
   build-depends:       base
-                     , apecs
+                     , apecs >= 0.3.0.2
                      , apecs-physics
                      , apecs-physics-gloss
                      , gloss
