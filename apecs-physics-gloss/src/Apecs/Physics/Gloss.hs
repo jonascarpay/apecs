@@ -26,7 +26,9 @@ data Camera = Camera
   , gvScale  :: Double
   }
 
-instance Monoid Camera where mempty = Camera 0 1
+instance Monoid Camera where
+  mempty = Camera 0 1
+  mappend (Camera p1 z1) (Camera p2 z2) = Camera (p1 + p2) (z1 * z2)
 
 instance Component Camera where
   type Storage Camera = Global Camera
@@ -50,7 +52,7 @@ drawWorld :: (Has w Physics, Has w BodyPicture, Has w Camera) => System w G.Pict
 drawWorld = do
   f <- cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) ->
         return . G.Translate (realToFrac x) (realToFrac y) . G.Rotate (negate . radToDeg . realToFrac $ theta) $ pic
-  view <- getGlobal
+  view <- get global
   return . applyView view . fold $ f
 
 defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w Camera) => w -> String -> IO ()
