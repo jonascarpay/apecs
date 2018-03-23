@@ -16,8 +16,7 @@
 module Apecs.Physics.Body where
 
 import           Apecs
-import           Apecs.Stores        (defaultSetMaybe)
-import           Apecs.Types
+import           Apecs.Core
 import           Control.Monad
 import qualified Data.IntMap         as M
 import qualified Data.IntSet         as S
@@ -67,8 +66,7 @@ instance Has w Physics => Has w Body where
   getStore = (cast :: Space Physics -> Space Body) <$> getStore
 
 instance Store (Space Body) where
-  type Stores (Space Body) = Body
-  type SafeRW (Space Body) = Maybe Body
+  type Elem (Space Body) = Body
   initStore = error "Initializing space from non-Physics store"
 
   explSet (Space bMap _ _ _ spcPtr) ety btype = do
@@ -80,11 +78,6 @@ instance Store (Space Body) where
                   modifyIORef' bMap (M.insert ety $ fromBodyPtr bdyPtr)
                   return bdyPtr
     setBodyType bdyPtr btype
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of Nothing -> return Nothing
-               Just (BodyRecord b _ _) -> Just <$> getBodyType b
 
   explDestroy sp@(Space bMap _ _ _ spc) ety = do
     rd <- M.lookup ety <$> readIORef bMap
@@ -98,11 +91,9 @@ instance Store (Space Body) where
 
   explExists (Space bMap _ _ _ _) ety = M.member ety <$> readIORef bMap
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     getBodyType b
-
-  explSetMaybe = defaultSetMaybe
 
 -- Position
 getPosition :: Ptr Body -> IO (V2 Double)
@@ -127,25 +118,17 @@ instance Has w Physics => Has w Position where
   getStore = (cast :: Space Physics -> Space Position) <$> getStore
 
 instance Store (Space Position) where
-  type Stores (Space Position) = Position
-  type SafeRW (Space Position) = Maybe Position
+  type Elem (Space Position) = Position
   initStore = error "Attempted to initialize a space from an Position component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . Position <$> getPosition b
 
   explSet (Space bMap _ _ _ _) ety (Position pos) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setPosition b pos
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Position <$> getPosition b
 
@@ -169,25 +152,17 @@ instance Has w Physics => Has w Velocity where
   getStore = (cast :: Space Physics -> Space Velocity) <$> getStore
 
 instance Store (Space Velocity) where
-  type Stores (Space Velocity) = Velocity
-  type SafeRW (Space Velocity) = Maybe Velocity
+  type Elem (Space Velocity) = Velocity
   initStore = error "Attempted to initialize a space from an Velocity component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . Velocity <$> getVelocity b
 
   explSet (Space bMap _ _ _ _) ety (Velocity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setVelocity b vel
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Velocity <$> getVelocity b
 
@@ -213,25 +188,17 @@ instance Has w Physics => Has w Angle where
   getStore = (cast :: Space Physics -> Space Angle) <$> getStore
 
 instance Store (Space Angle) where
-  type Stores (Space Angle) = Angle
-  type SafeRW (Space Angle) = Maybe Angle
+  type Elem (Space Angle) = Angle
   initStore = error "Attempted to initialize a space from an Angle component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . Angle <$> getAngle b
 
   explSet (Space bMap _ _ _ _) ety (Angle angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setAngle b angle
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Angle <$> getAngle b
 
@@ -257,25 +224,17 @@ instance Has w Physics => Has w AngularVelocity where
   getStore = (cast :: Space Physics -> Space AngularVelocity) <$> getStore
 
 instance Store (Space AngularVelocity) where
-  type Stores (Space AngularVelocity) = AngularVelocity
-  type SafeRW (Space AngularVelocity) = Maybe AngularVelocity
+  type Elem (Space AngularVelocity) = AngularVelocity
   initStore = error "Attempted to initialize a space from an AngularVelocity component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . AngularVelocity <$> getAngularVelocity b
 
   explSet (Space bMap _ _ _ _) ety (AngularVelocity angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setAngularVelocity b angle
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     AngularVelocity <$> getAngularVelocity b
 
@@ -299,25 +258,17 @@ instance Has w Physics => Has w Force where
   getStore = (cast :: Space Physics -> Space Force) <$> getStore
 
 instance Store (Space Force) where
-  type Stores (Space Force) = Force
-  type SafeRW (Space Force) = Maybe Force
+  type Elem (Space Force) = Force
   initStore = error "Attempted to initialize a space from an Force component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . Force <$> getForce b
 
   explSet (Space bMap _ _ _ _) ety (Force frc) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setForce b frc
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Force <$> getForce b
 
@@ -343,25 +294,17 @@ instance Has w Physics => Has w BodyMass where
   getStore = (cast :: Space Physics -> Space BodyMass) <$> getStore
 
 instance Store (Space BodyMass) where
-  type Stores (Space BodyMass) = BodyMass
-  type SafeRW (Space BodyMass) = Maybe BodyMass
+  type Elem (Space BodyMass) = BodyMass
   initStore = error "Attempted to initialize a space from an BodyMass component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . BodyMass <$> getBodyMass b
 
   explSet (Space bMap _ _ _ _) ety (BodyMass angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setBodyMass b angle
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     BodyMass <$> getBodyMass b
 
@@ -387,25 +330,17 @@ instance Has w Physics => Has w Moment where
   getStore = (cast :: Space Physics -> Space Moment) <$> getStore
 
 instance Store (Space Moment) where
-  type Stores (Space Moment) = Moment
-  type SafeRW (Space Moment) = Maybe Moment
+  type Elem (Space Moment) = Moment
   initStore = error "Attempted to initialize a space from an Moment component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . Moment <$> getMoment b
 
   explSet (Space bMap _ _ _ _) ety (Moment angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setMoment b angle
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Moment <$> getMoment b
 
@@ -431,25 +366,17 @@ instance Has w Physics => Has w Torque where
   getStore = (cast :: Space Physics -> Space Torque) <$> getStore
 
 instance Store (Space Torque) where
-  type Stores (Space Torque) = Torque
-  type SafeRW (Space Torque) = Maybe Torque
+  type Elem (Space Torque) = Torque
   initStore = error "Attempted to initialize a space from an Torque component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . Torque <$> getTorque b
 
   explSet (Space bMap _ _ _ _) ety (Torque angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setTorque b angle
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Torque <$> getTorque b
 
@@ -473,25 +400,17 @@ instance Has w Physics => Has w CenterOfGravity where
   getStore = (cast :: Space Physics -> Space CenterOfGravity) <$> getStore
 
 instance Store (Space CenterOfGravity) where
-  type Stores (Space CenterOfGravity) = CenterOfGravity
-  type SafeRW (Space CenterOfGravity) = Maybe CenterOfGravity
+  type Elem (Space CenterOfGravity) = CenterOfGravity
   initStore = error "Attempted to initialize a space from an CenterOfGravity component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Body)
   explExists s ety = explExists (cast s :: Space Body) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space bMap _ _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef bMap
-    case rd of
-      Nothing -> return Nothing
-      Just (BodyRecord b _ _)  -> Just . CenterOfGravity <$> getCenterOfGravity b
 
   explSet (Space bMap _ _ _ _) ety (CenterOfGravity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setCenterOfGravity b vel
 
-  explGetUnsafe (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b
 

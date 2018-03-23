@@ -16,8 +16,7 @@
 module Apecs.Physics.Constraint where
 
 import           Apecs
-import           Apecs.Stores        (defaultSetMaybe)
-import           Apecs.Types
+import           Apecs.Core
 import           Control.Monad
 import qualified Data.IntMap         as M
 import qualified Data.IntSet         as S
@@ -149,8 +148,7 @@ instance Has w Physics => Has w Constraint where
   getStore = (cast :: Space Physics -> Space Constraint) <$> getStore
 
 instance Store (Space Constraint) where
-  type Stores (Space Constraint) = Constraint
-  type SafeRW (Space Constraint) = Maybe Constraint
+  type Elem (Space Constraint) = Constraint
   initStore = error "Initializing space from non-Physics store"
 
   explSet _ _ ConstraintRead = return ()
@@ -192,11 +190,7 @@ instance Store (Space Constraint) where
 
   explExists (Space _ _ cMap _ _) ety = M.member ety <$> readIORef cMap
 
-  explSetMaybe = defaultSetMaybe
-  explGet s ety = do
-    e <- explExists s ety
-    if e then Just <$> explGetUnsafe s ety else return Nothing
-  explGetUnsafe _ _ = return (error "Constraint is a read-only component")
+  explGet _ _ = return ConstraintRead
 
 -- BodyAB
 getBodyA :: Ptr Constraint -> IO Int
@@ -223,19 +217,11 @@ instance Has w Physics => Has w MaxForce where
   getStore = (cast :: Space Physics -> Space MaxForce) <$> getStore
 
 instance Store (Space MaxForce) where
-  type Stores (Space MaxForce) = MaxForce
-  type SafeRW (Space MaxForce) = Maybe MaxForce
+  type Elem (Space MaxForce) = MaxForce
   initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Constraint)
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ _ cMap _ _) ety = do
-    rd <- M.lookup ety <$> readIORef cMap
-    case rd of
-      Nothing -> return Nothing
-      Just c  -> Just . MaxForce <$> getMaxForce c
 
   explSet (Space _ _ cMap _ _) ety (MaxForce vec) = do
     rd <- M.lookup ety <$> readIORef cMap
@@ -243,7 +229,7 @@ instance Store (Space MaxForce) where
       Nothing -> return ()
       Just c  -> setMaxForce c vec
 
-  explGetUnsafe (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     MaxForce <$> getMaxForce c
 
@@ -263,19 +249,11 @@ instance Has w Physics => Has w MaxBias where
   getStore = (cast :: Space Physics -> Space MaxBias) <$> getStore
 
 instance Store (Space MaxBias) where
-  type Stores (Space MaxBias) = MaxBias
-  type SafeRW (Space MaxBias) = Maybe MaxBias
+  type Elem (Space MaxBias) = MaxBias
   initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Constraint)
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ _ cMap _ _) ety = do
-    rd <- M.lookup ety <$> readIORef cMap
-    case rd of
-      Nothing -> return Nothing
-      Just c  -> Just . MaxBias <$> getMaxBias c
 
   explSet (Space _ _ cMap _ _) ety (MaxBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
@@ -283,7 +261,7 @@ instance Store (Space MaxBias) where
       Nothing -> return ()
       Just c  -> setMaxBias c vec
 
-  explGetUnsafe (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     MaxBias <$> getMaxBias c
 
@@ -303,19 +281,11 @@ instance Has w Physics => Has w ErrorBias where
   getStore = (cast :: Space Physics -> Space ErrorBias) <$> getStore
 
 instance Store (Space ErrorBias) where
-  type Stores (Space ErrorBias) = ErrorBias
-  type SafeRW (Space ErrorBias) = Maybe ErrorBias
+  type Elem (Space ErrorBias) = ErrorBias
   initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Constraint)
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ _ cMap _ _) ety = do
-    rd <- M.lookup ety <$> readIORef cMap
-    case rd of
-      Nothing -> return Nothing
-      Just c  -> Just . ErrorBias <$> getErrorBias c
 
   explSet (Space _ _ cMap _ _) ety (ErrorBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
@@ -323,7 +293,7 @@ instance Store (Space ErrorBias) where
       Nothing -> return ()
       Just c  -> setErrorBias c vec
 
-  explGetUnsafe (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     ErrorBias <$> getErrorBias c
 
@@ -343,19 +313,11 @@ instance Has w Physics => Has w CollideBodies where
   getStore = (cast :: Space Physics -> Space CollideBodies) <$> getStore
 
 instance Store (Space CollideBodies) where
-  type Stores (Space CollideBodies) = CollideBodies
-  type SafeRW (Space CollideBodies) = Maybe CollideBodies
+  type Elem (Space CollideBodies) = CollideBodies
   initStore = error "Initialize a space with a Physics component"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Constraint)
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ _ cMap _ _) ety = do
-    rd <- M.lookup ety <$> readIORef cMap
-    case rd of
-      Nothing -> return Nothing
-      Just c  -> Just . CollideBodies <$> getCollideBodies c
 
   explSet (Space _ _ cMap _ _) ety (CollideBodies vec) = do
     rd <- M.lookup ety <$> readIORef cMap
@@ -363,6 +325,6 @@ instance Store (Space CollideBodies) where
       Nothing -> return ()
       Just c  -> setCollideBodies c vec
 
-  explGetUnsafe (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     CollideBodies <$> getCollideBodies c

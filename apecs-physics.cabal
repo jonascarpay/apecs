@@ -1,5 +1,5 @@
 name:                apecs-physics
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            2D physics for apecs
 description:         2D physics for apecs
 homepage:            https://github.com/jonascarpay/apecs-physics#readme
@@ -36,7 +36,7 @@ library
     Apecs.Physics.Query
   build-depends:
     base >= 4.7 && < 5,
-    apecs >= 0.2.4.7,
+    apecs >= 0.3.0.0,
     containers,
     inline-c,
     linear,
@@ -55,12 +55,6 @@ library
   include-dirs:
     Chipmunk2D/include/chipmunk
   c-sources:
-    src/Apecs/Physics/Body.c
-    src/Apecs/Physics/Constraint.c
-    src/Apecs/Physics/Collision.c
-    src/Apecs/Physics/Shape.c
-    src/Apecs/Physics/Space.c
-    src/Apecs/Physics/Query.c
 
     Chipmunk2D/src/chipmunk.c
     Chipmunk2D/src/cpBody.c

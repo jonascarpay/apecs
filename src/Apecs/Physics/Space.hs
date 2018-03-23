@@ -15,7 +15,7 @@
 module Apecs.Physics.Space where
 
 import           Apecs
-import           Apecs.Types
+import           Apecs.Core
 import           Data.IORef
 import           Foreign.Concurrent
 import           Foreign.ForeignPtr  (withForeignPtr)
@@ -46,8 +46,7 @@ instance Component Physics where
   type Storage Physics = Space Physics
 
 instance Store (Space Physics) where
-  type Stores (Space Physics) = Physics
-  type SafeRW (Space Physics) = ()
+  type Elem (Space Physics) = Physics
   initStore = do
     spacePtr <- newSpace
     bRef     <- newIORef mempty
@@ -57,12 +56,10 @@ instance Store (Space Physics) where
     return (Space bRef sRef cRef hRef spacePtr)
 
   explSet _ _ _ = return ()
-  explGet _ _ = return ()
+  explGet _ _ = return (error "Can't produce a Physics")
   explDestroy _ _ = return ()
   explMembers _ = return mempty
   explExists _ _ = return False
-  explGetUnsafe _ _ = return (error "Can't produce a Physics")
-  explSetMaybe _ _ _ = return ()
 
 -- Gravity
 earthGravity :: Gravity
@@ -86,19 +83,14 @@ instance Component Gravity where
 instance Has w Physics => Has w Gravity where
   getStore = (cast :: Space Physics -> Space Gravity) <$> getStore
 
-instance GlobalStore (Space Gravity)
-
 instance Store (Space Gravity) where
-  type Stores (Space Gravity) = Gravity
-  type SafeRW (Space Gravity) = Gravity
+  type Elem (Space Gravity) = Gravity
   initStore = error "Initializing space from non-Physics store"
   explDestroy _ _ = return ()
   explMembers _   = return mempty
   explExists _ _  = return False
   explSet (Space _ _ _ _ spcPtr) _ (Gravity v) = setGravity spcPtr v
   explGet (Space _ _ _ _ spcPtr) _ = Gravity <$> getGravity spcPtr
-  explSetMaybe  = explSet
-  explGetUnsafe = explGet
 
 -- Iterations
 getIterations :: SpacePtr -> IO Int
@@ -115,17 +107,12 @@ instance Component Iterations where
 instance Has w Physics => Has w Iterations where
   getStore = (cast :: Space Physics -> Space Iterations) <$> getStore
 
-instance GlobalStore (Space Iterations)
-
 instance Store (Space Iterations) where
-  type Stores (Space Iterations) = Iterations
-  type SafeRW (Space Iterations) = Iterations
+  type Elem (Space Iterations) = Iterations
   initStore = error "Initializing space from non-Physics store"
   explDestroy _ _ = return ()
   explMembers _   = return mempty
   explExists _ _  = return False
   explSet (Space _ _ _ _ spcPtr) _ (Iterations v) = setIterations spcPtr v
   explGet (Space _ _ _ _ spcPtr) _ = Iterations <$> getIterations spcPtr
-  explSetMaybe  = explSet
-  explGetUnsafe = explGet
 

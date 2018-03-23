@@ -12,7 +12,7 @@
 
 module Apecs.Physics.Shape where
 
-import           Apecs.Types
+import           Apecs.Core
 import           Control.Monad
 import           Data.Bits
 import qualified Data.IntMap          as M
@@ -28,7 +28,6 @@ import           Linear.V2
 
 import           Apecs.Physics.Space  ()
 import           Apecs.Physics.Types
-import           Apecs.Stores         (defaultSetMaybe)
 
 C.context (phycsCtx <> C.vecCtx)
 C.include "<chipmunk.h>"
@@ -59,8 +58,7 @@ instance Has w Physics => Has w Shape where
   getStore = (cast :: Space Physics -> Space Shape) <$> getStore
 
 instance Store (Space Shape) where
-  type Stores (Space Shape) = Shape
-  type SafeRW (Space Shape) = Maybe Shape
+  type Elem (Space Shape) = Shape
   initStore = error "Initializing space from non-Physics store"
   explMembers (Space _ sMap _ _ _) = U.fromList . M.keys <$> readIORef sMap
   explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
@@ -77,7 +75,6 @@ instance Store (Space Shape) where
       modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
       destroyShape spc sPtr
 
-  explSetMaybe = defaultSetMaybe
   explSet _ _ ShapeRead = return ()
   explSet sp ety (Shape sh) = explSet sp ety (ShapeExtend (Entity ety) sh)
 
@@ -90,10 +87,7 @@ instance Store (Space Shape) where
       modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
       modifyIORef' sMap (M.insert sEty s)
 
-  explGet s ety = do
-    e <- explExists s ety
-    if e then Just <$> explGetUnsafe s ety else return Nothing
-  explGetUnsafe _ _ = return (error "Shape is a read-only component")
+  explGet _ _ = return ShapeRead
 
 newShape :: SpacePtr -> Ptr Body -> Convex -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
@@ -146,25 +140,17 @@ instance Has w Physics => Has w Sensor where
   getStore = (cast :: Space Physics -> Space Sensor) <$> getStore
 
 instance Store (Space Sensor) where
-  type Stores (Space Sensor) = Sensor
-  type SafeRW (Space Sensor) = Maybe Sensor
+  type Elem (Space Sensor) = Sensor
   initStore = error "Attempted to initialize a space from an Sensor component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . Sensor <$> getSensor s
 
   explSet (Space _ sMap _ _ _) ety (Sensor vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setSensor s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Sensor <$> getSensor s
 
@@ -184,25 +170,17 @@ instance Has w Physics => Has w Elasticity where
   getStore = (cast :: Space Physics -> Space Elasticity) <$> getStore
 
 instance Store (Space Elasticity) where
-  type Stores (Space Elasticity) = Elasticity
-  type SafeRW (Space Elasticity) = Maybe Elasticity
+  type Elem (Space Elasticity) = Elasticity
   initStore = error "Attempted to initialize a space from an Elasticity component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . Elasticity <$> getElasticity s
 
   explSet (Space _ sMap _ _ _) ety (Elasticity vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setElasticity s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Elasticity <$> getElasticity s
 
@@ -221,25 +199,17 @@ instance Has w Physics => Has w Mass where
   getStore = (cast :: Space Physics -> Space Mass) <$> getStore
 
 instance Store (Space Mass) where
-  type Stores (Space Mass) = Mass
-  type SafeRW (Space Mass) = Maybe Mass
+  type Elem (Space Mass) = Mass
   initStore = error "Attempted to initialize a space from an Mass component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . Mass <$> getMass s
 
   explSet (Space _ sMap _ _ _) ety (Mass vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setMass s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Mass <$> getMass s
 
@@ -258,25 +228,17 @@ instance Has w Physics => Has w Density where
   getStore = (cast :: Space Physics -> Space Density) <$> getStore
 
 instance Store (Space Density) where
-  type Stores (Space Density) = Density
-  type SafeRW (Space Density) = Maybe Density
+  type Elem (Space Density) = Density
   initStore = error "Attempted to initialize a space from an Density component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . Density <$> getDensity s
 
   explSet (Space _ sMap _ _ _) ety (Density vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setDensity s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Density <$> getDensity s
 
@@ -295,25 +257,17 @@ instance Has w Physics => Has w Friction where
   getStore = (cast :: Space Physics -> Space Friction) <$> getStore
 
 instance Store (Space Friction) where
-  type Stores (Space Friction) = Friction
-  type SafeRW (Space Friction) = Maybe Friction
+  type Elem (Space Friction) = Friction
   initStore = error "Attempted to initialize a space from an Friction component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . Friction <$> getFriction s
 
   explSet (Space _ sMap _ _ _) ety (Friction vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setFriction s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Friction <$> getFriction s
 
@@ -336,25 +290,17 @@ instance Has w Physics => Has w SurfaceVelocity where
   getStore = (cast :: Space Physics -> Space SurfaceVelocity) <$> getStore
 
 instance Store (Space SurfaceVelocity) where
-  type Stores (Space SurfaceVelocity) = SurfaceVelocity
-  type SafeRW (Space SurfaceVelocity) = Maybe SurfaceVelocity
+  type Elem (Space SurfaceVelocity) = SurfaceVelocity
   initStore = error "Attempted to initialize a space from an SurfaceVelocity component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . SurfaceVelocity <$> getSurfaceVelocity s
 
   explSet (Space _ sMap _ _ _) ety (SurfaceVelocity vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setSurfaceVelocity s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     SurfaceVelocity <$> getSurfaceVelocity s
 
@@ -381,25 +327,17 @@ instance Has w Physics => Has w CollisionFilter where
   getStore = (cast :: Space Physics -> Space CollisionFilter) <$> getStore
 
 instance Store (Space CollisionFilter) where
-  type Stores (Space CollisionFilter) = CollisionFilter
-  type SafeRW (Space CollisionFilter) = Maybe CollisionFilter
+  type Elem (Space CollisionFilter) = CollisionFilter
   initStore = error "Attempted to initialize a space from an CollisionFilter component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just <$> getFilter s
 
   explSet (Space _ sMap _ _ _) ety cfilter = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setFilter s cfilter
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     getFilter s
 
@@ -418,25 +356,17 @@ instance Has w Physics => Has w CollisionType where
   getStore = (cast :: Space Physics -> Space CollisionType) <$> getStore
 
 instance Store (Space CollisionType) where
-  type Stores (Space CollisionType) = CollisionType
-  type SafeRW (Space CollisionType) = Maybe CollisionType
+  type Elem (Space CollisionType) = CollisionType
   initStore = error "Attempted to initialize a space from an CollisionType component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . CollisionType <$> getCollisionType s
 
   explSet (Space _ sMap _ _ _) ety (CollisionType vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setCollisionType s vec
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     CollisionType <$> getCollisionType s
 
@@ -452,22 +382,14 @@ instance Has w Physics => Has w ShapeBody where
   getStore = (cast :: Space Physics -> Space ShapeBody) <$> getStore
 
 instance Store (Space ShapeBody) where
-  type Stores (Space ShapeBody) = ShapeBody
-  type SafeRW (Space ShapeBody) = Maybe ShapeBody
+  type Elem (Space ShapeBody) = ShapeBody
   initStore = error "Attempted to initialize a space from an ShapeBody component, use Physics instead"
   explDestroy _ _ = return ()
   explMembers s = explMembers (cast s :: Space Shape)
   explExists s ety = explExists (cast s :: Space Shape) ety
-  explSetMaybe = defaultSetMaybe
-
-  explGet (Space _ sMap _ _ _) ety = do
-    rd <- M.lookup ety <$> readIORef sMap
-    case rd of
-      Nothing -> return Nothing
-      Just s  -> Just . ShapeBody . Entity . fromIntegral <$> getShapeBody s
 
   explSet _ _ _ = return ()
 
-  explGetUnsafe (Space _ sMap _ _ _) ety = do
+  explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     ShapeBody . Entity . fromIntegral <$> getShapeBody s

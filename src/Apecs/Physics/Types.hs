@@ -14,7 +14,6 @@
 module Apecs.Physics.Types where
 
 import           Apecs
-import           Apecs.Types
 import           Data.Bits
 import           Data.Char                 (intToDigit)
 import qualified Data.IntMap               as M
@@ -49,6 +48,9 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
+unEntity :: Entity -> Int
+unEntity (Entity n) = n
+
 -- | Uninhabited data type for constructing a world with a chipmunk space.
 data Physics
 
@@ -78,21 +80,21 @@ newtype CenterOfGravity = CenterOfGravity BVec
 -- | Shape component.
 --   Adding a shape to an entity that has no @Body@ is a noop.
 data Shape = Shape Convex
-           | ShapeExtend (Entity Body) Convex
+           | ShapeExtend Entity Convex
            | ShapeRead -- ^ Shapes are write-only, this is returned when you attempt to read
 
 -- | A convex polygon.
 --   Consists of a list of vertices, and a radius.
 data Convex = Convex [BVec] Double deriving (Eq, Show)
 
-newtype Sensor          = Sensor          Bool          deriving (Eq, Show)
-newtype Elasticity      = Elasticity      Double        deriving (Eq, Show)
-newtype Mass            = Mass            Double        deriving (Eq, Show)
-newtype Density         = Density         Double        deriving (Eq, Show)
-newtype Friction        = Friction        Double        deriving (Eq, Show)
-newtype SurfaceVelocity = SurfaceVelocity Vec           deriving (Eq, Show)
-newtype CollisionType   = CollisionType   C.CUIntPtr    deriving (Eq, Show)
-newtype ShapeBody       = ShapeBody       (Entity Body) deriving (Eq, Show)
+newtype Sensor          = Sensor          Bool       deriving (Eq, Show)
+newtype Elasticity      = Elasticity      Double     deriving (Eq, Show)
+newtype Mass            = Mass            Double     deriving (Eq, Show)
+newtype Density         = Density         Double     deriving (Eq, Show)
+newtype Friction        = Friction        Double     deriving (Eq, Show)
+newtype SurfaceVelocity = SurfaceVelocity Vec        deriving (Eq, Show)
+newtype CollisionType   = CollisionType   C.CUIntPtr deriving (Eq, Show)
+newtype ShapeBody       = ShapeBody       Entity     deriving (Eq, Show)
 
 type CollisionGroup = CUInt
 
@@ -136,8 +138,8 @@ newtype SleepIdleTime = SleepIdleTime Double
 newtype CollisionSlop = CollisionSlop Double
 newtype CollisionBias = CollisionBias Double
 
-instance Cast Space where
-  cast (Space b s c h w) = Space b s c h w
+cast :: Space a -> Space b
+cast (Space b s c h w) = Space b s c h w
 
 -- Constraint subcomponents
 newtype MaxForce      = MaxForce      Double
@@ -145,8 +147,8 @@ newtype MaxBias       = MaxBias       Double
 newtype ErrorBias     = ErrorBias     Double
 newtype CollideBodies = CollideBodies Bool
 
-data Constraint = Constraint (Entity Body) ConstraintType
-                | ConstraintExtend (Entity Body) (Entity Body) ConstraintType
+data Constraint = Constraint Entity ConstraintType
+                | ConstraintExtend Entity Entity ConstraintType
                 | ConstraintRead
 
 data ConstraintType
@@ -194,8 +196,8 @@ data CollisionSource
 -- Corresponds to an 'arbiter' in Chipmunk
 data Collision = Collision
   { collisionNormal :: Vec
-  , collisionA      :: Entity Body
-  , collisionB      :: Entity Body
+  , collisionA      :: Entity
+  , collisionB      :: Entity
   } deriving (Eq, Show)
 
 data CollisionProperties = CollisionProperties
@@ -205,14 +207,14 @@ data CollisionProperties = CollisionProperties
   } deriving (Eq, Show)
 
 data SegmentQueryResult = SegmentQueryResult
-  { sqShape        :: Entity Shape
+  { sqShape        :: Entity
   , sqImpactPoint  :: Vec
   , sqImpactNormal :: Vec
   , sqImpactAlpha  :: Double
   } deriving (Eq, Show)
 
 data PointQueryResult = PointQueryResult
-  { pqShape    :: Entity Shape
+  { pqShape    :: Entity
   , pqPoint    :: WVec
   , pqDistance :: Double
   , pqGradient :: Double

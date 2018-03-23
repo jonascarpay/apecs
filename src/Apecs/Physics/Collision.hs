@@ -16,8 +16,7 @@
 module Apecs.Physics.Collision where
 
 import           Apecs
-import           Apecs.Stores        (defaultSetMaybe)
-import           Apecs.Types
+import           Apecs.Core
 import           Control.Monad
 import qualified Data.IntMap         as M
 import           Data.IORef
@@ -113,8 +112,7 @@ instance Has w Physics => Has w CollisionHandler where
   getStore = (cast :: Space Physics -> Space CollisionHandler) <$> getStore
 
 instance Store (Space CollisionHandler) where
-  type Stores (Space CollisionHandler) = CollisionHandler
-  type SafeRW (Space CollisionHandler) = Maybe CollisionHandler
+  type Elem (Space CollisionHandler) = CollisionHandler
   initStore = error "Initializing space from non-Physics store"
 
   explSet sp@(Space _ _ _ hMap spcPtr) ety handler = do
@@ -128,10 +126,6 @@ instance Store (Space CollisionHandler) where
 
   explMembers (Space _ _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
   explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
-  explSetMaybe = defaultSetMaybe
 
-  explGet s ety = do
-    e <- explExists s ety
-    if e then Just <$> explGetUnsafe s ety else return Nothing
-  explGetUnsafe _ _ = return (error "CollisionHandler is a read-only component")
+  explGet _ _ = return (error "CollisionHandler is a write-only component")
 

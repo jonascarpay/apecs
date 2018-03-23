@@ -45,8 +45,8 @@ zRectangle s = oRectangle 0 s
 
 -- | Split a shape into its edges. Will return no edges for points, but returns 2 for a line (in opposite directions)
 toEdges :: Convex -> [Convex]
-toEdges (Convex [] r) = []
-toEdges (Convex [_] r) = []
+toEdges (Convex [] _) = []
+toEdges (Convex [_] _) = []
 toEdges (Convex vs r) = zipWith (\h t -> Convex [h,t] r) vs (tail . cycle $ vs)
 
 -- | A set of lines forming a grid. Returns (r + c + 2) segments.
