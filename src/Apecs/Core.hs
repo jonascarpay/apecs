@@ -11,9 +11,9 @@ module Apecs.Core where
 
 import           Control.Monad.Reader
 import           Data.Functor.Identity
-import qualified Data.Vector.Unboxed  as U
+import qualified Data.Vector.Unboxed   as U
 
-import qualified Apecs.THTuples       as T
+import qualified Apecs.THTuples        as T
 
 -- | An Entity is really just an Int in a newtype, used to index into a component store.
 newtype Entity = Entity Int deriving (Eq, Ord, Show)
@@ -114,7 +114,7 @@ instance Store s => Store (MaybeStore s) where
     e <- explExists sa ety
     if e then Just <$> explGet sa ety
          else return Nothing
-  explSet (MaybeStore sa) ety Nothing = explDestroy sa ety
+  explSet (MaybeStore sa) ety Nothing  = explDestroy sa ety
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
   explExists _ _ = return True
   explMembers _ = return mempty
@@ -135,7 +135,7 @@ instance (Store sp, Store sq) => Store (EitherStore sp sq) where
     e <- explExists sp ety
     if e then Left <$> explGet sp ety
          else Right <$> explGet sq ety
-  explSet (EitherStore sp _) ety (Left p) = explSet sp ety p
+  explSet (EitherStore sp _) ety (Left p)  = explSet sp ety p
   explSet (EitherStore _ sq) ety (Right q) = explSet sq ety q
   explExists (EitherStore sp sq) ety = do
     e <- explExists sp ety
