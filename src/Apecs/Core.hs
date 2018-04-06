@@ -56,9 +56,7 @@ class Store s where
 
   -- | Returns whether there is a component for the given index
   explExists :: s -> Int -> IO Bool
-  explExists s n = do
-    mems <- explMembers s
-    return $ U.elem n mems
+  explExists s n = U.elem n <$> explMembers s
 
 instance Component c => Component (Identity c) where
   type Storage (Identity c) = Identity (Storage c)
