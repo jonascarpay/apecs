@@ -18,7 +18,7 @@ module Apecs (
   -- * Other
     runSystem, runWith,
     runGC, EntityCounter, newEntity, global, proxy,
-    makeWorld,
+    makeWorld, makeWorldAndComponents,
 
   -- * Re-exports
     asks, ask, liftIO, lift,

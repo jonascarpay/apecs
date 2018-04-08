@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Apecs.TH
-  ( makeWorld, makeWorldNoEC
-  )where
+  ( makeWorld, makeWorldNoEC, makeWorldAndComponents
+  ) where
 
 import           Language.Haskell.TH
 import           Control.Monad
@@ -20,7 +20,6 @@ makeWorldNoEC worldName cTypes = do
   cTypesNames <- forM cTypes $ \t -> do
     rec <- genName "rec"
     return (ConT t, rec)
-  t <- [t| System |]
 
   let wld = mkName worldName
       has = mkName "Has"
@@ -52,6 +51,8 @@ makeComponent comp = do
   let ct = return$ ConT comp
   head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
   
+-- | Same as makeWorld, but also makes a component instance:
+makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
   cdecls <- mapM makeComponent cTypes

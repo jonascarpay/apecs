@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed   as U
 import qualified Apecs.THTuples        as T
 
 -- | An Entity is really just an Int in a newtype, used to index into a component store.
-newtype Entity = Entity Int deriving (Eq, Ord, Show)
+newtype Entity = Entity Int deriving (Num, Eq, Ord, Show)
 
 -- | A system is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
