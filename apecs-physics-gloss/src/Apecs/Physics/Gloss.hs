@@ -14,7 +14,7 @@ import           Apecs.Physics
 import           Data.Foldable                        (fold)
 import qualified Graphics.Gloss                       as G
 import           Graphics.Gloss.Geometry.Angle        (radToDeg)
-import qualified Graphics.Gloss.Interface.IO.Simulate as G
+import qualified Graphics.Gloss.Interface.IO.Simulate as GS
 
 newtype BodyPicture = BodyPicture G.Picture deriving Monoid
 
@@ -57,7 +57,7 @@ drawWorld = do
 
 defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w Camera) => w -> String -> IO ()
 defaultSimulate w name =
-  G.simulateIO (G.InWindow name (640,480) (100,100)) G.black 60 w render stepper
+  GS.simulateIO (GS.InWindow name (640,480) (100,100)) G.black 60 w render stepper
     where
       render w       = runSystem drawWorld w
       stepper _ dT w = runSystem (stepPhysics (1/60)) w >> return w
