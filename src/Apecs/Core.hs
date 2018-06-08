@@ -15,10 +15,10 @@ import qualified Data.Vector.Unboxed   as U
 
 import qualified Apecs.THTuples        as T
 
--- | An Entity is really just an Int in a newtype, used to index into a component store.
-newtype Entity = Entity Int deriving (Num, Eq, Ord, Show)
+-- | An Entity is just an integer, used to index into a component store.
+newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show)
 
--- | A system is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
+-- | A System is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
 
 -- | A component is defined by the type of its storage
@@ -32,12 +32,6 @@ class Component c => Has w c where
   getStore :: System w (Storage c)
 
 -- | Holds components indexed by entities
---
---   Laws:
---
---      * For all entities in @exmplMembers s@, @explExists s ety@ must be true.
---
---      * If for some entity @explExists s ety@, @explGet s ety@ should safely return a non-bottom value.
 class Store s where
   -- | The type of components stored by this Store
   type Elem s
@@ -45,6 +39,13 @@ class Store s where
   -- | Initialize the store with its initialization arguments.
   initStore :: IO s
 
+-- | 
+--   Laws:
+--
+--      * For all entities in @exmplMembers s@, @explExists s ety@ must be true.
+--
+--      * If for some entity @explExists s ety@, @explGet s ety@ should safely return a non-bottom value.
+class SGet
   -- | Writes a component
   explSet :: s -> Int -> Elem s -> IO ()
   -- | Reads a component from the store. What happens if the component does not exist is left undefined.
