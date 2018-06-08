@@ -53,6 +53,8 @@ test-suite apecs-test
     base >= 4.7 && < 5,
     apecs,
     QuickCheck,
+    criterion,
+    linear,
     containers,
     vector
   default-language:
