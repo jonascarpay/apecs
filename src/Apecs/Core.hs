@@ -13,7 +13,7 @@ import           Control.Monad.Reader
 import           Data.Functor.Identity
 import qualified Data.Vector.Unboxed   as U
 
-import qualified Apecs.THTuples        as T
+-- import qualified Apecs.THTuples        as T
 
 -- | An Entity is just an integer, used to index into a component store.
 newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show)
@@ -24,40 +24,40 @@ newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Mona
 -- | A component is defined by the type of its storage
 --   The storage in turn supplies runtime types for the component.
 --   For the component to be valid, its Storage must be an instance of Store.
-class (Elem (Storage c) ~ c, Store (Storage c)) => Component c where
+class (Elem (Storage c) ~ c) => Component c where
   type Storage c
 
 -- | A world `Has` a component if it can produce its Storage
 class Component c => Has w c where
   getStore :: System w (Storage c)
 
+-- | The type of components stored by a Store
+type family Elem s
+
 -- | Holds components indexed by entities
-class Store s where
-  -- | The type of components stored by this Store
-  type Elem s
-
+class ExplInit s where
   -- | Initialize the store with its initialization arguments.
-  initStore :: IO s
+  explInit :: IO s
 
--- | 
---   Laws:
---
---      * For all entities in @exmplMembers s@, @explExists s ety@ must be true.
---
---      * If for some entity @explExists s ety@, @explGet s ety@ should safely return a non-bottom value.
-class SGet
-  -- | Writes a component
-  explSet :: s -> Int -> Elem s -> IO ()
+-- | Stores that support @get@ and @exists@ in the IO monad
+--   If @existsIO@
+class ExplGet s where
   -- | Reads a component from the store. What happens if the component does not exist is left undefined.
   explGet :: s -> Int -> IO (Elem s)
-  -- | Destroys the component for a given index.
-  explDestroy :: s -> Int -> IO ()
-  -- | Returns an unboxed vector of member indices
-  explMembers :: s -> IO (U.Vector Int)
-
   -- | Returns whether there is a component for the given index
   explExists :: s -> Int -> IO Bool
-  explExists s n = U.elem n <$> explMembers s
+
+class ExplSet s where
+  -- | Writes a component
+  explSet :: s -> Int -> Elem s -> IO ()
+
+class ExplDestroy s where
+  -- | Destroys the component for a given index.
+  explDestroy :: s -> Int -> IO ()
+
+class ExplMembers s where
+  -- | Returns an unboxed vector of member indices
+  explMembers :: s -> IO (U.Vector Int)
 
 instance Component c => Component (Identity c) where
   type Storage (Identity c) = Identity (Storage c)
@@ -65,17 +65,21 @@ instance Component c => Component (Identity c) where
 instance Has w c => Has w (Identity c) where
   getStore = Identity <$> getStore
 
-instance Store s => Store (Identity s) where
-  type Elem (Identity s) = Identity (Elem s)
-  initStore = error "Initializing Pseudostore"
+type instance Elem (Identity s) = Identity (Elem s)
+
+instance ExplGet s => ExplGet (Identity s) where
   explGet (Identity s) e = Identity <$> explGet s e
-  explSet (Identity s) e (Identity x) = explSet s e x
   explExists  (Identity s) = explExists s
+
+instance ExplSet s => ExplSet (Identity s) where
+  explSet (Identity s) e (Identity x) = explSet s e x
+instance ExplMembers s => ExplMembers (Identity s) where
   explMembers (Identity s) = explMembers s
+instance ExplDestroy s => ExplDestroy (Identity s) where
   explDestroy (Identity s) = explDestroy s
 
--- Tuple Instances
-T.makeInstances [2..8]
+-- Tuple Instances TODO
+-- T.makeInstances [2..8]
 
 -- | Psuedocomponent indicating the absence of @a@.
 data Not a = Not
@@ -89,14 +93,14 @@ instance Component c => Component (Not c) where
 instance (Has w c) => Has w (Not c) where
   getStore = NotStore <$> getStore
 
-instance Store s => Store (NotStore s) where
-  type Elem (NotStore s) = Not (Elem s)
-  initStore = error "Initializing Pseudostore"
+type instance Elem (NotStore s) = Not (Elem s)
+
+instance ExplGet s => ExplGet (NotStore s) where
   explGet _ _ = return Not
-  explSet (NotStore sa) ety _ = explDestroy sa ety
   explExists (NotStore sa) ety = not <$> explExists sa ety
-  explMembers _ = return mempty
-  explDestroy sa ety = explSet sa ety Not
+
+instance ExplDestroy s => ExplSet (NotStore s) where
+  explSet (NotStore sa) ety _ = explDestroy sa ety
 
 -- | Pseudostore used to produce values of type @Maybe a@
 newtype MaybeStore s = MaybeStore s
@@ -106,42 +110,18 @@ instance Component c => Component (Maybe c) where
 instance (Has w c) => Has w (Maybe c) where
   getStore = MaybeStore <$> getStore
 
-instance Store s => Store (MaybeStore s) where
-  type Elem (MaybeStore s) = Maybe (Elem s)
-  initStore = error "Initializing Pseudostore"
+type instance Elem (MaybeStore s) = Maybe (Elem s)
+
+instance ExplGet s => ExplGet (MaybeStore s) where
   explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
     if e then Just <$> explGet sa ety
          else return Nothing
+  explExists _ _ = return True
+
+instance (ExplDestroy s, ExplSet s) => ExplSet (MaybeStore s) where
   explSet (MaybeStore sa) ety Nothing  = explDestroy sa ety
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
-  explExists _ _ = return True
-  explMembers _ = return mempty
-  explDestroy (MaybeStore sa) ety = explDestroy sa ety
-
--- | Pseudostore used to produce values of type @Either p q@
-data EitherStore sp sq = EitherStore sp sq
-instance (Component p, Component q) => Component (Either p q) where
-  type Storage (Either p q) = EitherStore (Storage p) (Storage q)
-
-instance (Has w p, Has w q) => Has w (Either p q) where
-  getStore = EitherStore <$> getStore <*> getStore
-
-instance (Store sp, Store sq) => Store (EitherStore sp sq) where
-  type Elem (EitherStore sp sq) = Either (Elem sp) (Elem sq)
-  initStore = error "Initializing Pseudostore"
-  explGet (EitherStore sp sq) ety = do
-    e <- explExists sp ety
-    if e then Left <$> explGet sp ety
-         else Right <$> explGet sq ety
-  explSet (EitherStore sp _) ety (Left p)  = explSet sp ety p
-  explSet (EitherStore _ sq) ety (Right q) = explSet sq ety q
-  explExists (EitherStore sp sq) ety = do
-    e <- explExists sp ety
-    if e then return True
-         else explExists sq ety
-  explMembers _ = return mempty
-  explDestroy _ _ = return ()
 
 data Filter c = Filter deriving (Eq, Show)
 newtype FilterStore s = FilterStore s
@@ -152,14 +132,11 @@ instance Component c => Component (Filter c) where
 instance Has w c => Has w (Filter c) where
   getStore = FilterStore <$> getStore
 
-instance Store s => Store (FilterStore s) where
-  type Elem (FilterStore s) = Filter (Elem s)
-  initStore = error "Initializing Pseudostore"
+type instance Elem (FilterStore s) = Filter (Elem s)
+
+instance ExplGet s => ExplGet (FilterStore s) where
   explGet _ _ = return Filter
-  explSet _ _ _ = return ()
   explExists (FilterStore s) ety = explExists s ety
-  explMembers (FilterStore s) = explMembers s
-  explDestroy _ _ = return ()
 
 -- | Pseudostore used to produce components of type @Entity@
 data EntityStore = EntityStore
@@ -169,11 +146,7 @@ instance Component Entity where
 instance (Has w Entity) where
   getStore = return EntityStore
 
-instance Store EntityStore where
-  type Elem EntityStore = Entity
-  initStore = error "Initializing Pseudostore"
+type instance Elem EntityStore = Entity
+instance ExplGet EntityStore where
   explGet _ ety = return $ Entity ety
-  explSet _ _ _ = liftIO$ putStrLn "Warning: Writing Entity is undefined"
   explExists _ _ = return True
-  explMembers _ = return mempty
-  explDestroy _ _ = return ()
