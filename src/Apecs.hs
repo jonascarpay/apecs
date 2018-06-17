@@ -8,7 +8,7 @@ module Apecs (
 
   -- * Stores
     Map, Unique, Global, Cache,
-    initStore,
+    explInit,
 
   -- * Systems
     get, set, getAll,

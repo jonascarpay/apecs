@@ -57,7 +57,7 @@ nextEntity = do EntityCounter n <- get global
 -- | Writes the given components to a new entity, and yields that entity.
 -- The return value is often ignored.
 {-# INLINE newEntity #-}
-newEntity :: (Store (Storage c), Has w c, Has w EntityCounter)
+newEntity :: (Set w c, Get w EntityCounter, Set w EntityCounter)
           => c -> System w Entity
 newEntity c = do ety <- nextEntity
                  set ety c

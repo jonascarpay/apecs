@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -58,6 +59,11 @@ class ExplDestroy s where
 class ExplMembers s where
   -- | Returns an unboxed vector of member indices
   explMembers :: s -> IO (U.Vector Int)
+
+type Get     w c = (Has w c, ExplGet     (Storage c))
+type Set     w c = (Has w c, ExplSet     (Storage c))
+type Members w c = (Has w c, ExplMembers (Storage c))
+type Destroy w c = (Has w c, ExplDestroy (Storage c))
 
 instance Component c => Component (Identity c) where
   type Storage (Identity c) = Identity (Storage c)

@@ -23,12 +23,12 @@ concurrently ss = do w <- System ask
 
 -- | Parallel version of @cmap@. 
 {-# INLINE pmap #-}
-pmap :: forall w x y. (Has w y, Has w x)
+pmap :: forall w cx cy. (Get w cx, Members w cx, Set w cy)
      => Int -- ^ Entities per thread
-     -> (x -> y) -> System w ()
+     -> (cx -> cy) -> System w ()
 pmap grainSize f =
-  do sr :: Storage x <- getStore
-     sw :: Storage y <- getStore
+  do sr :: Storage cx <- getStore
+     sw :: Storage cy <- getStore
      liftIO$ do
        sl <- explMembers sr
        parallelize grainSize (\e -> explGet sr e >>= explSet sw e . f) sl
