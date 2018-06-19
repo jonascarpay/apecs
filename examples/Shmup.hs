@@ -104,6 +104,7 @@ draw = do
   pt <- toPic $ \(Particle col _, Position p, Velocity (V2 vx vy)) -> color col . translate' p $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
   return $ mconcat [p,t,b,s,pt]
   where
+    toPic :: Has World c => (c -> Picture) -> System' Picture
     toPic f = mconcat . fmap f <$> getAll
     translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
     triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
