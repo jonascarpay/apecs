@@ -67,7 +67,7 @@ step dT = do
   triggerEvery 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
   triggerEvery 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
   where
-    incrTime = cmap $ \(Time t) -> Time (t+dT)
+    incrTime = modify 0 $ \(Time t) -> Time (t+dT)
     stepPosition = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
     clampPlayer = cmap $ \(Player, Position (V2 x y)) -> Position (V2 (min xmax . max xmin $ x) y)
     triggerEvery period phase sys = do
@@ -76,8 +76,8 @@ step dT = do
       when (floor (t'/period) /= floor ((t'+dT)/period)) (void sys)
     clearBullets = cmapM_ $ \(Bullet, Position (V2 x y), ety) ->
       when (y > 170) $ do
-        destroy ety (proxy :: (Bullet, Movable))
-        cmap $ \(Score x) -> Score (x-40)
+        destroy ety (Proxy @(Bullet, Movable))
+        modify global $ \(Score x) -> Score (x-40)
     clearTargets = cmap $ \c@(Target, Position (V2 x y), Velocity v) ->
       if x < xmin || x > xmax
          then Nothing
@@ -86,13 +86,13 @@ step dT = do
       cmapM_ $ \t@(Target, Position pTarget, Velocity _, eTarget) ->
         cmapM_ $ \b@(Bullet, Position pBullet, Velocity _, eBullet) ->
           when (norm (pTarget - pBullet) < 10) $ do
-            destroy eTarget t
-            destroy eBullet b
+            destroy eTarget (Proxy @(Target, Position, Velocity))
+            destroy eBullet (Proxy @(Bullet, Position, Velocity))
             spawnParticles 15 pBullet white (-500,500) (200,-50)
-            cmap $ \(Score x) -> Score (x + 100)
+            modify global $ \(Score x) -> Score (x + 100)
     stepParticles = cmapM_ $ \(Particle col t, ety) ->
       if t < 0
-         then destroy ety (proxy :: (Particle, Movable))
+         then destroy ety (Proxy @(Particle, Movable))
          else set ety (Particle col (t-dT))
 
 draw :: System' Picture
@@ -100,7 +100,7 @@ draw = do
   p <- toPic $ \(Player, Position p) -> color white  . translate' p . scale 10 20 $ triangle
   t <- toPic $ \(Target, Position p) -> color red    . translate' p . scale 10 10 $ diamond
   b <- toPic $ \(Bullet, Position p) -> color yellow . translate' p . scale 4  4   $ diamond
-  s <- toPic $ \(Score s) -> color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
+  s <- flip fmap (get global) $ \(Score s) -> color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
   pt <- toPic $ \(Particle col _, Position p, Velocity (V2 vx vy)) -> color col . translate' p $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
   return $ mconcat [p,t,b,s,pt]
   where

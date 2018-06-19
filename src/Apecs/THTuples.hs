@@ -147,7 +147,7 @@ tupleInstances n = do
         , PragmaD$ InlineP explDestroyN Inline FunLike AllPhases
         ]
 
-      membersI = InstanceD Nothing (membersT (head vars) : (getT <$> vars)) (membersT varTuple)
+      membersI = InstanceD Nothing (membersT (head vars) : (getT <$> tail vars)) (membersT varTuple)
         [ FunD explMembersN [Clause [sPat]
             (NormalB$ foldl explMembersFold (explMembersF (head sEs)) (explExistsF <$> tail sEs)) [] ]
         , PragmaD$ InlineP explMembersN Inline FunLike AllPhases
