@@ -3,4 +3,4 @@
 - A changelog
 
 ### Changed
-- Stores are now split into 5 separate type classes. This makes it impossible to e.g. iterate over a Not
+- `Store` is now split into 5 separate type classes; `ExplGet`, `ExplSet`, `ExplDestroy`, and `ExplMembers`.

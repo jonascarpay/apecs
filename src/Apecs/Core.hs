@@ -14,7 +14,7 @@ import           Control.Monad.Reader
 import           Data.Functor.Identity
 import qualified Data.Vector.Unboxed   as U
 
--- import qualified Apecs.THTuples        as T
+import qualified Apecs.THTuples        as T
 
 -- | An Entity is just an integer, used to index into a component store.
 newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show)
@@ -85,7 +85,8 @@ instance ExplDestroy s => ExplDestroy (Identity s) where
   explDestroy (Identity s) = explDestroy s
 
 -- Tuple Instances TODO
--- T.makeInstances [2..8]
+T.makeInstances [2..8]
+
 
 -- | Psuedocomponent indicating the absence of @a@.
 data Not a = Not
