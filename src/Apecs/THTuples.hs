@@ -5,46 +5,48 @@ module Apecs.THTuples where
 import qualified Data.Vector.Unboxed as U
 import           Language.Haskell.TH
 
+{--
+instance (Component a, Component b) => Component (a, b) where
+  type Storage (a,b) = (Storage a, Storage b)
+
+instance (Has w a, Has w b) => Has w (a,b) where
+  getStore = liftM2 (,) getStore getStore
+
+type instance Elem (a,b) = (Elem a, Elem b)
+
+instance (ExplGet a, ExplGet b) => ExplGet (a, b) where
+  explExists (sa, sb) ety = liftM2 (&&) (explExists sa ety) (explExists sb ety)
+  explGet (sa, sb) ety = liftM2 (,) (explGet sa ety) (explGet sb ety)
+
+instance (ExplSet a, ExplSet b) => ExplSet (a, b) where
+  explSet (sa,sb) ety (a,b) = explSet sa ety a >> explSet sb ety b
+
+instance (ExplDestroy a, ExplDestroy b) => ExplDestroy (a, b) where
+  explDestroy (sa, sb) ety = explDestroy sa ety >> explDestroy sb ety
+
+instance (ExplMembers a, ExplGet b) => ExplMembers (a, b) where
+  explMembers (sa, sb) = explMembers sa >>= U.filterM (explExists sb)
+--}
+
 -- | Generate tuple instances for the following tuple sizes.
 makeInstances :: [Int] -> Q [Dec]
 makeInstances is = concat <$> traverse tupleInstances is
 
-{--
-instance (Component a, Component b) => Component (a,b) where
-  type Storage (a,b) = (Storage a, Storage b)
-
-instance (Has w a, Has w b) => Has w (a,b) where
-  {-# INLINE getStore #-}
-  getStore = (,) <$> getStore <*> getStore
-
-instance (Store a, Store b) => Store (a,b) where
-  type Elem (a, b) = (Elem a, Elem b)
-  type SafeRW (a, b) = (SafeRW a, SafeRW b)
-  initStore = (,) <$> initStore <*> initStore
-
-  explSet       (sa,sb) ety (wa,wb) = explSet sa ety wa >> explSet sb ety wb
-  explDestroy   (sa,sb) ety = explDestroy sa ety >> explDestroy sb ety
-  explExists    (sa,sb) ety = explExists sa ety >>= \case False -> return False
-                                                          True  -> explExists sb ety
-  explMembers   (sa,sb) = explMembers sa >>= U.filterM (explExists sb)
-  {-# INLINE explGet #-}
-  {-# INLINE explSet #-}
-  {-# INLINE explMembers #-}
-  {-# INLINE explDestroy #-}
-  {-# INLINE explExists #-}
---}
 tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do
   let vars = [ VarT . mkName $ "t_" ++ show i | i <- [0..n-1]]
+
       tupleUpT :: [Type] -> Type
       tupleUpT = foldl AppT (TupleT n)
       varTuple :: Type
       varTuple = tupleUpT vars
+
       tupleName :: Name
       tupleName = tupleDataName n
       tuplE :: Exp
       tuplE = ConE tupleName
 
+      -- Component
       compN = mkName "Component"
       compT var = ConT compN `AppT` var
       strgN = mkName "Storage"
@@ -54,6 +56,7 @@ tupleInstances n = do
           TySynEqn [varTuple] (tupleUpT . fmap strgT $ vars)
         ]
 
+      -- Has
       hasN = mkName "Has"
       hasT var = ConT hasN `AppT` VarT (mkName "w") `AppT` var
       getStoreN = mkName "getStore"
@@ -70,12 +73,12 @@ tupleInstances n = do
       sequenceAll :: [Exp] -> Exp
       sequenceAll = foldl1 (\a x -> AppE (AppE (VarE$ mkName ">>") a) x)
 
-      strN  = mkName "Store"
-      strsN = mkName "Elem"
+      -- Elem
+      elemN = mkName "Elem"
+      elemT var = ConT elemN `AppT` var
+      elemI = TySynInstD elemN $ TySynEqn [varTuple] (tupleUpT $ fmap elemT vars)
 
-      strT  var = ConT strN  `AppT` var
-      strsT var = ConT strsN `AppT` var
-
+      -- s, ety, w arguments
       sNs = [ mkName $ "s_" ++ show i | i <- [0..n-1]]
       sPat = ConP tupleName (VarP <$> sNs)
       sEs = VarE <$> sNs
@@ -86,12 +89,21 @@ tupleInstances n = do
       wPat = ConP tupleName (VarP <$> wNs)
       wEs = VarE <$> wNs
 
+      getN     = mkName "ExplGet"
+      setN     = mkName "ExplSet"
+      membersN = mkName "ExplMembers"
+      destroyN = mkName "ExplDestroy"
+
+      getT var     = ConT getN `AppT` var
+      setT var     = ConT setN `AppT` var
+      membersT var = ConT membersN `AppT` var
+      destroyT var = ConT destroyN `AppT` var
+
       explSetN     = mkName "explSet"
       explDestroyN = mkName "explDestroy"
       explExistsN  = mkName "explExists"
       explMembersN = mkName "explMembers"
       explGetN     = mkName "explGet"
-      initStoreN   = mkName "initStore"
 
       explSetE     = VarE explSetN
       explDestroyE = VarE explDestroyN
@@ -99,46 +111,46 @@ tupleInstances n = do
       explMembersE = VarE explMembersN
       explGetE     = VarE explGetN
 
-      explSetF sE wE = AppE explSetE sE `AppE` etyE `AppE` wE
+      explSetF sE wE  = AppE explSetE sE `AppE` etyE `AppE` wE
       explDestroyF sE = AppE explDestroyE sE `AppE` etyE
-      explExistsF sE = AppE explExistsE sE
+      explExistsF sE  = AppE explExistsE sE
       explMembersF sE = AppE explMembersE sE
-      explGetF sE = AppE explGetE sE `AppE` etyE
+      explGetF sE     = AppE explGetE sE `AppE` etyE
 
-      explExistsAnd va vb = AppE (AppE (VarE '(>>=)) va)
-                                 (LamCaseE [ Match (ConP 'False []) (NormalB$ AppE (VarE 'return) (ConE 'False)) []
-                                           , Match (ConP 'True []) (NormalB vb) []
-                                           ])
+      explExistsAnd va vb =
+        AppE (AppE (VarE '(>>=)) va)
+          (LamCaseE [ Match (ConP 'False []) (NormalB$ AppE (VarE 'return) (ConE 'False)) []
+                    , Match (ConP 'True []) (NormalB vb) []
+                    ])
 
       explMembersFold va vb = AppE (VarE '(>>=)) va `AppE` AppE (VarE 'U.filterM) vb
 
-      strI = InstanceD Nothing (strT <$> vars) (strT varTuple)
-        [ TySynInstD strsN $ TySynEqn [varTuple] (tupleUpT $ fmap strsT vars)
-
-        , FunD explSetN [Clause [sPat, etyPat, wPat]
-            (NormalB$ sequenceAll (zipWith explSetF sEs wEs)) [] ]
-        , PragmaD$ InlineP explSetN Inline FunLike AllPhases
-
-        , FunD explDestroyN [Clause [sPat, etyPat]
-            (NormalB$ sequenceAll (explDestroyF <$> sEs)) [] ]
-        , PragmaD$ InlineP explDestroyN Inline FunLike AllPhases
+      getI = InstanceD Nothing (getT <$> vars) (getT varTuple)
+        [ FunD explGetN [Clause [sPat, etyPat]
+            (NormalB$ liftAll tuplE (explGetF <$> sEs)) [] ]
+        , PragmaD$ InlineP explGetN Inline FunLike AllPhases
 
         , FunD explExistsN [Clause [sPat, etyPat]
             (NormalB$ foldr explExistsAnd (AppE (VarE 'pure) (ConE 'True)) ((`AppE` etyE) . explExistsF <$> sEs)) [] ]
         , PragmaD$ InlineP explExistsN Inline FunLike AllPhases
-
-        , FunD explMembersN [Clause [sPat]
-            (NormalB$ foldl explMembersFold (explMembersF (head sEs)) (explExistsF <$> tail sEs)) [] ]
-        , PragmaD$ InlineP explMembersN Inline FunLike AllPhases
-
-        , FunD explGetN [Clause [sPat, etyPat]
-            (NormalB$ liftAll tuplE (explGetF <$> sEs)) [] ]
-        , PragmaD$ InlineP explGetN Inline FunLike AllPhases
-
-        , FunD initStoreN [Clause []
-            (NormalB$ liftAll tuplE (VarE initStoreN <$ sEs)) [] ]
-        , PragmaD$ InlineP initStoreN Inline FunLike AllPhases
-
         ]
 
-  return [compI, hasI, strI]
+      setI = InstanceD Nothing (setT <$> vars) (setT varTuple)
+        [ FunD explSetN [Clause [sPat, etyPat, wPat]
+            (NormalB$ sequenceAll (zipWith explSetF sEs wEs)) [] ]
+        , PragmaD$ InlineP explSetN Inline FunLike AllPhases
+        ]
+
+      destroyI = InstanceD Nothing (destroyT <$> vars) (destroyT varTuple)
+        [ FunD explDestroyN [Clause [sPat, etyPat]
+            (NormalB$ sequenceAll (explDestroyF <$> sEs)) [] ]
+        , PragmaD$ InlineP explDestroyN Inline FunLike AllPhases
+        ]
+
+      membersI = InstanceD Nothing (membersT (head vars) : (getT <$> tail vars)) (membersT varTuple)
+        [ FunD explMembersN [Clause [sPat]
+            (NormalB$ foldl explMembersFold (explMembersF (head sEs)) (explExistsF <$> tail sEs)) [] ]
+        , PragmaD$ InlineP explMembersN Inline FunLike AllPhases
+        ]
+
+  return [compI, hasI, elemI, getI, setI, destroyI, membersI]

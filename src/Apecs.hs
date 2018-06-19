@@ -3,12 +3,13 @@ This module forms the apecs Prelude.
 It selectively re-exports the user-facing functions from the submodules.
 -}
 module Apecs (
+  module Data.Proxy,
   -- * Core types
     System(..), Component(..), Entity(..), Has(..), Not(..),
 
   -- * Stores
     Map, Unique, Global, Cache,
-    initStore,
+    explInit,
 
   -- * Systems
     get, set, getAll,
@@ -17,7 +18,7 @@ module Apecs (
 
   -- * Other
     runSystem, runWith,
-    runGC, EntityCounter, newEntity, global, proxy,
+    runGC, EntityCounter, newEntity, global,
     makeWorld, makeWorldAndComponents,
 
   -- * Re-exports
@@ -25,6 +26,7 @@ module Apecs (
 ) where
 
 import           Control.Monad.Reader (ask, asks, lift, liftIO)
+import           Data.Proxy
 
 import           Apecs.Stores
 import           Apecs.System

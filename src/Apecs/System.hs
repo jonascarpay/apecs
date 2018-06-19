@@ -7,6 +7,7 @@
 module Apecs.System where
 
 import           Control.Monad.Reader
+import           Data.Proxy
 import qualified Data.Vector.Unboxed  as U
 
 import           Apecs.Core
@@ -22,7 +23,7 @@ runWith :: w -> System w a -> IO a
 runWith = flip runSystem
 
 {-# INLINE get #-}
-get :: forall w c. Has w c => Entity -> System w c
+get :: forall w c. Get w c => Entity -> System w c
 get (Entity ety) = do
   s :: Storage c <- getStore
   liftIO$ explGet s ety
@@ -31,7 +32,7 @@ get (Entity ety) = do
 --   The type was originally 'Entity c -> c -> System w ()', but is relaxed to 'Entity e'
 --   so you don't always have to write 'set . cast'
 {-# INLINE set #-}
-set :: forall w c. Has w c => Entity -> c -> System w ()
+set :: forall w c. Set w c => Entity -> c -> System w ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
   liftIO$ explSet s ety x
@@ -39,39 +40,41 @@ set (Entity ety) x = do
 -- | Returns whether the given entity has component @c@
 --   Note that @c@ is a phantom argument, used only to convey the type of the entity to be queried.
 {-# INLINE exists #-}
-exists :: forall w c. Has w c => Entity -> c -> System w Bool
-exists (Entity ety) ~_ = do
+exists :: forall w c. Get w c => Entity -> Proxy c -> System w Bool
+exists (Entity ety) _ = do
   s :: Storage c <- getStore
   liftIO$ explExists s ety
 
 -- | Maps a function over all entities with a @cx@, and writes their @cy@
 {-# INLINE cmap #-}
-cmap :: forall world cx cy. (Has world cx, Has world cy)
-     => (cx -> cy) -> System world ()
+cmap :: forall w cx cy. (Get w cx, Members w cx, Set w cy)
+     => (cx -> cy) -> System w ()
 cmap f = do
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
   liftIO$ do
-    sl <- liftIO$ explMembers sx
+    sl <- explMembers sx
     U.forM_ sl $ \ e -> do
       r <- explGet sx e
       explSet sy e (f r)
 
--- | Monadically iterates over all entites with a cx
+-- | Monadically iterates over all entites with a cx, and writes their cy
 {-# INLINE cmapM #-}
-cmapM :: forall world c a. Has world c
-      => (c -> System world a) -> System world [a]
+cmapM :: forall w cx cy. (Get w cx, Set w cy, Members w cx)
+      => (cx -> System w cy) -> System w ()
 cmapM sys = do
-  s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
-  forM (U.toList sl) $ \ ety -> do
-    x <- liftIO$ explGet s ety
-    sys x
+  sx :: Storage cx <- getStore
+  sy :: Storage cy <- getStore
+  sl <- liftIO$ explMembers sx
+  U.forM_ sl $ \ e -> do
+    x <- liftIO$ explGet sx e
+    y <- sys x
+    liftIO$ explSet sy e y
 
 -- | Monadically iterates over all entites with a cx
 {-# INLINE cmapM_ #-}
-cmapM_ :: forall world c a. Has world c
-       => (c -> System world a) -> System world ()
+cmapM_ :: forall w c a. (Get w c, Members w c)
+       => (c -> System w a) -> System w ()
 cmapM_ sys = do
   s :: Storage c <- getStore
   sl <- liftIO$ explMembers s
@@ -82,8 +85,8 @@ cmapM_ sys = do
 -- | Get all components @c@.
 --   Call as @[(c,Entity)]@ to read the entity/index.
 {-# INLINE getAll #-}
-getAll :: forall world c. Has world c
-      => System world [c]
+getAll :: forall w c. (Get w c, Members w c)
+      => System w [c]
 getAll = do
   s :: Storage c <- getStore
   sl <- liftIO$ explMembers s
@@ -93,14 +96,14 @@ getAll = do
 -- | Destroys component @c@ for the given entity.
 -- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
 {-# INLINE destroy #-}
-destroy :: forall w c. Has w c => Entity -> c -> System w ()
-destroy (Entity ety) ~_ = do
+destroy :: forall w c. Destroy w c => Entity -> Proxy c -> System w ()
+destroy (Entity ety) _ = do
   s :: Storage c <- getStore
   liftIO$ explDestroy s ety
 
 -- | Applies a function, if possible.
 {-# INLINE modify #-}
-modify :: forall w c. Has w c => Entity -> (c -> c) -> System w ()
+modify :: forall w c. (Get w c, Set w c) => Entity -> (c -> c) -> System w ()
 modify (Entity ety) f = do
   s :: Storage c <- getStore
   liftIO$ do
@@ -109,7 +112,7 @@ modify (Entity ety) f = do
 
 -- | Counts the number of entities with a @c@
 {-# INLINE count #-}
-count :: forall w c. Has w c => c -> System w Int
+count :: forall w c. Members w c => c -> System w Int
 count ~_ = do
   s :: Storage c <- getStore
   sl <- liftIO$ explMembers s

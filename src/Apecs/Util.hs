@@ -8,7 +8,7 @@
 
 module Apecs.Util (
   -- * Utility
-  runGC, global, proxy,
+  runGC, global,
 
   -- * EntityCounter
   EntityCounter, nextEntity, newEntity,
@@ -25,6 +25,7 @@ module Apecs.Util (
 import           Control.Applicative  (liftA2)
 import           Control.Monad.Reader (liftIO)
 import           Data.Monoid
+import           Data.Proxy
 import           System.CPUTime
 import           System.Mem           (performMajorGC)
 
@@ -35,10 +36,6 @@ import           Apecs.Core
 -- | Convenience entity (-1), used in places where the exact entity value does not matter, i.e. a global store.
 global :: Entity
 global = Entity (-1)
-
--- | Convenience proxy value
-proxy :: forall t. t
-proxy = error "Proxy value"
 
 -- | Component used by newEntity to track the number of issued entities.
 --   Automatically added to any world created with @makeWorld@
@@ -57,7 +54,7 @@ nextEntity = do EntityCounter n <- get global
 -- | Writes the given components to a new entity, and yields that entity.
 -- The return value is often ignored.
 {-# INLINE newEntity #-}
-newEntity :: (Store (Storage c), Has w c, Has w EntityCounter)
+newEntity :: (Set w c, Get w EntityCounter, Set w EntityCounter)
           => c -> System w Entity
 newEntity c = do ety <- nextEntity
                  set ety c
