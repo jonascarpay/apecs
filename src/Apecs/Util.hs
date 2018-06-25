@@ -39,7 +39,7 @@ global = Entity (-1)
 
 -- | Component used by newEntity to track the number of issued entities.
 --   Automatically added to any world created with @makeWorld@
-newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Eq, Show)
+newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
 
 instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
