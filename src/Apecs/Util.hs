@@ -25,6 +25,7 @@ module Apecs.Util (
 import           Control.Applicative  (liftA2)
 import           Control.Monad.Reader (liftIO)
 import           Data.Monoid
+import           Data.Semigroup
 import           Data.Proxy
 import           System.CPUTime
 import           System.Mem           (performMajorGC)
