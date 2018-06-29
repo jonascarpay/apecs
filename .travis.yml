@@ -74,7 +74,7 @@ matrix:
   # variable, such as using --stack-yaml to point to a different file.
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default"
-    addons: {apt: {packages: [clang-3.9, libgmp-dev]}}
+    addons: {apt: {packages: [clang-3.7, libgmp-dev], sources: [llvm-toolchain-precise-3.7]}}
 
   #- env: BUILD=stack ARGS="--resolver lts-7"
   #  compiler: ": #stack 8.0.1"
@@ -97,6 +97,7 @@ matrix:
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default osx"
     os: osx
+    osx_image: xcode7
 
   # Travis includes an macOS which is incompatible with GHC 7.8.4
   #- env: BUILD=stack ARGS="--resolver lts-2"
@@ -199,7 +200,7 @@ script:
       for dir in $PACKAGES
       do
         cd $dir
-        cabal check || [ "$CABALVER" == "1.16" ]
+        cabal check# || [ "$CABALVER" == "1.16" ]
         cabal sdist
         PKGVER=$(cabal info . | awk '{print $2;exit}')
         SRC_TGZ=$PKGVER.tar.gz
