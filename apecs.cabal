@@ -78,7 +78,9 @@ benchmark apecs-bench
   ghc-options:
     -Wall
     -Odph
-    -fllvm
+    -- LLVM is disabled by default for travis/compatibility reasons
+    -- For serious benchmarks, please run with -fllvm
+    -- -fllvm
     -optlo-O3
     -threaded
     -funfolding-use-threshold1000
