@@ -25,6 +25,7 @@ module Apecs.Util (
 import           Control.Applicative  (liftA2)
 import           Control.Monad.Reader (liftIO)
 import           Data.Monoid
+import           Data.Semigroup
 import           Data.Proxy
 import           System.CPUTime
 import           System.Mem           (performMajorGC)
@@ -39,7 +40,7 @@ global = Entity (-1)
 
 -- | Component used by newEntity to track the number of issued entities.
 --   Automatically added to any world created with @makeWorld@
-newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Monoid, Eq, Show)
+newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
 
 instance Component EntityCounter where
   type Storage EntityCounter = Global EntityCounter
