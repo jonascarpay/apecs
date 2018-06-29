@@ -74,7 +74,7 @@ matrix:
   # variable, such as using --stack-yaml to point to a different file.
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default"
-    addons: {apt: {packages: [clang-3.7, libgmp-dev], sources: [llvm-toolchain-precise-3.7]}}
+    addons: {apt: {packages: [clang-3.7, libgmp-dev], sources: [ubuntu-toolchain-r-test, llvm-toolchain-precise-3.7]}}
 
   #- env: BUILD=stack ARGS="--resolver lts-7"
   #  compiler: ": #stack 8.0.1"
