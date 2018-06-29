@@ -1,8 +1,7 @@
 {-# LANGUAGE DataKinds, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
-import Apecs.Core
-import Linear
+import Linear (V2 (..))
 
 newtype Position = Position (V2 Double) deriving Show
 -- To declare a component, we need to specify how to store it
