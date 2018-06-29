@@ -9,8 +9,9 @@ category:            Game, Control, Data
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
-synopsis:            A fast ECS for game engine programming
-description:         A fast ECS for game engine programming
+synopsis:            Fast ECS framework for game programming
+description:
+  Apecs is an Entity Component System framework, suitable for high-performance game programming.
 
 source-repository head
   type:     git
