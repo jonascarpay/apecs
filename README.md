@@ -3,13 +3,13 @@
 [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs)
 [![apecs on Stackage LTS 11](http://stackage.org/package/apecs/badge/lts-11)](http://stackage.org/lts-10/package/apecs)
 
-apecs is an _Entity Component System_ framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-The front-end DSL allows you to concisely express your game logic, with an efficient back-end storage framework that can be extended to meet any performance needs.
+apecs is an _Entity Component System_ (ECS) framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
+The front-end DSL uses a small set of combinators to concisely express game logic, which then translate to fast primitive operations on back-end stores.
+Both the DSL and storage framework can easily be extended to meet any performance/expressivity needs.
 
 #### Links
 - [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
-- [introductory tutorial](https://github.com/jonascarpay/apecs/blob/master/tutorials/RTS.md)
-- [performance guide](https://github.com/jonascarpay/apecs/blob/master/tutorials/GoingFast.md)
+- [manual](https://github.com/jonascarpay/apecs/blob/master/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
 - [apecs-physics](https://github.com/jonascarpay/apecs-physics)
 
 #### Performance
