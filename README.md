@@ -1,7 +1,7 @@
 # apecs
 [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
 [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs)
-[![apecs on Stackage LTS 11](http://stackage.org/package/apecs/badge/lts-11)](http://stackage.org/lts-10/package/apecs)
+[![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=Stackage)](https://www.stackage.org/package/apecs)
 
 apecs is an _Entity Component System_ (ECS) framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 The front-end DSL uses a small set of combinators to concisely express game logic, which then translate to fast primitive operations on back-end stores.
