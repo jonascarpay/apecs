@@ -20,7 +20,7 @@ executable simple
 
 executable shmup
   main-is:
-    Shmup.hs
+    Shmup.lhs
   build-depends:
     base,
     apecs >= 0.4.1.1,
