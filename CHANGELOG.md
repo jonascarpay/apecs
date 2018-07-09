@@ -2,6 +2,7 @@
 ## [0.4.1.0]
 ### Added
 - `cfold`, `cfoldM`, `cfoldM_`
+- `Either` instances and `EitherStore`
 
 ### Changed
 - Changed MaybeStore implementation to no longer use -1 for missing entities.

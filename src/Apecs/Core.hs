@@ -144,6 +144,44 @@ instance (ExplDestroy s, ExplSet s) => ExplSet (MaybeStore s) where
   explSet (MaybeStore sa) ety Nothing  = explDestroy sa ety
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
 
+-- | Used for 'Either', a logical disjunction between two components.
+--   As expected, Either is used to model error values.
+-- Getting an @Either a b@ will first attempt to get a @b@ and return it as @Right b@, or if it does not exist, get an @a@ as @Left a@.
+-- Can also be used to set one of two things.
+data EitherStore sa sb = EitherStore sa sb
+instance (Component ca, Component cb) => Component (Either ca cb) where
+  type Storage (Either ca cb) = EitherStore (Storage ca) (Storage cb)
+
+instance (Has w ca, Has w cb) => Has w (Either ca cb) where
+  getStore = EitherStore <$> getStore <*> getStore
+
+type instance Elem (EitherStore sa sb) = Either (Elem sa) (Elem sb)
+
+instance (ExplGet sa, ExplGet sb) => ExplGet (EitherStore sa sb) where
+  explGet (EitherStore sa sb) ety = do
+    e <- explExists sb ety
+    if e then Right <$> explGet sb ety
+         else Left <$> explGet sa ety
+  explExists (EitherStore sa sb) ety = do
+    e <- explExists sb ety
+    if e then return True
+         else explExists sa ety
+
+instance (ExplSet sa, ExplSet sb) => ExplSet (EitherStore sa sb) where
+  explSet (EitherStore _ sb) ety (Right b) = explSet sb ety b
+  explSet (EitherStore sa _) ety (Left a)  = explSet sa ety a
+
+instance Component () where
+  type Storage () = ()
+type instance Elem () = ()
+instance ExplGet () where
+  explExists _ _ = return True
+  explGet _ _ = return ()
+instance ExplSet () where
+  explSet _ _ _ = return ()
+instance ExplDestroy () where
+  explDestroy _ _ = return ()
+
 -- | Pseudocomponent that functions normally for @explExists@ and @explMembers@, but always return @Filter@ for @explGet@.
 --   Can be used in cmap as @cmap $ \(Filter :: Filter a) -> b@.
 --   Since the above can be written more consicely as @cmap $ \(_ :: a) -> b@, it is rarely directly.
