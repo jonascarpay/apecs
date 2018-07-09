@@ -90,13 +90,17 @@ instance ExplMembers (Unique c) where
 newtype Global c = Global (IORef c)
 type instance Elem (Global c) = c
 instance Monoid c => ExplInit (Global c) where
+  {-# INLINE explInit #-}
   explInit = Global <$> newIORef mempty
 
 instance ExplGet (Global c) where
+  {-# INLINE explGet #-}
   explGet (Global ref) _ = readIORef ref
+  {-# INLINE explExists #-}
   explExists _ _ = return True
 
 instance ExplSet (Global c) where
+  {-# INLINE explSet #-}
   explSet (Global ref) _ c = writeIORef ref c
 
 -- | An empty type class indicating that the store behaves like a regular map, and can therefore safely be cached.
@@ -123,6 +127,7 @@ cacheMiss = error "Cache miss!"
 type instance Elem (Cache n s) = Elem s
 
 instance (ExplInit s, KnownNat n, Cachable s) => ExplInit (Cache n s) where
+  {-# INLINE explInit #-}
   explInit = do
     let n = fromIntegral$ natVal (Proxy @n)
     tags <- UM.replicate n (-1)
@@ -131,6 +136,7 @@ instance (ExplInit s, KnownNat n, Cachable s) => ExplInit (Cache n s) where
     return (Cache n tags cache child)
 
 instance ExplGet s => ExplGet (Cache n s) where
+  {-# INLINE explGet #-}
   explGet (Cache n tags cache s) ety = do
     let index = ety `rem` n
     tag <- UM.unsafeRead tags index
@@ -138,11 +144,13 @@ instance ExplGet s => ExplGet (Cache n s) where
        then VM.unsafeRead cache index
        else explGet s ety
 
+  {-# INLINE explExists #-}
   explExists (Cache n tags _ s) ety = do
     tag <- UM.unsafeRead tags (ety `rem` n)
     if tag == ety then return True else explExists s ety
 
 instance ExplSet s => ExplSet (Cache n s) where
+  {-# INLINE explSet #-}
   explSet (Cache n tags cache s) ety x = do
     let index = ety `rem` n
     tag <- UM.unsafeRead tags index
@@ -153,6 +161,7 @@ instance ExplSet s => ExplSet (Cache n s) where
     VM.unsafeWrite cache index x
 
 instance ExplDestroy s => ExplDestroy (Cache n s) where
+  {-# INLINE explDestroy #-}
   explDestroy (Cache n tags cache s) ety = do
     let index = ety `rem` n
     tag <- UM.unsafeRead tags (ety `rem` n)
@@ -163,6 +172,7 @@ instance ExplDestroy s => ExplDestroy (Cache n s) where
        else explDestroy s ety
 
 instance ExplMembers s => ExplMembers (Cache n s) where
+  {-# INLINE explMembers #-}
   explMembers (Cache _ tags _ s) = do
     cached <- U.filter (/= (-1)) <$> U.freeze tags
     stored <- explMembers s

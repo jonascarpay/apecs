@@ -1,14 +1,20 @@
-{-# LANGUAGE Strict, ScopedTypeVariables, DataKinds, TypeFamilies, MultiParamTypeClasses, TypeOperators #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
-import Criterion
-import Criterion.Types
-import qualified Criterion.Main as C
-import Control.Monad
-import Linear
+import           Control.Monad
+import           Criterion
+import qualified Criterion.Main  as C
+import           Criterion.Types
+import           Linear
 
-import Apecs
+import           Apecs
 
 -- pos_vel
 newtype ECSPos = ECSPos (V2 Float) deriving (Eq, Show)

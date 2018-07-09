@@ -81,19 +81,25 @@ instance Component c => Component (Identity c) where
   type Storage (Identity c) = Identity (Storage c)
 
 instance Has w c => Has w (Identity c) where
+  {-# INLINE getStore #-}
   getStore = Identity <$> getStore
 
 type instance Elem (Identity s) = Identity (Elem s)
 
 instance ExplGet s => ExplGet (Identity s) where
+  {-# INLINE explGet #-}
   explGet (Identity s) e = Identity <$> explGet s e
+  {-# INLINE explExists  #-}
   explExists  (Identity s) = explExists s
 
 instance ExplSet s => ExplSet (Identity s) where
+  {-# INLINE explSet #-}
   explSet (Identity s) e (Identity x) = explSet s e x
 instance ExplMembers s => ExplMembers (Identity s) where
+  {-# INLINE explMembers #-}
   explMembers (Identity s) = explMembers s
 instance ExplDestroy s => ExplDestroy (Identity s) where
+  {-# INLINE explDestroy #-}
   explDestroy (Identity s) = explDestroy s
 
 T.makeInstances [2..8]
@@ -110,15 +116,19 @@ instance Component c => Component (Not c) where
   type Storage (Not c) = NotStore (Storage c)
 
 instance (Has w c) => Has w (Not c) where
+  {-# INLINE getStore #-}
   getStore = NotStore <$> getStore
 
 type instance Elem (NotStore s) = Not (Elem s)
 
 instance ExplGet s => ExplGet (NotStore s) where
+  {-# INLINE explGet #-}
   explGet _ _ = return Not
+  {-# INLINE explExists #-}
   explExists (NotStore sa) ety = not <$> explExists sa ety
 
 instance ExplDestroy s => ExplSet (NotStore s) where
+  {-# INLINE explSet #-}
   explSet (NotStore sa) ety _ = explDestroy sa ety
 
 -- | Pseudostore used to produce values of type @Maybe a@.
@@ -129,11 +139,13 @@ instance Component c => Component (Maybe c) where
   type Storage (Maybe c) = MaybeStore (Storage c)
 
 instance (Has w c) => Has w (Maybe c) where
+  {-# INLINE getStore #-}
   getStore = MaybeStore <$> getStore
 
 type instance Elem (MaybeStore s) = Maybe (Elem s)
 
 instance ExplGet s => ExplGet (MaybeStore s) where
+  {-# INLINE explGet #-}
   explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
     if e then Just <$> explGet sa ety
@@ -141,6 +153,7 @@ instance ExplGet s => ExplGet (MaybeStore s) where
   explExists _ _ = return True
 
 instance (ExplDestroy s, ExplSet s) => ExplSet (MaybeStore s) where
+  {-# INLINE explSet #-}
   explSet (MaybeStore sa) ety Nothing  = explDestroy sa ety
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
 
@@ -153,35 +166,44 @@ instance (Component ca, Component cb) => Component (Either ca cb) where
   type Storage (Either ca cb) = EitherStore (Storage ca) (Storage cb)
 
 instance (Has w ca, Has w cb) => Has w (Either ca cb) where
+  {-# INLINE getStore #-}
   getStore = EitherStore <$> getStore <*> getStore
 
 type instance Elem (EitherStore sa sb) = Either (Elem sa) (Elem sb)
 
 instance (ExplGet sa, ExplGet sb) => ExplGet (EitherStore sa sb) where
+  {-# INLINE explGet #-}
   explGet (EitherStore sa sb) ety = do
     e <- explExists sb ety
     if e then Right <$> explGet sb ety
          else Left <$> explGet sa ety
+  {-# INLINE explExists #-}
   explExists (EitherStore sa sb) ety = do
     e <- explExists sb ety
     if e then return True
          else explExists sa ety
 
 instance (ExplSet sa, ExplSet sb) => ExplSet (EitherStore sa sb) where
+  {-# INLINE explSet #-}
   explSet (EitherStore _ sb) ety (Right b) = explSet sb ety b
   explSet (EitherStore sa _) ety (Left a)  = explSet sa ety a
 
 instance Has w () where
+  {-# INLINE getStore #-}
   getStore = return ()
 instance Component () where
   type Storage () = ()
 type instance Elem () = ()
 instance ExplGet () where
+  {-# INLINE explExists #-}
   explExists _ _ = return True
+  {-# INLINE explGet #-}
   explGet _ _ = return ()
 instance ExplSet () where
+  {-# INLINE explSet #-}
   explSet _ _ _ = return ()
 instance ExplDestroy () where
+  {-# INLINE explDestroy #-}
   explDestroy _ _ = return ()
 
 -- | Pseudocomponent that functions normally for @explExists@ and @explMembers@, but always return @Filter@ for @explGet@.
@@ -197,15 +219,19 @@ instance Component c => Component (Filter c) where
   type Storage (Filter c) = FilterStore (Storage c)
 
 instance Has w c => Has w (Filter c) where
+  {-# INLINE getStore #-}
   getStore = FilterStore <$> getStore
 
 type instance Elem (FilterStore s) = Filter (Elem s)
 
 instance ExplGet s => ExplGet (FilterStore s) where
+  {-# INLINE explGet #-}
   explGet _ _ = return Filter
+  {-# INLINE explExists #-}
   explExists (FilterStore s) ety = explExists s ety
 
 instance ExplMembers s => ExplMembers (FilterStore s) where
+  {-# INLINE explMembers #-}
   explMembers (FilterStore s) = explMembers s
 
 -- | Pseudostore used to produce components of type 'Entity'.
@@ -216,9 +242,12 @@ instance Component Entity where
   type Storage Entity = EntityStore
 
 instance (Has w Entity) where
+  {-# INLINE getStore #-}
   getStore = return EntityStore
 
 type instance Elem EntityStore = Entity
 instance ExplGet EntityStore where
+  {-# INLINE explGet #-}
   explGet _ ety = return $ Entity ety
+  {-# INLINE explExists #-}
   explExists _ _ = return True
