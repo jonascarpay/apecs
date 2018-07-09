@@ -1,4 +1,0 @@
-resolver: lts-9.2
-packages:
-  - .
-  - ..

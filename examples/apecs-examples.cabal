@@ -23,9 +23,11 @@ executable shmup
     Shmup.hs
   build-depends:
     base,
-    apecs >= 0.4.0.0,
+    apecs >= 0.4.1.1,
     linear,
     gloss,
     random
   default-language:
     Haskell2010
+  ghc-options:
+    -Wall
