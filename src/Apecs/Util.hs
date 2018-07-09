@@ -34,9 +34,10 @@ import           Apecs.Stores
 import           Apecs.System
 import           Apecs.Core
 
--- | Convenience entity (-1), used in places where the exact entity value does not matter, i.e. a global store.
+-- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
+-- Its value is -2, to avoid potential conflicts with caches, which reserve -1.
 global :: Entity
-global = Entity (-1)
+global = Entity (-2)
 
 -- | Component used by newEntity to track the number of issued entities.
 --   Automatically added to any world created with @makeWorld@

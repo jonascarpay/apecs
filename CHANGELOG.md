@@ -6,6 +6,7 @@
 ### Changed
 - Changed MaybeStore implementation to no longer use -1 for missing entities.
 - Fixed some outdated documentation.
+- Change the `global` void entity to -2, just to be sure it won't conflict if accidentally used in a cache.
 
 ## [0.4.0.0]
 ### Added
