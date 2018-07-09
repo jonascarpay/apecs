@@ -1,12 +1,18 @@
-{-# LANGUAGE FlexibleContexts, DataKinds, ScopedTypeVariables, TypeApplications, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 
-import Apecs
-import Data.Monoid
-import Control.Monad
-import Linear
-import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Game
-import System.Random
+import           Apecs
+import           Control.Monad
+import           Data.Monoid
+import           Graphics.Gloss
+import           Graphics.Gloss.Interface.IO.Game
+import           Linear
+import           System.Random
 
 newtype Position = Position (V2 Double) deriving Show
 instance Component Position where type Storage Position = Map Position

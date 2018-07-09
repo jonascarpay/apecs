@@ -18,13 +18,13 @@ import qualified Apecs.THTuples        as T
 
 -- | An Entity is just an integer, used to index into a component store.
 --   In general, use @newEntity@, @cmap@, and component tags instead of manipulating these directly.
---   
+--
 --   For performance reasons, negative values like (-1) are reserved for stores to represent special values, so avoid using these.
 newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show)
 
 -- | A System is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 --   Systems mainly serve to
---   
+--
 --   * Lift side effects into the IO Monad.
 --
 --   * Allow type-based lookup of a component's store through @getStore@.

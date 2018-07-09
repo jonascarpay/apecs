@@ -65,7 +65,7 @@ tupleInstances n = do
       apE = VarE apN
       hasI = InstanceD Nothing (hasT <$> vars) (hasT varTuple)
         [ FunD getStoreN
-          [Clause [] (NormalB$ liftAll tuplE (replicate n $ getStoreE )) [] ]
+          [Clause [] (NormalB$ liftAll tuplE (replicate n getStoreE )) [] ]
         , PragmaD$ InlineP getStoreN Inline FunLike AllPhases
         ]
 

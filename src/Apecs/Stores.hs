@@ -55,7 +55,7 @@ instance ExplMembers (Map c) where
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
 --   Its main purpose is to be a @Map@ optimized for when only ever one component inhabits it.
-data Unique c = Unique (IORef (Maybe (Int, c)))
+newtype Unique c = Unique (IORef (Maybe (Int, c)))
 type instance Elem (Unique c) = c
 instance ExplInit (Unique c) where
   explInit = Unique <$> newIORef Nothing
@@ -74,8 +74,8 @@ instance ExplSet (Unique c) where
 
 instance ExplDestroy (Unique c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Unique ref) ety = do
-    readIORef ref >>= mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
+  explDestroy (Unique ref) ety = readIORef ref >>=
+    mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
 
 instance ExplMembers (Unique c) where
   {-# INLINE explMembers #-}
