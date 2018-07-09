@@ -45,7 +45,7 @@ exists (Entity ety) _ = do
   s :: Storage c <- getStore
   liftIO$ explExists s ety
 
--- | Maps a function over all entities with a @cx@, and writes their @cy@
+-- | Maps a function over all entities with a @cx@, and writes their @cy@.
 {-# INLINE cmap #-}
 cmap :: forall w cx cy. (Get w cx, Members w cx, Set w cy)
      => (cx -> cy) -> System w ()
@@ -58,7 +58,7 @@ cmap f = do
       r <- explGet sx e
       explSet sy e (f r)
 
--- | Monadically iterates over all entites with a cx, and writes their cy
+-- | Monadically iterates over all entites with a @cx@, and writes their @cy@.
 {-# INLINE cmapM #-}
 cmapM :: forall w cx cy. (Get w cx, Set w cy, Members w cx)
       => (cx -> System w cy) -> System w ()
@@ -71,7 +71,7 @@ cmapM sys = do
     y <- sys x
     liftIO$ explSet sy e y
 
--- | Monadically iterates over all entites with a cx
+-- | Monadically iterates over all entites with a @cx@
 {-# INLINE cmapM_ #-}
 cmapM_ :: forall w c a. (Get w c, Members w c)
        => (c -> System w a) -> System w ()
@@ -82,8 +82,38 @@ cmapM_ sys = do
     x <- liftIO$ explGet s ety
     sys x
 
+-- | Fold over the game world; for example, @cfold max (minBound :: Foo)@ will find the maximum value of @Foo@.
+--   Strict in the accumulator.
+{-# INLINE cfold #-}
+cfold :: forall w c a. (Members w c, Get w c)
+      => (a -> c -> a) -> a -> System w a
+cfold f a0 = do
+  s :: Storage c <- getStore
+  sl <- liftIO$ explMembers s
+  liftIO$ U.foldM' (\a e -> f a <$> explGet s e) a0 sl
+
+-- | Monadically fold over the game world.
+--   Strict in the accumulator.
+{-# INLINE cfoldM #-}
+cfoldM :: forall w c a. (Members w c, Get w c)
+       => (a -> c -> System w a) -> a -> System w a
+cfoldM sys a0 = do
+  s :: Storage c <- getStore
+  sl <- liftIO$ explMembers s
+  U.foldM' (\a e -> liftIO (explGet s e) >>= sys a) a0 sl
+
+-- | Monadically fold over the game world.
+--   Strict in the accumulator.
+{-# INLINE cfoldM_ #-}
+cfoldM_ :: forall w c a. (Members w c, Get w c)
+       => (a -> c -> System w a) -> a -> System w ()
+cfoldM_ sys a0 = do
+  s :: Storage c <- getStore
+  sl <- liftIO$ explMembers s
+  U.foldM'_ (\a e -> liftIO (explGet s e) >>= sys a) a0 sl
+
 -- | Get all components @c@.
---   Call as @[(c,Entity)]@ to read the entity/index.
+--   Call as @[(c,Entity)]@ to also read the entity index.
 {-# INLINE getAll #-}
 getAll :: forall w c. (Get w c, Members w c)
       => System w [c]
@@ -91,7 +121,6 @@ getAll = do
   s :: Storage c <- getStore
   sl <- liftIO$ explMembers s
   forM (U.toList sl) $ liftIO . explGet s
-
 
 -- | Destroys component @c@ for the given entity.
 -- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.

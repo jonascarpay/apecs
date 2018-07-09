@@ -13,7 +13,19 @@ executable simple
     Simple.hs
   build-depends:
     base,
-    apecs >= 0.3.0.0,
+    apecs >= 0.4.0.0,
     linear
+  default-language:
+    Haskell2010
+
+executable shmup
+  main-is:
+    Shmup.hs
+  build-depends:
+    base,
+    apecs >= 0.4.0.0,
+    linear,
+    gloss,
+    random
   default-language:
     Haskell2010
