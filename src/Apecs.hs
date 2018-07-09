@@ -6,6 +6,7 @@ module Apecs (
   module Data.Proxy,
   -- * Core types
     System(..), Component(..), Entity(..), Has(..), Not(..),
+    Get, Set, Destroy, Members,
 
   -- * Stores
     Map, Unique, Global, Cache,

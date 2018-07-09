@@ -1,4 +1,8 @@
 ## [Unreleased]
+## [0.4.1.1]
+### Changed
+- Export `Get`, `Set`, `Destroy`, `Members` by default
+
 ## [0.4.1.0]
 ### Added
 - `cfold`, `cfoldM`, `cfoldM_`
