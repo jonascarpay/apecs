@@ -9,7 +9,6 @@ import Control.Monad
 import Linear
 
 import Apecs
-import Apecs.Stores
 
 -- pos_vel
 newtype ECSPos = ECSPos (V2 Float) deriving (Eq, Show)

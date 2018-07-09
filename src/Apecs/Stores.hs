@@ -62,7 +62,7 @@ instance ExplInit (Unique c) where
 
 instance ExplGet (Unique c) where
   {-# INLINE explGet #-}
-  explGet (Unique ref) _ = readIORef ref >>= return . \case
+  explGet (Unique ref) _ = flip fmap (readIORef ref) $ \case
     Nothing -> error "Reading empty Unique"
     Just (_, c)  -> c
   {-# INLINE explExists #-}
@@ -74,11 +74,12 @@ instance ExplSet (Unique c) where
 
 instance ExplDestroy (Unique c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Unique ref) ety = writeIORef ref Nothing
+  explDestroy (Unique ref) ety = do
+    readIORef ref >>= mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
 
 instance ExplMembers (Unique c) where
   {-# INLINE explMembers #-}
-  explMembers (Unique ref) = readIORef ref >>= return . \case
+  explMembers (Unique ref) = flip fmap (readIORef ref) $ \case
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
 
@@ -116,6 +117,7 @@ instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
+cacheMiss :: t
 cacheMiss = error "Cache miss!"
 
 type instance Elem (Cache n s) = Elem s

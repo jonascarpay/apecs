@@ -15,6 +15,7 @@ module Apecs (
   -- * Systems
     get, set, getAll,
     cmap, cmapM, cmapM_,
+    cfold, cfoldM, cfoldM_,
     modify, destroy, exists,
 
   -- * Other
