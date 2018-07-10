@@ -126,7 +126,7 @@ getAll = do
 -- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
 {-# INLINE destroy #-}
 destroy :: forall w c. Destroy w c => Entity -> Proxy c -> System w ()
-destroy (Entity ety) _ = do
+destroy (Entity ety) ~_ = do
   s :: Storage c <- getStore
   liftIO$ explDestroy s ety
 
@@ -141,7 +141,7 @@ modify (Entity ety) f = do
 
 -- | Counts the number of entities with a @c@
 {-# INLINE count #-}
-count :: forall w c. Members w c => c -> System w Int
+count :: forall w c. Members w c => Proxy c -> System w Int
 count ~_ = do
   s :: Storage c <- getStore
   sl <- liftIO$ explMembers s

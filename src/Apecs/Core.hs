@@ -188,6 +188,12 @@ instance (ExplSet sa, ExplSet sb) => ExplSet (EitherStore sa sb) where
   explSet (EitherStore _ sb) ety (Right b) = explSet sb ety b
   explSet (EitherStore sa _) ety (Left a)  = explSet sa ety a
 
+instance (ExplDestroy sa, ExplDestroy sb)
+       => ExplDestroy (EitherStore sa sb) where
+  {-# INLINE explDestroy #-}
+  explDestroy (EitherStore sa sb) ety =
+    explDestroy sa ety >> explDestroy sb ety
+
 instance Has w () where
   {-# INLINE getStore #-}
   getStore = return ()

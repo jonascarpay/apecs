@@ -1,7 +1,8 @@
 ## [Unreleased]
 
-## [0.4.1.1]
+## [0.4.1.2]
 ### Changed
+- Either can now be deleted, deleting `Either a b` is the same as deleting `(a,b)`.
 - Some were missing their inline pragma's, now they don't
 
 ## [0.4.1.1]
