@@ -9,7 +9,7 @@ The apecs front-end DSL exposes a small number of combinators that allow game lo
 
 #### Links
 - [manual](https://github.com/jonascarpay/apecs/blob/master/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
-- [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.lhs)
+- [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md)
 - [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
 - [apecs-physics](https://github.com/jonascarpay/apecs-physics)
 

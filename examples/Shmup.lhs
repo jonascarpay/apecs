@@ -1,8 +1,9 @@
 This document breaks down a full game written using apecs.
-It covers most apecs features, but not in great detail.
+We're going to be making a little shoot 'em up-style game, mirroring the Entitas example.
+We'll cover most of apecs features, but not in great detail.
 If you are not familiar with the basics of ECS, I recommend reading at least the introductory sections of the paper.
 
-Since this document is a literate Haskell file, you can compile it with GHC and run the game.
+Since this document is a literate Haskell file (unless you're reading the markdown version), you can compile it with GHC and run the game.
 I recommend doing so before reading, so you know what we're making.
 Make sure to also include the `linear`, `gloss`, and `random` libraries.
 The arrow keys move you, space shoots.

@@ -1,0 +1,433 @@
+This document breaks down a full game written using apecs. We’re going
+to be making a little shoot ’em up-style game, mirroring the Entitas
+example. We’ll cover most of apecs features, but not in great detail. If
+you are not familiar with the basics of ECS, I recommend reading at
+least the introductory sections of the paper.
+
+Since this document is a literate Haskell file (unless you’re reading
+the markdown version), you can compile it with GHC and run the game. I
+recommend doing so before reading, so you know what we’re making. Make
+sure to also include the `linear`, `gloss`, and `random` libraries. The
+arrow keys move you, space shoots.
+
+Let’s start at the top. Apecs tends to effect a large number of
+pragma’s, as you can see below. GHC will let you know if you missed
+any. Some of these, like TypeApplications, are not strictly necessary,
+but provide some nice syntactic sugar.
+
+``` sourceCode literate haskell
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+```
+
+The `Apecs` module forms the apecs prelude, it re-exports everything you
+typically need. For graphics and input we use gloss. It is neither fast
+nor powerful, but its simplicity makes it perfect for simple games like
+these. The linear library is the de facto library for small-dimensional
+vector types, V2 in our case.
+
+``` sourceCode literate haskell
+import           Apecs
+import           Control.Monad
+import           Data.Monoid
+import           Graphics.Gloss
+import           Graphics.Gloss.Interface.IO.Game
+import           Linear
+import           System.Random
+```
+
+Let’s start by defining some components. We do so by first defining a
+data type for our component, and then give it an instance of
+`Component`. The instance specifies the data structure we store a
+component in, in these cases `Map c`. Stores change both the behaviour
+and performance characteristics of a component. We will only look at
+stores that change the behaviour here, refer to the benchmark lhs files
+to see how they can impact performance.
+
+``` sourceCode literate haskell
+newtype Position = Position (V2 Double) deriving Show
+instance Component Position where type Storage Position = Map Position
+
+newtype Velocity = Velocity (V2 Double) deriving Show
+instance Component Velocity where type Storage Velocity = Map Velocity
+```
+
+Position and Velocity are straightforward; they define an entity’s
+position and velocity. The following two components are unit types,
+i.e. they only have a single inhabitant. Unit types are common in
+apecs, as they can be used to tag an entity.
+
+``` sourceCode literate haskell
+data Target = Target deriving Show
+instance Component Target where type Storage Target = Map Target
+
+data Bullet = Bullet deriving Show
+instance Component Bullet where type Storage Bullet = Map Bullet
+```
+
+Particle is also used to tag an entity, but unlike Target and Bullet,
+also includes a color and a remaining life span (in seconds).
+
+``` sourceCode literate haskell
+data Particle = Particle Color Double deriving Show
+instance Component Particle where type Storage Particle = Map Particle
+```
+
+Player is unit type, but instead of storing it in a Map, we use a
+Unique. A Unique is a Map that will only hold a single component; if we
+assign Player to entity 3 and then to entity 4, only entity 4 will have
+a Player. This enforces that there is only ever one player at the store
+level, and the first example of how a store can change the behavior of a
+component.
+
+``` sourceCode literate haskell
+data Player = Player deriving Show
+instance Component Player where type Storage Player = Unique Player
+```
+
+The third store we will use is Global, used to model global variables.
+Global stores also hold a single component, but unlike Unique, that
+component does not belong to any particular entity. Instead, a Global
+store will always yield its component, regardless of the entity it is
+queried for. This means that we can use both `get 0` and `get 123` to
+retrieve a global component. We generally make it explicit that we’re
+reading a global by using the entity `global`, as we will see later. The
+initial value of a global will be drawn from that component’s Monoid
+instance, as this is the most unambiguous way of defining a default
+value in Haskell.
+
+Score keeps the score, and Time the total elapsed time.
+
+``` sourceCode literate haskell
+newtype Score = Score Int deriving Show
+instance Monoid Score where mempty = Score 0
+instance Component Score where type Storage Score = Global Score
+
+newtype Time = Time Double deriving Show
+instance Monoid Time where mempty = Time 0
+instance Component Time where type Storage Time = Global Time
+```
+
+You might already have noticed that there is more than one way to divide
+your game state into components. For example, since Player, Target,
+Bullet, and Particle are mutually exclusive, we could have enforced that
+by doing
+
+``` sourceCode haskell
+data EtyType = Player | Target | Bullet | Particle Color Double
+```
+
+There are many reasons you might want to use one over the other, and a
+full discussion would be way too long to include here. In this case, I
+chose to split as it makes it easier to iterate over e.g. just the
+Targets. Just know that there is nothing wrong with the other approach,
+however, and with some effort, we can make it just as fast.
+
+Now that we have defined our components, we need to create a game world.
+This is generally done through Template Haskell, as
+follows:
+
+``` sourceCode literate haskell
+makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle]
+```
+
+To understand apecs it is important to understand what `makeWorld`
+expands to, which is detailed in the paper.
+
+At this point I also like to define some type synonyms and constants:
+
+``` sourceCode literate haskell
+type System' a = System World a
+type Kinetic = (Position, Velocity)
+
+playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Double
+playerSpeed = 170
+bulletSpeed = 500
+enemySpeed  = 80
+xmin = -100
+xmax = 100
+
+hitBonus, missPenalty :: Int
+hitBonus = 100
+missPenalty = 40
+
+playerPos, scorePos :: V2 Double
+playerPos = V2 0 (-120)
+scorePos  = V2 xmin (-170)
+```
+
+With that, we are ready to start writing our first Systems.
+
+`initialize` will initialize our game state. In this case we only need
+to create a player, at the initial player position and with a velocity
+of 0:
+
+``` sourceCode literate haskell
+initialize :: System' ()
+initialize = void $ newEntity (Player, Position playerPos, Velocity 0)
+```
+
+`stepPosition` is the canonical example of a system; it adds every
+entity’s velocity to its position. `cmap`’s behaviour is heavily
+dependent on the type of the function we map, so I will briefly discuss
+that type for every use of `cmap`. In this case, that’s `(Position,
+Velocity) -> Position`, which means we iterate using Position, we read
+Position and Velocity, and we write Position.
+
+``` sourceCode literate haskell
+stepPosition :: Double -> System' ()
+stepPosition dT = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
+```
+
+`clampPlayer` constrains the player’s x position between xmin and xmax,
+and we can also express it using a simple `cmap`. The function has type
+`(Player, Position) -> Position`, which iterates over Player, reads
+Player and Position, and writes Position.
+
+``` sourceCode literate haskell
+clampPlayer :: System' ()
+clampPlayer = cmap $ \(Player, Position (V2 x y))
+                   -> Position (V2 (min xmax . max xmin $ x) y)
+```
+
+`incrTime` increments the total elapsed time by `dT`. In this case, we
+cannot use `cmap`, as we cannot iterate over a Global. Instead we have
+to use modify, which is like `cmap` for a specific entity. The exact
+entity argument does not matter for a global component, so we can use 0
+in this case. As we will see later, we usually make this explicit by
+using the `global` entity.
+
+``` sourceCode literate haskell
+incrTime :: Double -> System' ()
+incrTime dT = modify 0 $ \(Time t) -> Time (t+dT)
+```
+
+Let’s make things more interesting. `clearTargets` needs to destroy the
+targets that move out of bounds. We can also express this using `cmap`.
+In general, if you only want to delete a component some of the time, you
+use a `Maybe`. In this case, the function has type `(Target, Position,
+Velocity) -> Maybe (Target, Position, Velocity)`. It iterates over
+Target, reads Target, Position, and Velocity, and either writes or
+deletes Target, Position, and Velocity.
+
+``` sourceCode literate haskell
+clearTargets :: System' ()
+clearTargets = cmap $ \all@(Target, Position (V2 x _), Velocity _) ->
+  if x < xmin || x > xmax
+     then Nothing
+     else Just all
+```
+
+Unfortunately, this is not ideal. For example, we don’t really need to
+read Velocity, we are only interested in removing it. Furthermore, we
+don’t want to write all three components, we just want to be able to
+delete them.
+
+The next system illustrates how we can solve this issue, all from
+`cmap`. `stepParticles` needs to decrement the life time of all the
+particles, and remove them if it reaches 0. So we need to iterate over
+and read Particle, and either delete Particle, Position, and Velocity,
+or write Particle. This can be done with a function of type `Particle ->
+Either Particle (Not (Particle, Position, Velocity))`. `Not :: Not c`
+can be used to delete something, just like `Nothing :: Maybe c`. Either
+can be used to write one of two things. Combined, `Either a (Not b)`
+will either write `a`, or delete `b`.
+
+If you’ve never seen it, the `Not @c` is from the TypeApplication
+pragma, and is equivalent to `Not :: Not c`.
+
+``` sourceCode literate haskell
+stepParticles :: Double -> System' ()
+stepParticles dT = cmap $ \(Particle col t) ->
+  if t < 0
+     then Right $ Not @(Particle, Kinetic)
+     else Left  $ Particle col (t-dT)
+```
+
+We can take this even further. For bullets, we want to clear them when
+they leave the screen, and if so, decrement the score. We use a function
+of type `(Bullet, Position, Score) -> Either () (Not (Bullet, Kinetic),
+Score)`. This will iterate over Bullet, read Bullet, Position and Score,
+and either write (), which does nothing, or it will delete Bullet and
+Kinetic, and write Score.
+
+``` sourceCode literate haskell
+clearBullets :: System' ()
+clearBullets = cmap $ \(Bullet, Position (V2 _ y), Score s) ->
+  if y > 170
+     then Right $ (Not @(Bullet, Kinetic), Score (s-missPenalty))
+     else Left ()
+```
+
+In the example above, you could argue that we perform an unnecessary
+read on the Score, since we read it for every Bullet. You might instead
+want to perform the update of the Score as a side-effect instead. It
+then might not surprise you that there also is a `cmapM` and a `cmapM_`.
+These pretty much work as you would expect, they iterate over and read
+their input argument, and run the System in the output. Here, we use it
+to do collision handling.
+
+We first iterate over all Targets, and read their Positions and Entity
+index. We then iterate over all Bullets, and also read Position and
+Entity. Then, when the distance betweeen the two positions is below the
+threshold, we destroy both entities, create a bunch of particles, and
+update the score. You can also see how we use `global` as the argument
+to `modify` instead of 0, to make it clear that this is a global
+variable.
+
+``` sourceCode literate haskell
+handleCollisions =
+  cmapM_ $ \(Target, Position posT, etyT) ->
+    cmapM_ $ \(Bullet, Position posB, etyB) ->
+      when (norm (posT - posB) < 10) $ do
+        destroy etyT (Proxy @(Target, Kinetic))
+        destroy etyB (Proxy @(Bullet, Kinetic))
+        spawnParticles 15 (Position posB) white (-500,500) (200,-50)
+        modify global $ \(Score x) -> Score (x + hitBonus)
+```
+
+`triggerEvery` runs a System periodically. It uses `get` to read the
+Time, again using `global`.
+
+``` sourceCode literate haskell
+triggerEvery :: Double -> Double -> Double -> System' a -> System' ()
+triggerEvery dT period phase sys = do
+  Time t <- get global
+  let t' = t + phase
+      trigger = floor (t'/period) /= floor ((t'+dT)/period)
+  when trigger $ void sys
+```
+
+`spawnParticles` does what it says on the tin. The random values are
+generated in the IO monad, so we use
+`liftIO`.
+
+``` sourceCode literate haskell
+spawnParticles :: Int -> Position -> Color -> (Double,Double) -> (Double,Double) -> System' ()
+spawnParticles n pos color dvx dvy = replicateM_ n $ do
+  vx <- liftIO $ randomRIO dvx
+  vy <- liftIO $ randomRIO dvy
+  t  <- liftIO $ randomRIO (0.02,0.3)
+  newEntity (Particle color t, pos, Velocity (V2 vx vy))
+```
+
+Finally, we assemble all our pieces into a single system.
+
+``` sourceCode literate haskell
+step :: Double -> System' ()
+step dT = do
+  incrTime dT
+  stepPosition dT
+  clampPlayer
+  clearTargets
+  clearBullets
+  stepParticles dT
+  handleCollisions
+  triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
+  triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
+```
+
+Next, handling player input. Gloss makes this really easy, we just need
+to map `Event` values to Systems:
+
+``` sourceCode literate haskell
+handleEvent :: Event -> System' ()
+handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) =
+  cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
+
+handleEvent (EventKey (SpecialKey KeyLeft)  Up   _ _) =
+  cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x+playerSpeed) 0)
+
+handleEvent (EventKey (SpecialKey KeyRight) Down _ _) =
+  cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x+playerSpeed) 0)
+
+handleEvent (EventKey (SpecialKey KeyRight) Up   _ _) =
+  cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
+
+handleEvent (EventKey (SpecialKey KeySpace) Down _ _) =
+  cmapM_ $ \(Player, pos) -> do
+    newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
+    spawnParticles 7 pos yellow (-80,80) (10,100)
+
+handleEvent _ = return ()
+```
+
+Rendering in gloss means producing a `Picture` value (and a lot of
+Double/Float conversion). Since pictures are composed monoidically, we
+can do this in `cfold`. `drawComponents` takes a drawing function for a
+single component, and uses it to draw every such component:
+
+``` sourceCode literate haskell
+drawComponents :: Get World c => (c -> Picture) -> System' Picture
+drawComponents f = cfold
+  (\pic (Position p, c) -> pic <> translate' p (f c))
+  mempty
+
+translate' :: V2 Double -> Picture -> Picture
+translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
+```
+
+We then define some primitives, and assemble them into a full picture.
+Most of the code here is gloss-related, so I won’t go into a lot of
+detail.
+
+``` sourceCode literate haskell
+triangle, diamond :: Picture
+triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
+diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
+
+draw :: System' Picture
+draw = do
+  player  <- drawComponents $ \Player -> color white  . scale 10 20 $ triangle
+  targets <- drawComponents $ \Target -> color red    . scale 10 10 $ diamond
+  bullets <- drawComponents $ \Bullet -> color yellow . scale 4  4  $ diamond
+
+  particles <- drawComponents $
+    \(Particle col _, Velocity (V2 vx vy))
+    -> color col $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
+
+  Score s <- get global
+  let score = color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
+
+  return $ player <> targets <> bullets <> score <> particles
+  where
+```
+
+You run a game in gloss using the `playIO` function. We need to do some
+marshalling between System and IO to line up the types.
+
+``` sourceCode literate haskell
+playGloss :: w
+          -> System w Picture
+          -> (Event -> System w ())
+          -> (Double -> System w ())
+          -> IO ()
+playGloss world drawSys eventSys stepSys =
+  playIO
+    window black fps ()
+    (\_    -> runSystem drawSys world)
+    (\e _  -> runSystem (eventSys e) world)
+    (\dt _ -> runSystem (stepSys $ realToFrac dt) world)
+  where
+    window = InWindow "game" (220,360) (10,10)
+    fps = 60
+```
+
+Finally, we run the game\!
+
+``` sourceCode literate haskell
+main :: IO ()
+main = do
+  w <- initWorld
+  runSystem initialize w
+  playGloss w draw handleEvent step
+```
+
+That concludes our tour. If you want more information, I recommend
+reading the paper and haddocks. If you have any questions, feel free to
+make an Issue, or ask me on twitter/reddit.
