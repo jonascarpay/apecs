@@ -2,6 +2,10 @@
 
 ## [0.4.1.1]
 ### Changed
+- Some were missing their inline pragma's, now they don't
+
+## [0.4.1.1]
+### Changed
 - Export `Get`, `Set`, `Destroy`, `Members` by default
 - Export `cfold`, `cfoldM`, `cfoldM_` by default
 - Fix () instance
