@@ -20,18 +20,24 @@ module Apecs.Util (
   -- * Timing
   timeSystem, timeSystem_,
 
+  -- * Concurrency
+  forkSys, atomically, sleep
+
   ) where
 
-import           Control.Applicative  (liftA2)
-import           Control.Monad.Reader (lift)
+import qualified Control.Concurrent     as C
+import qualified Control.Concurrent.STM as C
+import           System.CPUTime
+
+import           Control.Applicative    (liftA2)
+import           Control.Monad.Reader
 import           Data.Monoid
 import           Data.Semigroup
-import           System.CPUTime
-import           System.Mem           (performMajorGC)
+import           System.Mem             (performMajorGC)
 
+import           Apecs.Core
 import           Apecs.Stores
 import           Apecs.System
-import           Apecs.Core
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
 -- Its value is -2, to avoid potential conflicts with caches, which reserve -1.
@@ -43,7 +49,7 @@ global = Entity (-2)
 newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
 
 instance Component EntityCounter where
-  type Storage EntityCounter = Global EntityCounter
+  type Storage EntityCounter = SimpleGlobal EntityCounter
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
@@ -127,3 +133,12 @@ timeSystem sys = do
 -- | Runs a system, discards its output, and gives its execution time in seconds
 timeSystem_ :: System w a -> System w Double
 timeSystem_ = fmap fst . timeSystem
+
+forkSys :: System w () -> System w C.ThreadId
+forkSys sys = ask >>= liftIO . C.forkIO . runSystem sys
+
+atomically :: SystemT w C.STM () -> SystemT w IO ()
+atomically sys = ask >>= liftIO . C.atomically . runSystem sys
+
+sleep :: Int -> System w ()
+sleep = liftIO . C.threadDelay

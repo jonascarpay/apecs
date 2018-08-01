@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE Strict                #-}
@@ -13,7 +13,11 @@ module Apecs.Stores
   ( Map, Cache, Unique,
     Global,
     Cachable,
+    SimpleGlobal,
   ) where
+
+import           Control.Concurrent.STM      as S
+import           Control.Concurrent.STM.TVar as S
 
 import           Control.Monad.Reader
 import qualified Data.IntMap.Strict          as M
@@ -28,58 +32,115 @@ import           GHC.TypeLits
 import           Apecs.Core
 
 -- | A map based on @Data.Intmap.Strict@. O(log(n)) for most operations.
-newtype Map c = Map (IORef (M.IntMap c))
+newtype Map c = Map (TVar (M.IntMap (TVar c)))
 
 type instance Elem (Map c) = c
 instance ExplInit (Map c) where
-  explInit = Map <$> newIORef mempty
+  explInit = Map <$> newTVarIO mempty
 
 instance ExplGet IO (Map c) where
-  explExists (Map ref) ety = M.member ety <$> readIORef ref
-  explGet    (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
+  explExists (Map ref) ety = M.member ety <$> readTVarIO ref
+  explGet    (Map ref) ety =
+    readTVarIO ref >>= readTVarIO . fromJust . M.lookup ety
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
 instance ExplSet IO (Map c) where
   {-# INLINE explSet #-}
-  explSet (Map ref) ety x = modifyIORef' ref $ M.insert ety x
+  explSet (Map ref) ety x = do
+    m <- readTVarIO ref
+    case M.lookup ety m of
+      Nothing -> do
+        rInsert <- newTVarIO x
+        atomically . writeTVar ref $ M.insert ety rInsert m
 
 instance ExplDestroy IO (Map c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
+  explDestroy (Map ref) ety = do
+    m <- readTVarIO ref
+    atomically . writeTVar ref $ M.delete ety m
 
 instance ExplMembers IO (Map c) where
   {-# INLINE explMembers #-}
-  explMembers (Map ref) = U.fromList . M.keys <$> readIORef ref
+  explMembers (Map ref) = U.fromList . M.keys <$> readTVarIO ref
+
+instance ExplGet STM (Map c) where
+  explExists (Map ref) ety = M.member ety <$> readTVar ref
+  explGet    (Map ref) ety =
+    readTVar ref >>= readTVar . fromJust . M.lookup ety
+  {-# INLINE explExists #-}
+  {-# INLINE explGet #-}
+
+instance ExplSet STM (Map c) where
+  {-# INLINE explSet #-}
+  explSet (Map ref) ety x = do
+    m <- readTVar ref
+    case M.lookup ety m of
+      Nothing -> do
+        rInsert <- newTVar x
+        writeTVar ref $ M.insert ety rInsert m
+
+instance ExplDestroy STM (Map c) where
+  {-# INLINE explDestroy #-}
+  explDestroy (Map ref) ety = do
+    m <- readTVar ref
+    writeTVar ref $ M.delete ety m
+
+instance ExplMembers STM (Map c) where
+  {-# INLINE explMembers #-}
+  explMembers (Map ref) = U.fromList . M.keys <$> readTVar ref
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
 --   Its main purpose is to be a @Map@ optimized for when only ever one component inhabits it.
-newtype Unique c = Unique (IORef (Maybe (Int, c)))
+newtype Unique c = Unique (TVar (Maybe (Int, c)))
 type instance Elem (Unique c) = c
 instance ExplInit (Unique c) where
-  explInit = Unique <$> newIORef Nothing
+  explInit = Unique <$> newTVarIO Nothing
 
 instance ExplGet IO (Unique c) where
   {-# INLINE explGet #-}
-  explGet (Unique ref) _ = flip fmap (readIORef ref) $ \case
+  explGet (Unique ref) _ = flip fmap (readTVarIO ref) $ \case
     Nothing -> error "Reading empty Unique"
     Just (_, c)  -> c
   {-# INLINE explExists #-}
-  explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readIORef ref
+  explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readTVarIO ref
 
 instance ExplSet IO (Unique c) where
   {-# INLINE explSet #-}
-  explSet (Unique ref) ety c = writeIORef ref (Just (ety, c))
+  explSet (Unique ref) ety c = atomically $ writeTVar ref (Just (ety, c))
 
 instance ExplDestroy IO (Unique c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Unique ref) ety = readIORef ref >>=
-    mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
+  explDestroy (Unique ref) ety = readTVarIO ref >>=
+    mapM_ (flip when (atomically $ writeTVar ref Nothing) . (==ety) . fst)
 
 instance ExplMembers IO (Unique c) where
   {-# INLINE explMembers #-}
-  explMembers (Unique ref) = flip fmap (readIORef ref) $ \case
+  explMembers (Unique ref) = flip fmap (readTVarIO ref) $ \case
+    Nothing -> mempty
+    Just (ety, _) -> U.singleton ety
+
+instance ExplGet STM (Unique c) where
+  {-# INLINE explGet #-}
+  explGet (Unique ref) _ = flip fmap (readTVar ref) $ \case
+    Nothing -> error "Reading empty Unique"
+    Just (_, c)  -> c
+  {-# INLINE explExists #-}
+  explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readTVar ref
+
+instance ExplSet STM (Unique c) where
+  {-# INLINE explSet #-}
+  explSet (Unique ref) ety c = writeTVar ref (Just (ety, c))
+
+instance ExplDestroy STM (Unique c) where
+  {-# INLINE explDestroy #-}
+  explDestroy (Unique ref) ety = readTVar ref >>=
+    mapM_ (flip when (writeTVar ref Nothing) . (==ety) . fst)
+
+instance ExplMembers STM (Unique c) where
+  {-# INLINE explMembers #-}
+  explMembers (Unique ref) = flip fmap (readTVar ref) $ \case
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
 
@@ -87,21 +148,47 @@ instance ExplMembers IO (Unique c) where
 --   The initial value is 'mempty' from the component's 'Monoid' instance.
 --   When operating on a global, any entity arguments are ignored.
 --   For example, we can get a global component with @get 0@ or @get 1@ or even @get undefined@.
-newtype Global c = Global (IORef c)
+newtype SimpleGlobal c = SimpleGlobal (IORef c)
+type instance Elem (SimpleGlobal c) = c
+instance Monoid c => ExplInit (SimpleGlobal c) where
+  {-# INLINE explInit #-}
+  explInit = SimpleGlobal <$> newIORef mempty
+
+instance ExplGet IO (SimpleGlobal c) where
+  {-# INLINE explGet #-}
+  explGet (SimpleGlobal ref) _ = readIORef ref
+  {-# INLINE explExists #-}
+  explExists _ _ = return True
+
+instance ExplSet IO (SimpleGlobal c) where
+  {-# INLINE explSet #-}
+  explSet (SimpleGlobal ref) _ c = writeIORef ref c
+
+newtype Global c = Global (TVar c)
 type instance Elem (Global c) = c
 instance Monoid c => ExplInit (Global c) where
   {-# INLINE explInit #-}
-  explInit = Global <$> newIORef mempty
+  explInit = Global <$> newTVarIO mempty
 
 instance ExplGet IO (Global c) where
   {-# INLINE explGet #-}
-  explGet (Global ref) _ = readIORef ref
+  explGet (Global ref) _ = readTVarIO ref
   {-# INLINE explExists #-}
   explExists _ _ = return True
 
 instance ExplSet IO (Global c) where
   {-# INLINE explSet #-}
-  explSet (Global ref) _ c = writeIORef ref c
+  explSet (Global ref) _ c = atomically $ writeTVar ref c
+
+instance ExplGet STM (Global c) where
+  {-# INLINE explGet #-}
+  explGet (Global ref) _ = readTVar ref
+  {-# INLINE explExists #-}
+  explExists _ _ = return True
+
+instance ExplSet STM (Global c) where
+  {-# INLINE explSet #-}
+  explSet (Global ref) _ c = writeTVar ref c
 
 -- | An empty type class indicating that the store behaves like a regular map, and can therefore safely be cached.
 --   An example of a store that cannot be cached is 'Unique'.

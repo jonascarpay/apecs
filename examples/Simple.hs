@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds, FlexibleInstances, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
+import Apecs.Util
 import Linear (V2 (..))
 
 newtype Position = Position (V2 Double) deriving Show
@@ -30,6 +31,9 @@ game = do
   cmap $ \(Velocity v, _ :: Not Flying) -> Velocity (v - (V2 0 1))
   -- Print a list of entities and their positions
   cmapM_ $ \(Position p, Entity e) -> liftIO . print $ (e, p)
+  forkSys . forever $ do
+    atomically . cmap $ \(Position p, Velocity v) -> Position (p+v)
+    sleep 1000
 
 main :: IO ()
 main = initWorld >>= runSystem game
