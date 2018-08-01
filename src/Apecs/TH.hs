@@ -23,14 +23,15 @@ makeWorldNoEC worldName cTypes = do
 
   let wld = mkName worldName
       has = mkName "Has"
-      sys = mkName "System"
+      sys = mkName "SystemT"
+      m = VarT $ mkName "m"
       wldDecl = DataD [] wld [] Nothing [RecC wld records] []
 
       makeRecord (t,n) = (n, Bang NoSourceUnpackedness SourceStrict, ConT (mkName "Storage") `AppT` t)
       records = makeRecord <$> cTypesNames
 
       makeInstance (t,n) =
-        InstanceD Nothing [] ((ConT has `AppT` ConT wld) `AppT` t)
+        InstanceD Nothing [ConT (mkName "Monad") `AppT` m] (ConT has `AppT` ConT wld `AppT` m `AppT` t)
           [ FunD (mkName "getStore") [Clause []
               (NormalB$ ConE sys `AppE` (VarE (mkName "asks") `AppE` VarE n))
             [] ]

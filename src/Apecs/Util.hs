@@ -23,7 +23,7 @@ module Apecs.Util (
   ) where
 
 import           Control.Applicative  (liftA2)
-import           Control.Monad.Reader (liftIO)
+import           Control.Monad.Reader (lift)
 import           Data.Monoid
 import           Data.Semigroup
 import           System.CPUTime
@@ -47,7 +47,7 @@ instance Component EntityCounter where
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
-nextEntity :: Has w EntityCounter => System w Entity
+nextEntity :: (Get w m EntityCounter, Set w m EntityCounter) => SystemT w m Entity
 nextEntity = do EntityCounter n <- get global
                 set global (EntityCounter $ n+1)
                 return (Entity . getSum $ n)
@@ -55,15 +55,15 @@ nextEntity = do EntityCounter n <- get global
 -- | Writes the given components to a new entity, and yields that entity.
 -- The return value is often ignored.
 {-# INLINE newEntity #-}
-newEntity :: (Set w c, Get w EntityCounter, Set w EntityCounter)
-          => c -> System w Entity
+newEntity :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
+          => c -> SystemT w m Entity
 newEntity c = do ety <- nextEntity
                  set ety c
                  return ety
 
 -- | Explicitly invoke the garbage collector
 runGC :: System w ()
-runGC = liftIO performMajorGC
+runGC = lift performMajorGC
 
 -- $hash
 -- The following are helper functions for spatial hashing.
@@ -119,9 +119,9 @@ flatten' size vec = foldr (\(n,x) acc -> n*acc + x) 0 (liftA2 (,) size vec)
 -- | Runs a system and gives its execution time in seconds
 timeSystem :: System w a -> System w (Double, a)
 timeSystem sys = do
-  s <- liftIO getCPUTime
+  s <- lift getCPUTime
   a <- sys
-  t <- liftIO getCPUTime
+  t <- lift getCPUTime
   return (fromIntegral (t-s)/1e12, a)
 
 -- | Runs a system, discards its output, and gives its execution time in seconds

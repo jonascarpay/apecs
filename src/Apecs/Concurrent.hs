@@ -18,18 +18,18 @@ import           Apecs.Core
 -- | Executes a list of systems concurrently, and blocks until all have finished.
 --   Provides zero protection against race conditions and other hazards, so use with caution.
 concurrently :: [System w ()] -> System w ()
-concurrently ss = do w <- System ask
-                     liftIO . A.mapConcurrently_ (runWith w) $ ss
+concurrently ss = do w <- SystemT ask
+                     lift . A.mapConcurrently_ (runWith w) $ ss
 
 -- | Parallel version of @cmap@. 
 {-# INLINE pmap #-}
-pmap :: forall w cx cy. (Get w cx, Members w cx, Set w cy)
+pmap :: forall w cx cy. (Get w IO cx, Members w IO cx, Set w IO cy)
      => Int -- ^ Entities per thread
      -> (cx -> cy) -> System w ()
 pmap grainSize f =
   do sr :: Storage cx <- getStore
      sw :: Storage cy <- getStore
-     liftIO$ do
+     lift$ do
        sl <- explMembers sr
        parallelize grainSize (\e -> explGet sr e >>= explSet sw e . f) sl
 

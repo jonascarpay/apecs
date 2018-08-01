@@ -1,4 +1,8 @@
 ## [Unreleased]
+### Changed
+- `System w a` is now a synonym for `SystemT w IO a`.
+  Most of the library has been rewritten to be as permissive as possible in its monad argument.
+  A variable monad argument allows apecs to be run in monads like ST or STM.
 
 ## [0.4.1.2]
 ### Changed

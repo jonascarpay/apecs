@@ -5,7 +5,7 @@ It selectively re-exports the user-facing functions from the submodules.
 module Apecs (
   module Data.Proxy,
   -- * Core types
-    System(..), Component(..), Entity(..), Has(..), Not(..),
+    SystemT(..), System, Component(..), Entity(..), Has(..), Not(..),
     Get, Set, Destroy, Members,
 
   -- * Stores

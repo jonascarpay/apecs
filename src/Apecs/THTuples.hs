@@ -35,9 +35,12 @@ makeInstances is = concat <$> traverse tupleInstances is
 tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do
   let vars = [ VarT . mkName $ "t_" ++ show i | i <- [0..n-1]]
+      m = VarT $ mkName "m"
 
+      -- [''a,''b] -> ''(a,b)
       tupleUpT :: [Type] -> Type
       tupleUpT = foldl AppT (TupleT n)
+      -- ''(t_0, t_1, .. )
       varTuple :: Type
       varTuple = tupleUpT vars
 
@@ -58,7 +61,7 @@ tupleInstances n = do
 
       -- Has
       hasN = mkName "Has"
-      hasT var = ConT hasN `AppT` VarT (mkName "w") `AppT` var
+      hasT var = ConT hasN `AppT` VarT (mkName "w") `AppT` m `AppT` var
       getStoreN = mkName "getStore"
       getStoreE = VarE getStoreN
       apN = mkName "<*>"
@@ -94,10 +97,10 @@ tupleInstances n = do
       membersN = mkName "ExplMembers"
       destroyN = mkName "ExplDestroy"
 
-      getT var     = ConT getN `AppT` var
-      setT var     = ConT setN `AppT` var
-      membersT var = ConT membersN `AppT` var
-      destroyT var = ConT destroyN `AppT` var
+      getT     s = ConT getN     `AppT` m `AppT` s
+      setT     s = ConT setN     `AppT` m `AppT` s
+      membersT s = ConT membersN `AppT` m `AppT` s
+      destroyT s = ConT destroyN `AppT` m `AppT` s
 
       explSetN     = mkName "explSet"
       explDestroyN = mkName "explDestroy"

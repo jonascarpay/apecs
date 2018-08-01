@@ -14,45 +14,45 @@ import           Apecs.Core
 
 -- | Run a system with a game world
 {-# INLINE runSystem #-}
-runSystem :: System w a -> w -> IO a
+runSystem :: SystemT w m a -> w -> m a
 runSystem sys = runReaderT (unSystem sys)
 
 -- | Run a system with a game world
 {-# INLINE runWith #-}
-runWith :: w -> System w a -> IO a
+runWith :: w -> SystemT w m a -> m a
 runWith = flip runSystem
 
 {-# INLINE get #-}
-get :: forall w c. Get w c => Entity -> System w c
+get :: forall w m c. Get w m c => Entity -> SystemT w m c
 get (Entity ety) = do
   s :: Storage c <- getStore
-  liftIO$ explGet s ety
+  lift$ explGet s ety
 
 -- | Writes a component to a given entity. Will overwrite existing components.
---   The type was originally 'Entity c -> c -> System w ()', but is relaxed to 'Entity e'
+--   The type was originally 'Entity c -> c -> SystemT w m ()', but is relaxed to 'Entity e'
 --   so you don't always have to write 'set . cast'
 {-# INLINE set #-}
-set :: forall w c. Set w c => Entity -> c -> System w ()
+set :: forall w m c. Set w m c => Entity -> c -> SystemT w m ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
-  liftIO$ explSet s ety x
+  lift$ explSet s ety x
 
 -- | Returns whether the given entity has component @c@
 --   Note that @c@ is a phantom argument, used only to convey the type of the entity to be queried.
 {-# INLINE exists #-}
-exists :: forall w c. Get w c => Entity -> Proxy c -> System w Bool
+exists :: forall w m c. Get w m c => Entity -> Proxy c -> SystemT w m Bool
 exists (Entity ety) _ = do
   s :: Storage c <- getStore
-  liftIO$ explExists s ety
+  lift$ explExists s ety
 
 -- | Maps a function over all entities with a @cx@, and writes their @cy@.
 {-# INLINE cmap #-}
-cmap :: forall w cx cy. (Get w cx, Members w cx, Set w cy)
-     => (cx -> cy) -> System w ()
+cmap :: forall w m cx cy. (Get w m cx, Members w m cx, Set w m cy)
+     => (cx -> cy) -> SystemT w m ()
 cmap f = do
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
-  liftIO$ do
+  lift$ do
     sl <- explMembers sx
     U.forM_ sl $ \ e -> do
       r <- explGet sx e
@@ -60,89 +60,89 @@ cmap f = do
 
 -- | Monadically iterates over all entites with a @cx@, and writes their @cy@.
 {-# INLINE cmapM #-}
-cmapM :: forall w cx cy. (Get w cx, Set w cy, Members w cx)
-      => (cx -> System w cy) -> System w ()
+cmapM :: forall w m cx cy. (Get w m cx, Set w m cy, Members w m cx)
+      => (cx -> SystemT w m cy) -> SystemT w m ()
 cmapM sys = do
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
-  sl <- liftIO$ explMembers sx
+  sl <- lift$ explMembers sx
   U.forM_ sl $ \ e -> do
-    x <- liftIO$ explGet sx e
+    x <- lift$ explGet sx e
     y <- sys x
-    liftIO$ explSet sy e y
+    lift$ explSet sy e y
 
 -- | Monadically iterates over all entites with a @cx@
 {-# INLINE cmapM_ #-}
-cmapM_ :: forall w c a. (Get w c, Members w c)
-       => (c -> System w a) -> System w ()
+cmapM_ :: forall w m c a. (Get w m c, Members w m c)
+       => (c -> SystemT w m a) -> SystemT w m ()
 cmapM_ sys = do
   s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
+  sl <- lift$ explMembers s
   U.forM_ sl $ \ ety -> do
-    x <- liftIO$ explGet s ety
+    x <- lift$ explGet s ety
     sys x
 
 -- | Fold over the game world; for example, @cfold max (minBound :: Foo)@ will find the maximum value of @Foo@.
 --   Strict in the accumulator.
 {-# INLINE cfold #-}
-cfold :: forall w c a. (Members w c, Get w c)
-      => (a -> c -> a) -> a -> System w a
+cfold :: forall w m c a. (Members w m c, Get w m c)
+      => (a -> c -> a) -> a -> SystemT w m a
 cfold f a0 = do
   s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
-  liftIO$ U.foldM' (\a e -> f a <$> explGet s e) a0 sl
+  sl <- lift$ explMembers s
+  lift$ U.foldM' (\a e -> f a <$> explGet s e) a0 sl
 
 -- | Monadically fold over the game world.
 --   Strict in the accumulator.
 {-# INLINE cfoldM #-}
-cfoldM :: forall w c a. (Members w c, Get w c)
-       => (a -> c -> System w a) -> a -> System w a
+cfoldM :: forall w m c a. (Members w m c, Get w m c)
+       => (a -> c -> SystemT w m a) -> a -> SystemT w m a
 cfoldM sys a0 = do
   s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
-  U.foldM' (\a e -> liftIO (explGet s e) >>= sys a) a0 sl
+  sl <- lift$ explMembers s
+  U.foldM' (\a e -> lift (explGet s e) >>= sys a) a0 sl
 
 -- | Monadically fold over the game world.
 --   Strict in the accumulator.
 {-# INLINE cfoldM_ #-}
-cfoldM_ :: forall w c a. (Members w c, Get w c)
-       => (a -> c -> System w a) -> a -> System w ()
+cfoldM_ :: forall w m c a. (Members w m c, Get w m c)
+       => (a -> c -> SystemT w m a) -> a -> SystemT w m ()
 cfoldM_ sys a0 = do
   s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
-  U.foldM'_ (\a e -> liftIO (explGet s e) >>= sys a) a0 sl
+  sl <- lift$ explMembers s
+  U.foldM'_ (\a e -> lift (explGet s e) >>= sys a) a0 sl
 
 -- | Get all components @c@.
 --   Call as @[(c,Entity)]@ to also read the entity index.
 {-# INLINE getAll #-}
-getAll :: forall w c. (Get w c, Members w c)
-      => System w [c]
+getAll :: forall w m c. (Get w m c, Members w m c)
+      => SystemT w m [c]
 getAll = do
   s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
-  forM (U.toList sl) $ liftIO . explGet s
+  sl <- lift$ explMembers s
+  forM (U.toList sl) $ lift . explGet s
 
 -- | Destroys component @c@ for the given entity.
 -- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
 {-# INLINE destroy #-}
-destroy :: forall w c. Destroy w c => Entity -> Proxy c -> System w ()
+destroy :: forall w m c. Destroy w m c => Entity -> Proxy c -> SystemT w m ()
 destroy (Entity ety) ~_ = do
   s :: Storage c <- getStore
-  liftIO$ explDestroy s ety
+  lift$ explDestroy s ety
 
 -- | Applies a function, if possible.
 {-# INLINE modify #-}
-modify :: forall w c. (Get w c, Set w c) => Entity -> (c -> c) -> System w ()
+modify :: forall w m c. (Get w m c, Set w m c) => Entity -> (c -> c) -> SystemT w m ()
 modify (Entity ety) f = do
   s :: Storage c <- getStore
-  liftIO$ do
+  lift$ do
     x <- explGet s ety
     explSet s ety (f x)
 
 -- | Counts the number of entities with a @c@
 {-# INLINE count #-}
-count :: forall w c. Members w c => Proxy c -> System w Int
+count :: forall w m c. Members w m c => Proxy c -> SystemT w m Int
 count ~_ = do
   s :: Storage c <- getStore
-  sl <- liftIO$ explMembers s
+  sl <- lift$ explMembers s
   return $ U.length sl

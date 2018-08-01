@@ -34,21 +34,21 @@ type instance Elem (Map c) = c
 instance ExplInit (Map c) where
   explInit = Map <$> newIORef mempty
 
-instance ExplGet (Map c) where
+instance ExplGet IO (Map c) where
   explExists (Map ref) ety = M.member ety <$> readIORef ref
   explGet    (Map ref) ety = fromJust . M.lookup ety <$> readIORef ref
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
-instance ExplSet (Map c) where
+instance ExplSet IO (Map c) where
   {-# INLINE explSet #-}
   explSet (Map ref) ety x = modifyIORef' ref $ M.insert ety x
 
-instance ExplDestroy (Map c) where
+instance ExplDestroy IO (Map c) where
   {-# INLINE explDestroy #-}
   explDestroy (Map ref) ety = modifyIORef' ref (M.delete ety)
 
-instance ExplMembers (Map c) where
+instance ExplMembers IO (Map c) where
   {-# INLINE explMembers #-}
   explMembers (Map ref) = U.fromList . M.keys <$> readIORef ref
 
@@ -60,7 +60,7 @@ type instance Elem (Unique c) = c
 instance ExplInit (Unique c) where
   explInit = Unique <$> newIORef Nothing
 
-instance ExplGet (Unique c) where
+instance ExplGet IO (Unique c) where
   {-# INLINE explGet #-}
   explGet (Unique ref) _ = flip fmap (readIORef ref) $ \case
     Nothing -> error "Reading empty Unique"
@@ -68,16 +68,16 @@ instance ExplGet (Unique c) where
   {-# INLINE explExists #-}
   explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readIORef ref
 
-instance ExplSet (Unique c) where
+instance ExplSet IO (Unique c) where
   {-# INLINE explSet #-}
   explSet (Unique ref) ety c = writeIORef ref (Just (ety, c))
 
-instance ExplDestroy (Unique c) where
+instance ExplDestroy IO (Unique c) where
   {-# INLINE explDestroy #-}
   explDestroy (Unique ref) ety = readIORef ref >>=
     mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
 
-instance ExplMembers (Unique c) where
+instance ExplMembers IO (Unique c) where
   {-# INLINE explMembers #-}
   explMembers (Unique ref) = flip fmap (readIORef ref) $ \case
     Nothing -> mempty
@@ -93,13 +93,13 @@ instance Monoid c => ExplInit (Global c) where
   {-# INLINE explInit #-}
   explInit = Global <$> newIORef mempty
 
-instance ExplGet (Global c) where
+instance ExplGet IO (Global c) where
   {-# INLINE explGet #-}
   explGet (Global ref) _ = readIORef ref
   {-# INLINE explExists #-}
   explExists _ _ = return True
 
-instance ExplSet (Global c) where
+instance ExplSet IO (Global c) where
   {-# INLINE explSet #-}
   explSet (Global ref) _ c = writeIORef ref c
 
@@ -135,7 +135,7 @@ instance (ExplInit s, KnownNat n, Cachable s) => ExplInit (Cache n s) where
     child <- explInit
     return (Cache n tags cache child)
 
-instance ExplGet s => ExplGet (Cache n s) where
+instance ExplGet IO s => ExplGet IO (Cache n s) where
   {-# INLINE explGet #-}
   explGet (Cache n tags cache s) ety = do
     let index = ety `rem` n
@@ -149,7 +149,7 @@ instance ExplGet s => ExplGet (Cache n s) where
     tag <- UM.unsafeRead tags (ety `rem` n)
     if tag == ety then return True else explExists s ety
 
-instance ExplSet s => ExplSet (Cache n s) where
+instance ExplSet IO s => ExplSet IO (Cache n s) where
   {-# INLINE explSet #-}
   explSet (Cache n tags cache s) ety x = do
     let index = ety `rem` n
@@ -160,7 +160,7 @@ instance ExplSet s => ExplSet (Cache n s) where
     UM.unsafeWrite tags  index ety
     VM.unsafeWrite cache index x
 
-instance ExplDestroy s => ExplDestroy (Cache n s) where
+instance ExplDestroy IO s => ExplDestroy IO (Cache n s) where
   {-# INLINE explDestroy #-}
   explDestroy (Cache n tags cache s) ety = do
     let index = ety `rem` n
@@ -171,7 +171,7 @@ instance ExplDestroy s => ExplDestroy (Cache n s) where
          VM.unsafeWrite cache index cacheMiss
        else explDestroy s ety
 
-instance ExplMembers s => ExplMembers (Cache n s) where
+instance ExplMembers IO s => ExplMembers IO (Cache n s) where
   {-# INLINE explMembers #-}
   explMembers (Cache _ tags _ s) = do
     cached <- U.filter (/= (-1)) <$> U.freeze tags

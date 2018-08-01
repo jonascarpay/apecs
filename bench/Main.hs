@@ -39,3 +39,4 @@ main = C.defaultMainWith (C.defaultConfig {timeLimit = 10})
     , bench "step" $ whnfIO (initPosVel >>= runSystem (posVelInit >> posVelStep))
     ]
   ]
+

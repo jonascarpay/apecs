@@ -15,6 +15,7 @@ Some of these, like TypeApplications, are not strictly necessary, but provide so
 
 > {-# LANGUAGE DataKinds             #-}
 > {-# LANGUAGE FlexibleContexts      #-}
+> {-# LANGUAGE FlexibleInstances     #-}
 > {-# LANGUAGE MultiParamTypeClasses #-}
 > {-# LANGUAGE ScopedTypeVariables   #-}
 > {-# LANGUAGE TemplateHaskell       #-}
@@ -328,7 +329,7 @@ Since pictures are composed monoidically, we can do this in `cfold`.
 We have not seen `cfold` before, but it is to `cmap` as `foldl` is to `map`.
 `drawComponents` takes a drawing function for a single component, and uses it to draw every such component:
 
-> drawComponents :: Get World c => (c -> Picture) -> System' Picture
+> drawComponents :: Get World IO c => (c -> Picture) -> System' Picture
 > drawComponents f = cfold
 >   (\pic (Position p, c) -> pic <> translate' p (f c))
 >   mempty

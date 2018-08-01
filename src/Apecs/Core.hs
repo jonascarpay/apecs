@@ -22,22 +22,23 @@ import qualified Apecs.THTuples        as T
 --   For performance reasons, negative values like (-1) are reserved for stores to represent special values, so avoid using these.
 newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show)
 
--- | A System is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
+-- | A SystemT is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 --   Systems mainly serve to
 --
 --   * Lift side effects into the IO Monad.
 --
 --   * Allow type-based lookup of a component's store through @getStore@.
-newtype System w a = System {unSystem :: ReaderT w IO a} deriving (Functor, Monad, Applicative, MonadIO)
+newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO)
+type System w a = SystemT w IO a
 
 -- | A component is defined by specifying how it is stored.
 --   The constraint ensures that stores and components are mapped one-to-one.
 class (Elem (Storage c) ~ c) => Component c where
   type Storage c
 
--- | @Has w c@ means that world @w@ can produce a @Storage c@.
-class Component c => Has w c where
-  getStore :: System w (Storage c)
+-- | @Has w m c@ means that world @w@ can produce a @Storage c@.
+class (Monad m, Component c) => Has w m c where
+  getStore :: SystemT w m (Storage c)
 
 -- | The type of components stored by a store, e.g. @Elem (Map c) = c@.
 type family Elem s
@@ -50,55 +51,55 @@ class ExplInit s where
 
 -- | Stores that we can read using @explGet@ and @explExists@.
 --   For some entity @e@, @eplGet s e@ is only guaranteed to be safe if @explExists s e@ returns @True@.
-class ExplGet s where
+class Monad m => ExplGet m s where
   -- | Reads a component from the store. What happens if the component does not exist is left undefined, and might not necessarily crash.
-  explGet :: s -> Int -> IO (Elem s)
+  explGet :: s -> Int -> m (Elem s)
   -- | Returns whether there is a component for the given index.
-  explExists :: s -> Int -> IO Bool
+  explExists :: s -> Int -> m Bool
 
 -- | Stores that can be written.
-class ExplSet s where
+class Monad m => ExplSet m s where
   -- | Writes a component to the store.
-  explSet :: s -> Int -> Elem s -> IO ()
+  explSet :: s -> Int -> Elem s -> m ()
 
 -- | Stores that components can be removed from.
-class ExplDestroy s where
+class Monad m => ExplDestroy m s where
   -- | Destroys the component for a given index.
-  explDestroy :: s -> Int -> IO ()
+  explDestroy :: s -> Int -> m ()
 
 -- | Stores that we can request a list of member entities for.
-class ExplMembers s where
+class Monad m => ExplMembers m s where
   -- | Returns an unboxed vector of member indices
-  explMembers :: s -> IO (U.Vector Int)
+  explMembers :: s -> m (U.Vector Int)
 
-type Get     w c = (Has w c, ExplGet     (Storage c))
-type Set     w c = (Has w c, ExplSet     (Storage c))
-type Members w c = (Has w c, ExplMembers (Storage c))
-type Destroy w c = (Has w c, ExplDestroy (Storage c))
+type Get     w m c = (Has w m c, ExplGet     m (Storage c))
+type Set     w m c = (Has w m c, ExplSet     m (Storage c))
+type Members w m c = (Has w m c, ExplMembers m (Storage c))
+type Destroy w m c = (Has w m c, ExplDestroy m (Storage c))
 
 -- | Identity component/store. @Identity c@ is equivalent to @c@, so using it is mostly useless.
 instance Component c => Component (Identity c) where
   type Storage (Identity c) = Identity (Storage c)
 
-instance Has w c => Has w (Identity c) where
+instance Has w m c => Has w m (Identity c) where
   {-# INLINE getStore #-}
   getStore = Identity <$> getStore
 
 type instance Elem (Identity s) = Identity (Elem s)
 
-instance ExplGet s => ExplGet (Identity s) where
+instance ExplGet m s => ExplGet m (Identity s) where
   {-# INLINE explGet #-}
   explGet (Identity s) e = Identity <$> explGet s e
   {-# INLINE explExists  #-}
   explExists  (Identity s) = explExists s
 
-instance ExplSet s => ExplSet (Identity s) where
+instance ExplSet m s => ExplSet m (Identity s) where
   {-# INLINE explSet #-}
   explSet (Identity s) e (Identity x) = explSet s e x
-instance ExplMembers s => ExplMembers (Identity s) where
+instance ExplMembers m s => ExplMembers m (Identity s) where
   {-# INLINE explMembers #-}
   explMembers (Identity s) = explMembers s
-instance ExplDestroy s => ExplDestroy (Identity s) where
+instance ExplDestroy m s => ExplDestroy m (Identity s) where
   {-# INLINE explDestroy #-}
   explDestroy (Identity s) = explDestroy s
 
@@ -115,19 +116,19 @@ newtype NotStore s = NotStore s
 instance Component c => Component (Not c) where
   type Storage (Not c) = NotStore (Storage c)
 
-instance (Has w c) => Has w (Not c) where
+instance (Has w m c) => Has w m (Not c) where
   {-# INLINE getStore #-}
   getStore = NotStore <$> getStore
 
 type instance Elem (NotStore s) = Not (Elem s)
 
-instance ExplGet s => ExplGet (NotStore s) where
+instance ExplGet m s => ExplGet m (NotStore s) where
   {-# INLINE explGet #-}
   explGet _ _ = return Not
   {-# INLINE explExists #-}
   explExists (NotStore sa) ety = not <$> explExists sa ety
 
-instance ExplDestroy s => ExplSet (NotStore s) where
+instance ExplDestroy m s => ExplSet m (NotStore s) where
   {-# INLINE explSet #-}
   explSet (NotStore sa) ety _ = explDestroy sa ety
 
@@ -138,13 +139,13 @@ newtype MaybeStore s = MaybeStore s
 instance Component c => Component (Maybe c) where
   type Storage (Maybe c) = MaybeStore (Storage c)
 
-instance (Has w c) => Has w (Maybe c) where
+instance (Has w m c) => Has w m (Maybe c) where
   {-# INLINE getStore #-}
   getStore = MaybeStore <$> getStore
 
 type instance Elem (MaybeStore s) = Maybe (Elem s)
 
-instance ExplGet s => ExplGet (MaybeStore s) where
+instance ExplGet m s => ExplGet m (MaybeStore s) where
   {-# INLINE explGet #-}
   explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
@@ -152,7 +153,7 @@ instance ExplGet s => ExplGet (MaybeStore s) where
          else return Nothing
   explExists _ _ = return True
 
-instance (ExplDestroy s, ExplSet s) => ExplSet (MaybeStore s) where
+instance (ExplDestroy m s, ExplSet m s) => ExplSet m (MaybeStore s) where
   {-# INLINE explSet #-}
   explSet (MaybeStore sa) ety Nothing  = explDestroy sa ety
   explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
@@ -165,13 +166,13 @@ data EitherStore sa sb = EitherStore sa sb
 instance (Component ca, Component cb) => Component (Either ca cb) where
   type Storage (Either ca cb) = EitherStore (Storage ca) (Storage cb)
 
-instance (Has w ca, Has w cb) => Has w (Either ca cb) where
+instance (Has w m ca, Has w m cb) => Has w m (Either ca cb) where
   {-# INLINE getStore #-}
   getStore = EitherStore <$> getStore <*> getStore
 
 type instance Elem (EitherStore sa sb) = Either (Elem sa) (Elem sb)
 
-instance (ExplGet sa, ExplGet sb) => ExplGet (EitherStore sa sb) where
+instance (ExplGet m sa, ExplGet m sb) => ExplGet m (EitherStore sa sb) where
   {-# INLINE explGet #-}
   explGet (EitherStore sa sb) ety = do
     e <- explExists sb ety
@@ -183,32 +184,32 @@ instance (ExplGet sa, ExplGet sb) => ExplGet (EitherStore sa sb) where
     if e then return True
          else explExists sa ety
 
-instance (ExplSet sa, ExplSet sb) => ExplSet (EitherStore sa sb) where
+instance (ExplSet m sa, ExplSet m sb) => ExplSet m (EitherStore sa sb) where
   {-# INLINE explSet #-}
   explSet (EitherStore _ sb) ety (Right b) = explSet sb ety b
   explSet (EitherStore sa _) ety (Left a)  = explSet sa ety a
 
-instance (ExplDestroy sa, ExplDestroy sb)
-       => ExplDestroy (EitherStore sa sb) where
+instance (ExplDestroy m sa, ExplDestroy m sb)
+       => ExplDestroy m (EitherStore sa sb) where
   {-# INLINE explDestroy #-}
   explDestroy (EitherStore sa sb) ety =
     explDestroy sa ety >> explDestroy sb ety
 
-instance Has w () where
+instance Monad m => Has w m () where
   {-# INLINE getStore #-}
   getStore = return ()
 instance Component () where
   type Storage () = ()
 type instance Elem () = ()
-instance ExplGet () where
+instance Monad m => ExplGet m () where
   {-# INLINE explExists #-}
   explExists _ _ = return True
   {-# INLINE explGet #-}
   explGet _ _ = return ()
-instance ExplSet () where
+instance Monad m => ExplSet m () where
   {-# INLINE explSet #-}
   explSet _ _ _ = return ()
-instance ExplDestroy () where
+instance Monad m => ExplDestroy m () where
   {-# INLINE explDestroy #-}
   explDestroy _ _ = return ()
 
@@ -224,19 +225,19 @@ newtype FilterStore s = FilterStore s
 instance Component c => Component (Filter c) where
   type Storage (Filter c) = FilterStore (Storage c)
 
-instance Has w c => Has w (Filter c) where
+instance Has w m c => Has w m (Filter c) where
   {-# INLINE getStore #-}
   getStore = FilterStore <$> getStore
 
 type instance Elem (FilterStore s) = Filter (Elem s)
 
-instance ExplGet s => ExplGet (FilterStore s) where
+instance ExplGet m s => ExplGet m (FilterStore s) where
   {-# INLINE explGet #-}
   explGet _ _ = return Filter
   {-# INLINE explExists #-}
   explExists (FilterStore s) ety = explExists s ety
 
-instance ExplMembers s => ExplMembers (FilterStore s) where
+instance ExplMembers m s => ExplMembers m (FilterStore s) where
   {-# INLINE explMembers #-}
   explMembers (FilterStore s) = explMembers s
 
@@ -247,12 +248,12 @@ data EntityStore = EntityStore
 instance Component Entity where
   type Storage Entity = EntityStore
 
-instance (Has w Entity) where
+instance Monad m => Has w m Entity where
   {-# INLINE getStore #-}
   getStore = return EntityStore
 
 type instance Elem EntityStore = Entity
-instance ExplGet EntityStore where
+instance Monad m => ExplGet m EntityStore where
   {-# INLINE explGet #-}
   explGet _ ety = return $ Entity ety
   {-# INLINE explExists #-}
