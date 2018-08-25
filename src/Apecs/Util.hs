@@ -40,7 +40,6 @@ import           Apecs.Stores
 import           Apecs.System
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
--- Its value is -2, to avoid potential conflicts with caches, which reserve -1.
 global :: Entity
 global = Entity (-2)
 
@@ -49,7 +48,7 @@ global = Entity (-2)
 newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
 
 instance Component EntityCounter where
-  type Storage EntityCounter = SimpleGlobal EntityCounter
+  type Storage EntityCounter = Global EntityCounter
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}

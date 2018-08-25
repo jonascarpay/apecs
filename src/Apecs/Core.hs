@@ -21,7 +21,7 @@ import qualified Apecs.THTuples        as T
 --   In general, use @newEntity@, @cmap@, and component tags instead of manipulating these directly.
 --
 --   For performance reasons, negative values like (-1) are reserved for stores to represent special values, so avoid using these.
-newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show)
+newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show, Enum)
 
 -- | A SystemT is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
 --   Systems mainly serve to

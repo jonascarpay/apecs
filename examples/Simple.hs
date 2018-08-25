@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds, FlexibleInstances, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
+import Control.Monad
 import Apecs.Util
 import Linear (V2 (..))
 
@@ -25,15 +26,16 @@ game = do
   newEntity (Position 2, Velocity 1)
   newEntity (Position 1, Velocity 2, Flying)
 
+  forkSys . forever $ do
+    atomically . cmap $ \(Position p, Velocity v) -> Position (p+v)
+    sleep 1000
+
   -- Add velocity to position
   cmap $ \(Position p, Velocity v) -> Position (v+p)
   -- Apply gravity to non-flying entities
   cmap $ \(Velocity v, _ :: Not Flying) -> Velocity (v - (V2 0 1))
   -- Print a list of entities and their positions
   cmapM_ $ \(Position p, Entity e) -> liftIO . print $ (e, p)
-  forkSys . forever $ do
-    atomically . cmap $ \(Position p, Velocity v) -> Position (p+v)
-    sleep 1000
 
 main :: IO ()
 main = initWorld >>= runSystem game

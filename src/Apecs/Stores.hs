@@ -13,7 +13,7 @@ module Apecs.Stores
   ( Map, Cache, Unique,
     Global,
     Cachable,
-    SimpleGlobal,
+    RawGlobal,
   ) where
 
 import           Control.Concurrent.STM      as S
@@ -31,7 +31,7 @@ import           GHC.TypeLits
 
 import           Apecs.Core
 
--- | A map based on @Data.Intmap.Strict@. O(log(n)) for most operations.
+-- | A map based on @Data.IntMap.Strict@. O(log(n)) for most operations.
 newtype Map c = Map (TVar (M.IntMap (TVar c)))
 
 type instance Elem (Map c) = c
@@ -53,12 +53,12 @@ instance ExplSet IO (Map c) where
       Nothing -> do
         rInsert <- newTVarIO x
         atomically . writeTVar ref $ M.insert ety rInsert m
+      Just cref -> atomically $ writeTVar cref x
 
 instance ExplDestroy IO (Map c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Map ref) ety = do
-    m <- readTVarIO ref
-    atomically . writeTVar ref $ M.delete ety m
+  explDestroy (Map ref) ety =
+    readTVarIO ref >>= atomically . writeTVar ref . M.delete ety
 
 instance ExplMembers IO (Map c) where
   {-# INLINE explMembers #-}
@@ -79,6 +79,7 @@ instance ExplSet STM (Map c) where
       Nothing -> do
         rInsert <- newTVar x
         writeTVar ref $ M.insert ety rInsert m
+      Just cref -> writeTVar cref x
 
 instance ExplDestroy STM (Map c) where
   {-# INLINE explDestroy #-}
@@ -146,24 +147,9 @@ instance ExplMembers STM (Unique c) where
 
 -- | A Global contains exactly one component.
 --   The initial value is 'mempty' from the component's 'Monoid' instance.
+--
 --   When operating on a global, any entity arguments are ignored.
 --   For example, we can get a global component with @get 0@ or @get 1@ or even @get undefined@.
-newtype SimpleGlobal c = SimpleGlobal (IORef c)
-type instance Elem (SimpleGlobal c) = c
-instance Monoid c => ExplInit (SimpleGlobal c) where
-  {-# INLINE explInit #-}
-  explInit = SimpleGlobal <$> newIORef mempty
-
-instance ExplGet IO (SimpleGlobal c) where
-  {-# INLINE explGet #-}
-  explGet (SimpleGlobal ref) _ = readIORef ref
-  {-# INLINE explExists #-}
-  explExists _ _ = return True
-
-instance ExplSet IO (SimpleGlobal c) where
-  {-# INLINE explSet #-}
-  explSet (SimpleGlobal ref) _ c = writeIORef ref c
-
 newtype Global c = Global (TVar c)
 type instance Elem (Global c) = c
 instance Monoid c => ExplInit (Global c) where
@@ -190,8 +176,23 @@ instance ExplSet STM (Global c) where
   {-# INLINE explSet #-}
   explSet (Global ref) _ c = writeTVar ref c
 
+newtype RawGlobal c = RawGlobal (IORef c)
+type instance Elem (RawGlobal c) = c
+instance Monoid c => ExplInit (RawGlobal c) where
+  {-# INLINE explInit #-}
+  explInit = RawGlobal <$> newIORef mempty
+
+instance ExplGet IO (RawGlobal c) where
+  {-# INLINE explGet #-}
+  explGet (RawGlobal ref) _ = readIORef ref
+  {-# INLINE explExists #-}
+  explExists _ _ = return True
+
+instance ExplSet IO (RawGlobal c) where
+  {-# INLINE explSet #-}
+  explSet (RawGlobal ref) _ c = writeIORef ref c
+
 -- | An empty type class indicating that the store behaves like a regular map, and can therefore safely be cached.
---   An example of a store that cannot be cached is 'Unique'.
 class Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
