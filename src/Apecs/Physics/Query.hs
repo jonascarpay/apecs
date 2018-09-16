@@ -34,7 +34,7 @@ C.include "<chipmunk.h>"
 -- cpFloat cpShapeNearestPointQuery(cpShape *shape, cpVect p, cpPointQueryInfo *out)
 -- cpShape *cpSpacePointQueryNearest(cpSpace *space, cpVect point, cpFloat maxDistance, cpShapeFilter filter, cpPointQueryInfo *out)
 
-pointQuery :: Has w Physics => WVec -> Double -> CollisionFilter -> System w (Maybe PointQueryResult)
+pointQuery :: Has w IO Physics => WVec -> Double -> CollisionFilter -> System w (Maybe PointQueryResult)
 pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionFilter gr (Bitmask cs) (Bitmask mk)) = do
   Space _ _ _ _ spcPtr :: Space Physics <- getStore
   liftIO$ do

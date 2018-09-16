@@ -37,7 +37,7 @@ explStepPhysics :: SpacePtr -> Double -> IO ()
 explStepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space ->
   [C.exp| void { cpSpaceStep( $(cpSpace* space), $(double dT) ) } |]
 
-stepPhysics :: Has w Physics => Double -> System w ()
+stepPhysics :: Has w IO Physics => Double -> System w ()
 stepPhysics dT = do
   s :: Space Physics <- getStore
   liftIO$ explStepPhysics (spacePtr s) dT
@@ -45,21 +45,16 @@ stepPhysics dT = do
 instance Component Physics where
   type Storage Physics = Space Physics
 
-instance Store (Space Physics) where
-  type Elem (Space Physics) = Physics
-  initStore = do
+type instance Elem (Space Physics) = Physics
+
+instance ExplInit (Space Physics) where
+  explInit = do
     spacePtr <- newSpace
     bRef     <- newIORef mempty
     sRef     <- newIORef mempty
     cRef     <- newIORef mempty
     hRef     <- newIORef mempty
     return (Space bRef sRef cRef hRef spacePtr)
-
-  explSet _ _ _ = return ()
-  explGet _ _ = return (error "Can't produce a Physics")
-  explDestroy _ _ = return ()
-  explMembers _ = return mempty
-  explExists _ _ = return False
 
 -- Gravity
 earthGravity :: Gravity
@@ -80,17 +75,16 @@ setGravity spacePtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr sp
 instance Component Gravity where
   type Storage Gravity = Space Gravity
 
-instance Has w Physics => Has w Gravity where
+instance Has w IO Physics => Has w IO Gravity where
   getStore = (cast :: Space Physics -> Space Gravity) <$> getStore
 
-instance Store (Space Gravity) where
-  type Elem (Space Gravity) = Gravity
-  initStore = error "Initializing space from non-Physics store"
-  explDestroy _ _ = return ()
-  explMembers _   = return mempty
-  explExists _ _  = return False
-  explSet (Space _ _ _ _ spcPtr) _ (Gravity v) = setGravity spcPtr v
+type instance Elem (Space Gravity) = Gravity
+
+instance ExplGet IO (Space Gravity) where
+  explExists _ _  = return True
   explGet (Space _ _ _ _ spcPtr) _ = Gravity <$> getGravity spcPtr
+instance ExplSet IO (Space Gravity) where
+  explSet (Space _ _ _ _ spcPtr) _ (Gravity v) = setGravity spcPtr v
 
 -- Iterations
 getIterations :: SpacePtr -> IO Int
@@ -104,15 +98,14 @@ setIterations spacePtr (fromIntegral -> its) = withForeignPtr spacePtr $ \space 
 instance Component Iterations where
   type Storage Iterations = Space Iterations
 
-instance Has w Physics => Has w Iterations where
+instance Has w IO Physics => Has w IO Iterations where
   getStore = (cast :: Space Physics -> Space Iterations) <$> getStore
 
-instance Store (Space Iterations) where
-  type Elem (Space Iterations) = Iterations
-  initStore = error "Initializing space from non-Physics store"
-  explDestroy _ _ = return ()
-  explMembers _   = return mempty
+type instance Elem (Space Iterations) = Iterations
+
+instance ExplGet IO (Space Iterations) where
   explExists _ _  = return False
-  explSet (Space _ _ _ _ spcPtr) _ (Iterations v) = setIterations spcPtr v
   explGet (Space _ _ _ _ spcPtr) _ = Iterations <$> getIterations spcPtr
+instance ExplSet IO (Space Iterations) where
+  explSet (Space _ _ _ _ spcPtr) _ (Iterations v) = setIterations spcPtr v
 

@@ -54,15 +54,13 @@ boxShape w h offset = Convex ((+offset) <$> verts) 0
 instance Component Shape where
   type Storage Shape = Space Shape
 
-instance Has w Physics => Has w Shape where
+instance Has w IO Physics => Has w IO Shape where
   getStore = (cast :: Space Physics -> Space Shape) <$> getStore
 
-instance Store (Space Shape) where
-  type Elem (Space Shape) = Shape
-  initStore = error "Initializing space from non-Physics store"
+instance ExplMembers IO (Space Shape) where
   explMembers (Space _ sMap _ _ _) = U.fromList . M.keys <$> readIORef sMap
-  explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
 
+instance ExplDestroy IO (Space Shape) where
   explDestroy (Space bMap sMap _ _ spc) sEty = do
     rd <- M.lookup sEty <$> readIORef sMap
     forM_ rd $ \sPtr -> do
@@ -75,6 +73,7 @@ instance Store (Space Shape) where
       modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
       destroyShape spc sPtr
 
+instance ExplSet IO (Space Shape) where
   explSet _ _ ShapeRead = return ()
   explSet sp ety (Shape sh) = explSet sp ety (ShapeExtend (Entity ety) sh)
 
@@ -87,7 +86,9 @@ instance Store (Space Shape) where
       modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
       modifyIORef' sMap (M.insert sEty s)
 
+instance ExplGet IO (Space Shape) where
   explGet _ _ = return ShapeRead
+  explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
 
 newShape :: SpacePtr -> Ptr Body -> Convex -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
@@ -136,24 +137,22 @@ setSensor shape (fromIntegral . fromEnum -> isSensor) = [C.exp| void {
 
 instance Component Sensor where
   type Storage Sensor = Space Sensor
-instance Has w Physics => Has w Sensor where
+instance Has w IO Physics => Has w IO Sensor where
   getStore = (cast :: Space Physics -> Space Sensor) <$> getStore
 
-instance Store (Space Sensor) where
-  type Elem (Space Sensor) = Sensor
-  initStore = error "Attempted to initialize a space from an Sensor component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Sensor) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space Sensor) where
   explSet (Space _ sMap _ _ _) ety (Sensor vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setSensor s vec
 
+instance ExplGet IO (Space Sensor) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Sensor <$> getSensor s
-
 
 -- Elasticity
 getElasticity :: Ptr Shape -> IO Double
@@ -166,20 +165,19 @@ setElasticity shape (realToFrac -> elasticity) = [C.exp| void {
 
 instance Component Elasticity where
   type Storage Elasticity = Space Elasticity
-instance Has w Physics => Has w Elasticity where
+instance Has w IO Physics => Has w IO Elasticity where
   getStore = (cast :: Space Physics -> Space Elasticity) <$> getStore
 
-instance Store (Space Elasticity) where
-  type Elem (Space Elasticity) = Elasticity
-  initStore = error "Attempted to initialize a space from an Elasticity component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Elasticity) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space Elasticity) where
   explSet (Space _ sMap _ _ _) ety (Elasticity vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setElasticity s vec
 
+instance ExplGet IO (Space Elasticity) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Elasticity <$> getElasticity s
@@ -195,20 +193,19 @@ setMass shape (realToFrac -> mass) = [C.exp| void {
 
 instance Component Mass where
   type Storage Mass = Space Mass
-instance Has w Physics => Has w Mass where
+instance Has w IO Physics => Has w IO Mass where
   getStore = (cast :: Space Physics -> Space Mass) <$> getStore
 
-instance Store (Space Mass) where
-  type Elem (Space Mass) = Mass
-  initStore = error "Attempted to initialize a space from an Mass component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Mass) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space Mass) where
   explSet (Space _ sMap _ _ _) ety (Mass vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setMass s vec
 
+instance ExplGet IO (Space Mass) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Mass <$> getMass s
@@ -224,20 +221,19 @@ setDensity shape (realToFrac -> density) = [C.exp| void {
 
 instance Component Density where
   type Storage Density = Space Density
-instance Has w Physics => Has w Density where
+instance Has w IO Physics => Has w IO Density where
   getStore = (cast :: Space Physics -> Space Density) <$> getStore
 
-instance Store (Space Density) where
-  type Elem (Space Density) = Density
-  initStore = error "Attempted to initialize a space from an Density component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Density) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space Density) where
   explSet (Space _ sMap _ _ _) ety (Density vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setDensity s vec
 
+instance ExplGet IO (Space Density) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Density <$> getDensity s
@@ -253,20 +249,19 @@ setFriction shape (realToFrac -> friction) = [C.exp| void {
 
 instance Component Friction where
   type Storage Friction = Space Friction
-instance Has w Physics => Has w Friction where
+instance Has w IO Physics => Has w IO Friction where
   getStore = (cast :: Space Physics -> Space Friction) <$> getStore
 
-instance Store (Space Friction) where
-  type Elem (Space Friction) = Friction
-  initStore = error "Attempted to initialize a space from an Friction component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Friction) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space Friction) where
   explSet (Space _ sMap _ _ _) ety (Friction vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setFriction s vec
 
+instance ExplGet IO (Space Friction) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     Friction <$> getFriction s
@@ -286,20 +281,19 @@ setSurfaceVelocity shape (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| vo
 
 instance Component SurfaceVelocity where
   type Storage SurfaceVelocity = Space SurfaceVelocity
-instance Has w Physics => Has w SurfaceVelocity where
+instance Has w IO Physics => Has w IO SurfaceVelocity where
   getStore = (cast :: Space Physics -> Space SurfaceVelocity) <$> getStore
 
-instance Store (Space SurfaceVelocity) where
-  type Elem (Space SurfaceVelocity) = SurfaceVelocity
-  initStore = error "Attempted to initialize a space from an SurfaceVelocity component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space SurfaceVelocity) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space SurfaceVelocity) where
   explSet (Space _ sMap _ _ _) ety (SurfaceVelocity vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setSurfaceVelocity s vec
 
+instance ExplGet IO (Space SurfaceVelocity) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     SurfaceVelocity <$> getSurfaceVelocity s
@@ -323,20 +317,19 @@ setFilter shape (CollisionFilter group (Bitmask cats) (Bitmask mask)) =
 
 instance Component CollisionFilter where
   type Storage CollisionFilter = Space CollisionFilter
-instance Has w Physics => Has w CollisionFilter where
+instance Has w IO Physics => Has w IO CollisionFilter where
   getStore = (cast :: Space Physics -> Space CollisionFilter) <$> getStore
 
-instance Store (Space CollisionFilter) where
-  type Elem (Space CollisionFilter) = CollisionFilter
-  initStore = error "Attempted to initialize a space from an CollisionFilter component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space CollisionFilter) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space CollisionFilter) where
   explSet (Space _ sMap _ _ _) ety cfilter = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setFilter s cfilter
 
+instance ExplGet IO (Space CollisionFilter) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     getFilter s
@@ -352,24 +345,22 @@ setCollisionType shape ctype = [C.exp| void {
 
 instance Component CollisionType where
   type Storage CollisionType = Space CollisionType
-instance Has w Physics => Has w CollisionType where
+instance Has w IO Physics => Has w IO CollisionType where
   getStore = (cast :: Space Physics -> Space CollisionType) <$> getStore
 
-instance Store (Space CollisionType) where
-  type Elem (Space CollisionType) = CollisionType
-  initStore = error "Attempted to initialize a space from an CollisionType component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space CollisionType) where
   explMembers s = explMembers (cast s :: Space Shape)
-  explExists s ety = explExists (cast s :: Space Shape) ety
 
+instance ExplSet IO (Space CollisionType) where
   explSet (Space _ sMap _ _ _) ety (CollisionType vec) = do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \s -> setCollisionType s vec
 
+instance ExplGet IO (Space CollisionType) where
+  explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     CollisionType <$> getCollisionType s
-
 
 -- ShapeBody
 getShapeBody :: Ptr Shape -> IO C.CUIntPtr
@@ -378,18 +369,14 @@ getShapeBody shape = [C.exp| uintptr_t {
 
 instance Component ShapeBody where
   type Storage ShapeBody = Space ShapeBody
-instance Has w Physics => Has w ShapeBody where
+instance Has w IO Physics => Has w IO ShapeBody where
   getStore = (cast :: Space Physics -> Space ShapeBody) <$> getStore
 
-instance Store (Space ShapeBody) where
-  type Elem (Space ShapeBody) = ShapeBody
-  initStore = error "Attempted to initialize a space from an ShapeBody component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space ShapeBody) where
   explMembers s = explMembers (cast s :: Space Shape)
+
+instance ExplGet IO (Space ShapeBody) where
   explExists s ety = explExists (cast s :: Space Shape) ety
-
-  explSet _ _ _ = return ()
-
   explGet (Space _ sMap _ _ _) ety = do
     Just s <- M.lookup ety <$> readIORef sMap
     ShapeBody . Entity . fromIntegral <$> getShapeBody s

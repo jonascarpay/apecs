@@ -62,13 +62,10 @@ fromBodyPtr ptr = BodyRecord ptr mempty mempty
 instance Component Body where
   type Storage Body = Space Body
 
-instance Has w Physics => Has w Body where
+instance Has w IO Physics => Has w IO Body where
   getStore = (cast :: Space Physics -> Space Body) <$> getStore
 
-instance Store (Space Body) where
-  type Elem (Space Body) = Body
-  initStore = error "Initializing space from non-Physics store"
-
+instance ExplSet IO (Space Body) where
   explSet (Space bMap _ _ _ spcPtr) ety btype = do
     rd <- M.lookup ety <$> readIORef bMap
     bdyPtr <- case rd of
@@ -79,6 +76,7 @@ instance Store (Space Body) where
                   return bdyPtr
     setBodyType bdyPtr btype
 
+instance ExplDestroy IO (Space Body) where
   explDestroy sp@(Space bMap _ _ _ spc) ety = do
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
@@ -87,8 +85,10 @@ instance Store (Space Body) where
       forM_ (S.toList constraints) $ \s -> explDestroy (cast sp :: Space Constraint) s
       destroyBody spc bPtr
 
+instance ExplMembers IO (Space Body) where
   explMembers (Space bMap _ _ _ _) = U.fromList . M.keys <$> readIORef bMap
 
+instance ExplGet IO (Space Body) where
   explExists (Space bMap _ _ _ _) ety = M.member ety <$> readIORef bMap
 
   explGet (Space bMap _ _ _ _) ety = do
@@ -114,20 +114,19 @@ setPosition bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
 instance Component Position where
   type Storage Position = Space Position
 
-instance Has w Physics => Has w Position where
+instance Has w IO Physics => Has w IO Position where
   getStore = (cast :: Space Physics -> Space Position) <$> getStore
 
-instance Store (Space Position) where
-  type Elem (Space Position) = Position
-  initStore = error "Attempted to initialize a space from an Position component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Position) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space Position) where
   explSet (Space bMap _ _ _ _) ety (Position pos) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setPosition b pos
 
+instance ExplGet IO (Space Position) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Position <$> getPosition b
@@ -148,20 +147,19 @@ setVelocity bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
 instance Component Velocity where
   type Storage Velocity = Space Velocity
 
-instance Has w Physics => Has w Velocity where
+instance Has w IO Physics => Has w IO Velocity where
   getStore = (cast :: Space Physics -> Space Velocity) <$> getStore
 
-instance Store (Space Velocity) where
-  type Elem (Space Velocity) = Velocity
-  initStore = error "Attempted to initialize a space from an Velocity component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Velocity) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space Velocity) where
   explSet (Space bMap _ _ _ _) ety (Velocity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setVelocity b vel
 
+instance ExplGet IO (Space Velocity) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Velocity <$> getVelocity b
@@ -184,20 +182,19 @@ setAngle bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component Angle where
   type Storage Angle = Space Angle
 
-instance Has w Physics => Has w Angle where
+instance Has w IO Physics => Has w IO Angle where
   getStore = (cast :: Space Physics -> Space Angle) <$> getStore
 
-instance Store (Space Angle) where
-  type Elem (Space Angle) = Angle
-  initStore = error "Attempted to initialize a space from an Angle component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Angle) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space Angle) where
   explSet (Space bMap _ _ _ _) ety (Angle angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setAngle b angle
 
+instance ExplGet IO (Space Angle) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Angle <$> getAngle b
@@ -220,20 +217,19 @@ setAngularVelocity bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component AngularVelocity where
   type Storage AngularVelocity = Space AngularVelocity
 
-instance Has w Physics => Has w AngularVelocity where
+instance Has w IO Physics => Has w IO AngularVelocity where
   getStore = (cast :: Space Physics -> Space AngularVelocity) <$> getStore
 
-instance Store (Space AngularVelocity) where
-  type Elem (Space AngularVelocity) = AngularVelocity
-  initStore = error "Attempted to initialize a space from an AngularVelocity component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space AngularVelocity) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space AngularVelocity) where
   explSet (Space bMap _ _ _ _) ety (AngularVelocity angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setAngularVelocity b angle
 
+instance ExplGet IO (Space AngularVelocity) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     AngularVelocity <$> getAngularVelocity b
@@ -254,20 +250,19 @@ setForce bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
 instance Component Force where
   type Storage Force = Space Force
 
-instance Has w Physics => Has w Force where
+instance Has w IO Physics => Has w IO Force where
   getStore = (cast :: Space Physics -> Space Force) <$> getStore
 
-instance Store (Space Force) where
-  type Elem (Space Force) = Force
-  initStore = error "Attempted to initialize a space from an Force component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Force) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space Force) where
   explSet (Space bMap _ _ _ _) ety (Force frc) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setForce b frc
 
+instance ExplGet IO (Space Force) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Force <$> getForce b
@@ -290,20 +285,19 @@ setBodyMass bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component BodyMass where
   type Storage BodyMass = Space BodyMass
 
-instance Has w Physics => Has w BodyMass where
+instance Has w IO Physics => Has w IO BodyMass where
   getStore = (cast :: Space Physics -> Space BodyMass) <$> getStore
 
-instance Store (Space BodyMass) where
-  type Elem (Space BodyMass) = BodyMass
-  initStore = error "Attempted to initialize a space from an BodyMass component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space BodyMass) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space BodyMass) where
   explSet (Space bMap _ _ _ _) ety (BodyMass angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setBodyMass b angle
 
+instance ExplGet IO (Space BodyMass) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     BodyMass <$> getBodyMass b
@@ -326,20 +320,19 @@ setMoment bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component Moment where
   type Storage Moment = Space Moment
 
-instance Has w Physics => Has w Moment where
+instance Has w IO Physics => Has w IO Moment where
   getStore = (cast :: Space Physics -> Space Moment) <$> getStore
 
-instance Store (Space Moment) where
-  type Elem (Space Moment) = Moment
-  initStore = error "Attempted to initialize a space from an Moment component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Moment) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space Moment) where
   explSet (Space bMap _ _ _ _) ety (Moment angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setMoment b angle
 
+instance ExplGet IO (Space Moment) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Moment <$> getMoment b
@@ -362,20 +355,19 @@ setTorque bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component Torque where
   type Storage Torque = Space Torque
 
-instance Has w Physics => Has w Torque where
+instance Has w IO Physics => Has w IO Torque where
   getStore = (cast :: Space Physics -> Space Torque) <$> getStore
 
-instance Store (Space Torque) where
-  type Elem (Space Torque) = Torque
-  initStore = error "Attempted to initialize a space from an Torque component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space Torque) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space Torque) where
   explSet (Space bMap _ _ _ _) ety (Torque angle) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _) -> setTorque b angle
 
+instance ExplGet IO (Space Torque) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     Torque <$> getTorque b
@@ -396,20 +388,19 @@ setCenterOfGravity bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| 
 instance Component CenterOfGravity where
   type Storage CenterOfGravity = Space CenterOfGravity
 
-instance Has w Physics => Has w CenterOfGravity where
+instance Has w IO Physics => Has w IO CenterOfGravity where
   getStore = (cast :: Space Physics -> Space CenterOfGravity) <$> getStore
 
-instance Store (Space CenterOfGravity) where
-  type Elem (Space CenterOfGravity) = CenterOfGravity
-  initStore = error "Attempted to initialize a space from an CenterOfGravity component, use Physics instead"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space CenterOfGravity) where
   explMembers s = explMembers (cast s :: Space Body)
-  explExists s ety = explExists (cast s :: Space Body) ety
 
+instance ExplSet IO (Space CenterOfGravity) where
   explSet (Space bMap _ _ _ _) ety (CenterOfGravity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _) -> setCenterOfGravity b vel
 
+instance ExplGet IO (Space CenterOfGravity) where
+  explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b

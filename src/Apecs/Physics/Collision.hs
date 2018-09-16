@@ -39,7 +39,7 @@ defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
 
 mkBeginCB :: (Collision -> System w Bool) -> System w BeginCB
 mkBeginCB sys = do
-    w <- System ask
+    w <- ask
 
     let cb arb _ _ = do
           nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
@@ -53,7 +53,7 @@ mkBeginCB sys = do
 
 mkSeparateCB :: (Collision -> System w ()) -> System w SeparateCB
 mkSeparateCB sys = do
-    w <- System ask
+    w <- ask
 
     let cb arb _ _ = do
           nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
@@ -108,24 +108,24 @@ destroyCollisionHandler = error "Destroy CollisionHandler not yet implemented"
 instance Component CollisionHandler where
   type Storage CollisionHandler = Space CollisionHandler
 
-instance Has w Physics => Has w CollisionHandler where
+instance Has w IO Physics => Has w IO CollisionHandler where
   getStore = (cast :: Space Physics -> Space CollisionHandler) <$> getStore
 
-instance Store (Space CollisionHandler) where
-  type Elem (Space CollisionHandler) = CollisionHandler
-  initStore = error "Initializing space from non-Physics store"
-
+instance ExplSet IO (Space CollisionHandler) where
   explSet sp@(Space _ _ _ hMap spcPtr) ety handler = do
     explDestroy sp ety
     hPtr <- newCollisionHandler spcPtr handler ety
     modifyIORef' hMap (M.insert ety hPtr)
 
+instance ExplDestroy IO (Space CollisionHandler) where
   explDestroy (Space _ _ _ hMap _) ety = do
     rd <- M.lookup ety <$> readIORef hMap
     forM_ rd$ \c -> destroyCollisionHandler c >> modifyIORef' hMap (M.delete ety)
 
+instance ExplMembers IO (Space CollisionHandler) where
   explMembers (Space _ _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
-  explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
 
+instance ExplGet IO (Space CollisionHandler) where
+  explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
   explGet _ _ = return (error "CollisionHandler is a write-only component")
 

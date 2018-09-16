@@ -144,12 +144,10 @@ destroyConstraint spacePtr constraintPtr = withForeignPtr spacePtr $ \space -> [
 instance Component Constraint where
   type Storage Constraint = Space Constraint
 
-instance Has w Physics => Has w Constraint where
+instance Has w IO Physics => Has w IO Constraint where
   getStore = (cast :: Space Physics -> Space Constraint) <$> getStore
 
-instance Store (Space Constraint) where
-  type Elem (Space Constraint) = Constraint
-  initStore = error "Initializing space from non-Physics store"
+instance ExplSet IO (Space Constraint) where
 
   explSet _ _ ConstraintRead = return ()
   explSet s ety (Constraint b ctype) = explSet s ety (ConstraintExtend (Entity ety) b ctype)
@@ -169,6 +167,7 @@ instance Store (Space Constraint) where
                           . M.insert bEtyB (brB {brConstraints = brConstraintsB'}) )
       _ -> return ()
 
+instance ExplDestroy IO (Space Constraint) where
   explDestroy (Space bMap _ cMap _ spc) cEty = do
     rd <- M.lookup cEty <$> readIORef cMap
     forM_ rd $ \cPtr -> do
@@ -186,8 +185,10 @@ instance Store (Space Constraint) where
                         . M.insert bEtyB (bRecB {brConstraints = brConstraintsB'}) )
       destroyConstraint spc cPtr
 
+instance ExplMembers IO (Space Constraint) where
   explMembers (Space _ _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
 
+instance ExplGet IO (Space Constraint) where
   explExists (Space _ _ cMap _ _) ety = M.member ety <$> readIORef cMap
 
   explGet _ _ = return ConstraintRead
@@ -213,22 +214,21 @@ setMaxForce c (realToFrac -> maxForce) = [C.exp| void { cpConstraintSetMaxForce(
 instance Component MaxForce where
   type Storage MaxForce = Space MaxForce
 
-instance Has w Physics => Has w MaxForce where
+instance Has w IO Physics => Has w IO MaxForce where
   getStore = (cast :: Space Physics -> Space MaxForce) <$> getStore
 
-instance Store (Space MaxForce) where
-  type Elem (Space MaxForce) = MaxForce
-  initStore = error "Initialize a space with a Physics component"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space MaxForce) where
   explMembers s = explMembers (cast s :: Space Constraint)
-  explExists s ety = explExists (cast s :: Space Constraint) ety
 
+instance ExplSet IO (Space MaxForce) where
   explSet (Space _ _ cMap _ _) ety (MaxForce vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just c  -> setMaxForce c vec
 
+instance ExplGet IO (Space MaxForce) where
+  explExists s ety = explExists (cast s :: Space Constraint) ety
   explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     MaxForce <$> getMaxForce c
@@ -245,25 +245,24 @@ setMaxBias c (realToFrac -> maxBias) = [C.exp| void { cpConstraintSetMaxBias($(c
 instance Component MaxBias where
   type Storage MaxBias = Space MaxBias
 
-instance Has w Physics => Has w MaxBias where
+instance Has w IO Physics => Has w IO MaxBias where
   getStore = (cast :: Space Physics -> Space MaxBias) <$> getStore
 
-instance Store (Space MaxBias) where
-  type Elem (Space MaxBias) = MaxBias
-  initStore = error "Initialize a space with a Physics component"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space MaxBias) where
   explMembers s = explMembers (cast s :: Space Constraint)
-  explExists s ety = explExists (cast s :: Space Constraint) ety
 
+instance ExplSet IO (Space MaxBias) where
   explSet (Space _ _ cMap _ _) ety (MaxBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just c  -> setMaxBias c vec
 
+instance ExplGet IO (Space MaxBias) where
   explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     MaxBias <$> getMaxBias c
+  explExists s ety = explExists (cast s :: Space Constraint) ety
 
 -- ErrorBias
 getErrorBias :: Ptr Constraint -> IO Double
@@ -277,22 +276,21 @@ setErrorBias c (realToFrac -> errorBias) = [C.exp| void { cpConstraintSetErrorBi
 instance Component ErrorBias where
   type Storage ErrorBias = Space ErrorBias
 
-instance Has w Physics => Has w ErrorBias where
+instance Has w IO Physics => Has w IO ErrorBias where
   getStore = (cast :: Space Physics -> Space ErrorBias) <$> getStore
 
-instance Store (Space ErrorBias) where
-  type Elem (Space ErrorBias) = ErrorBias
-  initStore = error "Initialize a space with a Physics component"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space ErrorBias) where
   explMembers s = explMembers (cast s :: Space Constraint)
-  explExists s ety = explExists (cast s :: Space Constraint) ety
 
+instance ExplSet IO (Space ErrorBias) where
   explSet (Space _ _ cMap _ _) ety (ErrorBias vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just c  -> setErrorBias c vec
 
+instance ExplGet IO (Space ErrorBias) where
+  explExists s ety = explExists (cast s :: Space Constraint) ety
   explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     ErrorBias <$> getErrorBias c
@@ -309,22 +307,21 @@ setCollideBodies c (fromIntegral . fromEnum -> collide) = [C.exp| void { cpConst
 instance Component CollideBodies where
   type Storage CollideBodies = Space CollideBodies
 
-instance Has w Physics => Has w CollideBodies where
+instance Has w IO Physics => Has w IO CollideBodies where
   getStore = (cast :: Space Physics -> Space CollideBodies) <$> getStore
 
-instance Store (Space CollideBodies) where
-  type Elem (Space CollideBodies) = CollideBodies
-  initStore = error "Initialize a space with a Physics component"
-  explDestroy _ _ = return ()
+instance ExplMembers IO (Space CollideBodies) where
   explMembers s = explMembers (cast s :: Space Constraint)
-  explExists s ety = explExists (cast s :: Space Constraint) ety
 
+instance ExplSet IO (Space CollideBodies) where
   explSet (Space _ _ cMap _ _) ety (CollideBodies vec) = do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just c  -> setCollideBodies c vec
 
+instance ExplGet IO (Space CollideBodies) where
+  explExists s ety = explExists (cast s :: Space Constraint) ety
   explGet (Space _ _ cMap _ _) ety = do
     Just c <- M.lookup ety <$> readIORef cMap
     CollideBodies <$> getCollideBodies c

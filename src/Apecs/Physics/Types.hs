@@ -14,6 +14,7 @@
 module Apecs.Physics.Types where
 
 import           Apecs
+import           Apecs.Core
 import           Data.Bits
 import           Data.Char                 (intToDigit)
 import qualified Data.IntMap               as M
@@ -47,9 +48,6 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpVect",             [t| V2 C.CDouble     |])
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
-
-unEntity :: Entity -> Int
-unEntity (Entity n) = n
 
 -- | Uninhabited data type for constructing a world with a chipmunk space.
 data Physics
@@ -119,6 +117,8 @@ data Space c = Space
   , spacePtr      :: SpacePtr
   }
 
+type instance Elem (Space a) = a
+
 data BodyRecord = BodyRecord
   { brPtr         :: Ptr Body
   , brShapes      :: S.IntSet
@@ -129,13 +129,19 @@ type IOMap a = IORef (M.IntMap a)
 type PtrMap a = IOMap (Ptr a)
 type SpacePtr = ForeignPtr FrnSpace
 
--- Space subcomponents
+-- | Number of iterations per step, global value
 newtype Iterations = Iterations Int
+-- | Gravity force vector, global value
 newtype Gravity = Gravity Vec deriving (Eq, Show)
+-- | Daming factor, global value
 newtype Damping = Damping Double
+-- | Speed threshold to be considered idle, and a candidate for being put to sleep. Global value
 newtype IdleSpeedThreshold = IdleSpeedThreshold Double
+-- | Sleep idle time threshold, global value
 newtype SleepIdleTime = SleepIdleTime Double
+-- | Collision parameter, global value
 newtype CollisionSlop = CollisionSlop Double
+-- | Collision parameter, global value
 newtype CollisionBias = CollisionBias Double
 
 cast :: Space a -> Space b
