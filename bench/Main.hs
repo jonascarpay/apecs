@@ -27,8 +27,8 @@ makeWorld "PosVel" [''ECSPos, ''ECSVel]
 
 posVelInit :: System PosVel ()
 posVelInit = do
-  mapM_ (`set` ECSPos 0) [0..9999]
-  mapM_ (`set` ECSVel 1) [0..999]
+  replicateM_ 1000 $ newEntity (ECSPos 0, ECSVel 1)
+  replicateM_ 9000 $ newEntity (ECSPos 0)
 
 posVelStep :: System PosVel ()
 posVelStep = cmap $ \(ECSVel v, ECSPos p) -> ECSPos (p+v)

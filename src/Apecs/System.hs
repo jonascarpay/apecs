@@ -58,6 +58,29 @@ cmap f = do
       r <- explGet sx e
       explSet sy e (f r)
 
+-- | Conditional @cmap@, that first tests whether the argument satisfies some property.
+--   The entity needs to have both a cx and cp component.
+{-# INLINE cmapIf #-}
+cmapIf :: forall w m cp cx cy.
+  ( Get w m cx
+  , Get w m cp
+  , Members w m cx
+  , Set w m cy )
+  => (cp -> Bool)
+  -> (cx -> cy)
+  -> SystemT w m ()
+cmapIf cond f = do
+  sp :: Storage cp <- getStore
+  sx :: Storage cx <- getStore
+  sy :: Storage cy <- getStore
+  lift$ do
+    sl <- explMembers (sx,sp)
+    U.forM_ sl $ \ e -> do
+      p <- explGet sp e
+      when (cond p) $ do 
+        x <- explGet sx e
+        explSet sy e (f x)
+
 -- | Monadically iterates over all entites with a @cx@, and writes their @cy@.
 {-# INLINE cmapM #-}
 cmapM :: forall w m cx cy. (Get w m cx, Set w m cy, Members w m cx)

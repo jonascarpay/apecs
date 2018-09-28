@@ -1,4 +1,17 @@
-## [Unreleased]
+## [0.5.1.0]
+### Added
+- The `Register` store, which allows reverse lookups for bounded enums.
+  For example, if `Bool` has storage `Register (Map Bool)`, `regLookup True` will yield a list of all entities with a `True` component.
+  Can also be used to emulate a hash table, where `fromEnum` is the hashing function.
+  This allows us to make simple spatial hashes.
+  I'm open to suggestions for better names than Register.
+- `cmapIf`, cmap with a conditional test
+### Changed
+- `ExplInit` now too takes a monad argument.
+- Started rewrite of the test suite
+- Caches now internally use -2 to denote absence, to avoid possible conflict with -1 as a global entity
+### Removed
+- The STM instances have been removed, to be moved to their own package
 
 ## [0.5.0.0]
 ### Changed

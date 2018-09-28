@@ -26,10 +26,6 @@ game = do
   newEntity (Position 2, Velocity 1)
   newEntity (Position 1, Velocity 2, Flying)
 
-  forkSys . forever $ do
-    atomically . cmap $ \(Position p, Velocity v) -> Position (p+v)
-    sleep 1000
-
   -- Add velocity to position
   cmap $ \(Position p, Velocity v) -> Position (v+p)
   -- Apply gravity to non-flying entities

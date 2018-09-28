@@ -16,24 +16,13 @@ module Apecs.Util (
   -- * Spatial hashing
   -- $hash
   quantize, flatten, inbounds, region, flatten',
+) where
 
-  -- * Timing
-  timeSystem, timeSystem_,
-
-  -- * Concurrency
-  forkSys, atomically, sleep
-
-  ) where
-
-import qualified Control.Concurrent     as C
-import qualified Control.Concurrent.STM as C
-import           System.CPUTime
-
-import           Control.Applicative    (liftA2)
+import           Control.Applicative  (liftA2)
 import           Control.Monad.Reader
 import           Data.Monoid
 import           Data.Semigroup
-import           System.Mem             (performMajorGC)
+import           System.Mem           (performMajorGC)
 
 import           Apecs.Core
 import           Apecs.Stores
@@ -41,7 +30,7 @@ import           Apecs.System
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
 global :: Entity
-global = Entity (-2)
+global = Entity (-1)
 
 -- | Component used by newEntity to track the number of issued entities.
 --   Automatically added to any world created with @makeWorld@
@@ -120,24 +109,3 @@ flatten' :: (Applicative v, Integral a, Foldable v)
             => v a -- Field size vector
             -> v a -> a
 flatten' size vec = foldr (\(n,x) acc -> n*acc + x) 0 (liftA2 (,) size vec)
-
--- | Runs a system and gives its execution time in seconds
-timeSystem :: System w a -> System w (Double, a)
-timeSystem sys = do
-  s <- lift getCPUTime
-  a <- sys
-  t <- lift getCPUTime
-  return (fromIntegral (t-s)/1e12, a)
-
--- | Runs a system, discards its output, and gives its execution time in seconds
-timeSystem_ :: System w a -> System w Double
-timeSystem_ = fmap fst . timeSystem
-
-forkSys :: System w () -> System w C.ThreadId
-forkSys sys = ask >>= liftIO . C.forkIO . runSystem sys
-
-atomically :: SystemT w C.STM () -> SystemT w IO ()
-atomically sys = ask >>= liftIO . C.atomically . runSystem sys
-
-sleep :: Int -> System w ()
-sleep = liftIO . C.threadDelay

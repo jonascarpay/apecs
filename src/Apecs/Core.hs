@@ -48,9 +48,9 @@ type family Elem s
 
 -- | Indicates that the store @s@ can be initialized.
 --   Generally, \"base\" stores like @Map c@ can be initialized, but composite stores like @MaybeStore s@ cannot.
-class ExplInit s where
+class ExplInit m s where
   -- | Initialize a new empty store.
-  explInit :: IO s
+  explInit :: m s
 
 -- | Stores that we can read using @explGet@ and @explExists@.
 --   For some entity @e@, @eplGet s e@ is only guaranteed to be safe if @explExists s e@ returns @True@.
