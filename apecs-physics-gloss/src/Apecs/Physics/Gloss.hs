@@ -48,14 +48,25 @@ toPicture (Convex verts _) = G.Polygon (v2ToTuple <$> verts)
 v2ToTuple :: V2 Double -> (Float, Float)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
-drawWorld :: (Has w Physics, Has w BodyPicture, Has w Camera) => System w G.Picture
+drawWorld
+  :: ( Has w IO Physics
+     , Has w IO BodyPicture
+     , Has w IO Camera)
+  => System w G.Picture
 drawWorld = do
-  f <- cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) ->
-        return . G.Translate (realToFrac x) (realToFrac y) . G.Rotate (negate . radToDeg . realToFrac $ theta) $ pic
+  pics <- flip cfold [] $
+    \ps ((Position (V2 x y), Angle theta, BodyPicture pic)) ->
+      (G.Translate (realToFrac x) (realToFrac y) .
+       G.Rotate (negate . radToDeg . realToFrac $ theta) $
+       pic) : ps
   view <- get global
-  return . applyView view . fold $ f
+  return . applyView view . G.pictures $ pics
 
-defaultSimulate :: (Has w Physics, Has w BodyPicture, Has w Camera) => w -> String -> IO ()
+defaultSimulate
+  :: ( Has w IO Physics
+     , Has w IO BodyPicture
+     , Has w IO Camera)
+  => w -> String -> IO ()
 defaultSimulate w name =
   GS.simulateIO (GS.InWindow name (640,480) (100,100)) G.black 60 w render stepper
     where
