@@ -43,7 +43,7 @@ library
     vector
   ghc-options:
     -Wall
-    -Odph
+    -O2
 
 test-suite apecs-test
   type:
@@ -80,10 +80,10 @@ benchmark apecs-bench
     Haskell2010
   ghc-options:
     -Wall
-    -Odph
     -- LLVM is disabled by default for travis/compatibility reasons
     -- For serious benchmarks, please run with -fllvm
     -- -fllvm
+    -O2
     -optlo-O3
     -threaded
     -funfolding-use-threshold1000
