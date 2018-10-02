@@ -1,29 +1,34 @@
 {-# LANGUAGE CPP #-}
 import Distribution.Simple
+import Distribution.Verbosity
 import Distribution.PackageDescription
+import Distribution.PackageDescription.Parse
+import Debug.Trace (trace)
 
 
-main = defaultMainWithHooks simpleUserHooks
-    { readDesc = (fmap . fmap) addCFilesIfNeeded (readDesc simpleUserHooks)
-    }
+main = do
+    pkgDescr <- readPackageDescription verbose "apecs-physics.cabal"
+    let newPkgDescr = addCFilesIfNeeded pkgDescr
+    print newPkgDescr
+    defaultMainNoRead newPkgDescr
   where
     addCFilesIfNeeded genPkgDescr =
-#if MIN_VERSION_inline_c(0, 6, 0)
+#if __GLASGOW_HASKELL__ >= 802
       genPkgDescr
 #else
       addCFiles genPkgDescr
 #endif
 
     addCFiles genPkgDescr = genPkgDescr
-      { packageDescription = newPkgDescription
+      { condLibrary = fmap addCFiles' pkgLibrary
       }
       where
-        pkgDescr = packageDescription genPkgDescr
-        pkgLibrary = library pkgDescr
-        newPkgDescription = pkgDescr
-          { library = fmap addCFiles' pkgLibrary
-          }
-        addCFiles' lib = lib
+        pkgLibrary = condLibrary genPkgDescr 
+
+        addCFiles' (CondNode lib constraints components) =
+          CondNode (addCFiles'' lib) constraints components
+
+        addCFiles'' lib = lib
           { libBuildInfo =
               let buildInfo = libBuildInfo lib in
                 buildInfo
