@@ -1,3 +1,7 @@
+## [0.5.1.1]
+### Changed
+- `Register` needs UndecidableInstances in GHC 8.6.2, I'm looking for a way around this. I've removed it for now.
+
 ## [0.5.1.0]
 ### Added
 - The `Register` store, which allows reverse lookups for bounded enums.

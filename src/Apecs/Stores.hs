@@ -13,7 +13,7 @@ module Apecs.Stores
   ( Map, Cache, Unique,
     Global,
     Cachable,
-    Register, regLookup
+    -- Register, regLookup
   ) where
 
 import           Control.Monad.Reader
@@ -183,6 +183,7 @@ instance ExplMembers IO s => ExplMembers IO (Cache n s) where
     stored <- explMembers s
     return $! cached U.++ stored
 
+{--
 data Register s = Register (VM.IOVector S.IntSet) s
 type instance Elem (Register s) = Elem s
 
@@ -233,3 +234,4 @@ regLookup c = do
   let offset = negate $ fromEnum (minBound :: Elem s)
   Register vec _ :: Register s <- getStore
   fmap Entity . S.toList <$> lift (VM.read vec (fromEnum c - offset))
+--}
