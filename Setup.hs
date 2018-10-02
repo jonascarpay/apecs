@@ -3,20 +3,21 @@ import Distribution.Simple
 import Distribution.Verbosity
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parse
-import Debug.Trace (trace)
 
 
 main = do
-    pkgDescr <- readPackageDescription verbose "apecs-physics.cabal"
-    let newPkgDescr = addCFilesIfNeeded pkgDescr
-    print newPkgDescr
-    defaultMainNoRead newPkgDescr
-  where
-    addCFilesIfNeeded genPkgDescr =
-#if __GLASGOW_HASKELL__ >= 802
-      genPkgDescr
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(2,0,0)
+    pkgDescr <- readGenericPackageDescription verbose "apecs-physics.cabal"
 #else
-      addCFiles genPkgDescr
+    pkgDescr <- readPackageDescription verbose "apecs-physics.cabal"
+#endif
+    defaultMainNoRead . addCFilesIfNeeded $ pkgDescr
+  where
+    addCFilesIfNeeded =
+#if __GLASGOW_HASKELL__ >= 802
+      id
+#else
+      addCFiles
 #endif
 
     addCFiles genPkgDescr = genPkgDescr
