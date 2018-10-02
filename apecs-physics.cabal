@@ -9,7 +9,7 @@ author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
 copyright:           MIT
 category:            Web
-build-type:          Simple
+build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:  README.md
 
@@ -55,7 +55,6 @@ library
   include-dirs:
     Chipmunk2D/include/chipmunk
   c-sources:
-
     Chipmunk2D/src/chipmunk.c
     Chipmunk2D/src/cpBody.c
     Chipmunk2D/src/cpArbiter.c
