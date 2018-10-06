@@ -1,7 +1,7 @@
 name:                apecs-physics-gloss
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Gloss rendering for apecs-physics
+description:         Gloss rendering for apecs-physics
 homepage:            https://github.com/jonascarpay/apecs-physics#readme
 license:             BSD3
 author:              Jonas Carpay

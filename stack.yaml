@@ -1,9 +1,11 @@
-resolver: lts-9.11
+resolver: lts-10.10
 packages:
 - .
 - apecs-physics-gloss
 - examples
 extra-deps:
-  - apecs-0.3.0.2
+  - apecs-0.5.1.0
 flags: {}
 extra-package-dbs: []
+nix:
+  packages: [libGL mesa_glu freeglut]

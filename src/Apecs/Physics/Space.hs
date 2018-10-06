@@ -47,7 +47,7 @@ instance Component Physics where
 
 type instance Elem (Space Physics) = Physics
 
-instance ExplInit (Space Physics) where
+instance ExplInit IO (Space Physics) where
   explInit = do
     spacePtr <- newSpace
     bRef     <- newIORef mempty

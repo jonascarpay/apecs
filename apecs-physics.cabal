@@ -9,9 +9,14 @@ author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
 copyright:           MIT
 category:            Web
-build-type:          Simple
+build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:  README.md
+
+custom-setup
+  setup-depends:
+    base  >= 4.5 && < 4.11,
+    Cabal >= 1.14
 
 flag release
   description: Release mode, better performance but no longer provides debug info on the command line.
@@ -55,7 +60,6 @@ library
   include-dirs:
     Chipmunk2D/include/chipmunk
   c-sources:
-
     Chipmunk2D/src/chipmunk.c
     Chipmunk2D/src/cpBody.c
     Chipmunk2D/src/cpArbiter.c
