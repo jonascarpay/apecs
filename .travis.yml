@@ -157,7 +157,11 @@ script:
         cd "$PKGVER"
         cabal configure --enable-tests
         cabal build
-        cabal test
+        if [ "$CABALVER" = "1.16" ] || [ "$CABALVER" = "1.18" ]; then
+          cabal test
+        else
+          cabal test --show-details=streaming --log=/dev/stdout
+        fi
         cd $ORIGDIR
       done
       ;;
