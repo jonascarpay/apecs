@@ -4,6 +4,7 @@ synopsis:            Gloss rendering for apecs-physics
 description:         Gloss rendering for apecs-physics
 homepage:            https://github.com/jonascarpay/apecs-physics#readme
 license:             BSD3
+license-file:        LICENSE
 author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
 copyright:           MIT
