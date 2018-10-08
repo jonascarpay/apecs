@@ -1,4 +1,4 @@
-# apecs-physics
+# apecs-physics [![Build Status](https://travis-ci.org/jonascarpay/apecs-physics.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs-physics)
 
 2D physics library for apecs.
 Uses [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
