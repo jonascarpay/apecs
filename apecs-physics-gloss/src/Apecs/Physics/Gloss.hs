@@ -12,11 +12,14 @@ module Apecs.Physics.Gloss
 import           Apecs
 import           Apecs.Physics
 import           Data.Foldable                        (fold)
+import           Data.Semigroup                       (Semigroup(..))
 import qualified Graphics.Gloss                       as G
 import           Graphics.Gloss.Geometry.Angle        (radToDeg)
 import qualified Graphics.Gloss.Interface.IO.Simulate as GS
 
 newtype BodyPicture = BodyPicture G.Picture deriving Monoid
+instance Semigroup BodyPicture where
+  BodyPicture pa <> BodyPicture pb = BodyPicture (mappend pa pb)
 
 instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
@@ -26,9 +29,11 @@ data Camera = Camera
   , gvScale  :: Double
   }
 
+instance Semigroup Camera where
+  Camera p1 z1 <> Camera p2 z2 = Camera (p1 + p2) (z1 * z2)
 instance Monoid Camera where
   mempty = Camera 0 1
-  mappend (Camera p1 z1) (Camera p2 z2) = Camera (p1 + p2) (z1 * z2)
+  mappend = (<>)
 
 instance Component Camera where
   type Storage Camera = Global Camera

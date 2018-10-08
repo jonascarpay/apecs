@@ -1,3 +1,4 @@
+*.nix
 **/.DS_Store
 
 Chipmunk2D/*

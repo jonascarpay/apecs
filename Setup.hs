@@ -2,7 +2,11 @@
 import Distribution.Simple
 import Distribution.Verbosity
 import Distribution.PackageDescription
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(2,2,0)
+import Distribution.PackageDescription.Parsec
+#else
 import Distribution.PackageDescription.Parse
+#endif
 
 
 main = do
