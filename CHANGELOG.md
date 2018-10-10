@@ -1,3 +1,6 @@
+## [0.6.0.0]
+### Changed
+- Nothing, but since 0.5.1 was API-breaking I've decided to bump to 0.6
 ## [0.5.1.1]
 ### Changed
 - `Register` needs UndecidableInstances in GHC 8.6.2, I'm looking for a way around this. I've removed it for now.
