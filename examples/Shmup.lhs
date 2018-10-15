@@ -86,10 +86,12 @@ The initial value of a global will be drawn from that component's Monoid instanc
 `Score` keeps the score, and `Time` the total elapsed time.
 
 > newtype Score = Score Int deriving Show
+> instance Semigroup Score
 > instance Monoid Score where mempty = Score 0
 > instance Component Score where type Storage Score = Global Score
 > 
 > newtype Time = Time Double deriving Show
+> instance Semigroup Time
 > instance Monoid Time where mempty = Time 0
 > instance Component Time where type Storage Time = Global Time
 
