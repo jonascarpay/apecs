@@ -1,7 +1,8 @@
 # apecs
 [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
 [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs)
-[![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=Stackage)](https://www.stackage.org/package/apecs)
+[![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=lts)](https://www.stackage.org/package/apecs)
+[![Stackage](https://www.stackage.org/package/apecs/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs)
 
 apecs is an _Entity Component System_ (ECS) framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 ECS presents a data-driven approach to game development, that elegantly tackles many of the unique issues of game programming.
