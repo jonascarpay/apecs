@@ -22,11 +22,11 @@ The `Camera` component tracks a camera position and zoom factor.
 
 ```haskell
 initialize = do
-  setGlobal ( Camera (V2 0 1) 60
-            , earthGravity )
+  set global ( Camera (V2 0 1) 60
+             , earthGravity )
 ```
-`setGlobal` comes from apecs, and is pretty straightforward.
-`earthGravity = V2 0 (-9.81)`, normal earth surface gravity if we assume units to be mks.
+Globals can be set with any entity argument, `global` is just an alias for -1.
+`earthGravity = V2 0 (-9.81)`, normal earth surface gravity if we assume normal MKS units.
 Note that the positive y-axis points upwards.
 
 ```haskell
@@ -80,8 +80,8 @@ You can find its definition in `Apecs.Physics.Gloss`, in case you want to change
 ```haskell
 initialize :: System World ()
 initialize = do
-  setGlobal ( Camera 0 50
-            , earthGravity )
+  set global ( Camera 0 50
+             , earthGravity )
 
   let sides = toEdges $ cRectangle 5
   tumbler <- newEntity ( KinematicBody
