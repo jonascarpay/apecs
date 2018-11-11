@@ -1,4 +1,15 @@
-# apecs-physics [![Build Status](https://travis-ci.org/jonascarpay/apecs-physics.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs-physics)
+# apecs-physics
+
+[![Build Status](https://travis-ci.org/jonascarpay/apecs-physics.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs-physics)
+
+[![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics)
+[![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics)
+[![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics)
+
+[![Hackage](https://img.shields.io/hackage/v/apecs-physics-gloss.svg)](https://hackage.haskell.org/package/apecs-physics-gloss)
+[![Stackage](https://www.stackage.org/package/apecs-physics-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics-gloss)
+[![Stackage](https://www.stackage.org/package/apecs-physics-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics-gloss)
+
 
 2D physics library for apecs.
 Uses [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
