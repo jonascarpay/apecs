@@ -1,7 +1,6 @@
 name:                examples
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Examples for apecs-physics
 homepage:            https://github.com/jonascarpay/apecs-physics/apecs-physics-examples#readme
 author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
@@ -13,7 +12,6 @@ cabal-version:       >=1.10
 executable helloworld
   hs-source-dirs:      .
   main-is:             HelloWorld.hs
-  ghc-options:         -O2
   build-depends:       base
                      , apecs >= 0.6
                      , apecs-physics
@@ -24,7 +22,6 @@ executable helloworld
 executable tumbler
   hs-source-dirs:      .
   main-is:             Tumbler.hs
-  ghc-options:         -O2
   build-depends:       base
                      , apecs >= 0.6
                      , apecs-physics
@@ -36,7 +33,6 @@ executable tumbler
 executable constraints
   hs-source-dirs:      .
   main-is:             Constraints.hs
-  ghc-options:         -O2
   build-depends:       base
                      , apecs >= 0.6
                      , apecs-physics
@@ -46,4 +42,4 @@ executable constraints
 
 source-repository head
   type:     git
-  location: https://github.com/jonascarpay/phycs
+  location: https://github.com/jonascarpay/apecs-physics

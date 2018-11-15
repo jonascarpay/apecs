@@ -1,7 +1,9 @@
 name:                apecs-physics-gloss
 version:             0.1.0.0
 synopsis:            Gloss rendering for apecs-physics
-description:         Gloss rendering for apecs-physics
+description:
+  Simple gloss-based rendering for apecs-physics.
+  Check the apecs-physics readme for examples.
 homepage:            https://github.com/jonascarpay/apecs-physics#readme
 license:             BSD3
 license-file:        LICENSE
@@ -16,7 +18,6 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Apecs.Physics.Gloss
-  ghc-options:         -O2
   build-depends:       base >= 4.7 && < 5, apecs-physics, gloss, apecs >= 0.6
   default-language:    Haskell2010
 
