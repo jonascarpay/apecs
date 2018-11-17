@@ -13,7 +13,7 @@
 - [x] Add explicitly managed shapes whose properties you can change at runtime
 - [x] Check(enforce?) proper deallocation of bodies/shapes/constraints on overwrites etc.
 - [ ] Remaining spatial queries
-- [ ] Fix issues on [travis](https://travis-ci.org/jonascarpay/phycs)
+- [ ] Fix issues on [travis](https://travis-ci.org/jonascarpay/apecs-physics)
 - [ ] Hackage
 - [x] Presolve/Postsolve collision handlers
 - [x] Remaining collision properties

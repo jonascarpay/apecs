@@ -124,7 +124,7 @@ cpSpaceInit(cpSpace *space)
 	static cpBool done = cpFalse;
 	if(!done){
 		printf("apecs-physics: Initializing new Space, Chipmunk v%s (Debug Enabled)\n", cpVersionString);
-		printf("apecs-physics: Compile with the -frelease (cabal) or --flag phycs:release (stack) to disable debug mode and runtime assertion checks\n");
+		printf("apecs-physics: Compile with the -frelease (cabal) or --flag apecs-physics:release (stack) to disable debug mode and runtime assertion checks\n");
 		done = cpTrue;
 	}
 #endif
