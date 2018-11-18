@@ -31,8 +31,9 @@ library
     base >= 4.7 && < 5,
     containers,
     stm,
+    list-t,
+    vector,
     stm-containers,
     apecs >= 0.5.1.0
   ghc-options:
     -Wall
-    -Odph

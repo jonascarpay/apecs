@@ -50,41 +50,41 @@ data Reactive r s = Reactive r s
 type instance Elem (Reactive r s) = Elem s
 
 -- | Reads @r@ from the game world.
-rget :: forall w r s. 
+rget :: forall w m r s. 
   ( Component (ReactElem r)
-  , Has w IO (ReactElem r)
+  , Has w m (ReactElem r)
   , Storage (ReactElem r) ~ Reactive r s
-  ) => SystemT w IO r
+  ) => SystemT w m r
 rget = do
   Reactive r (_ :: s) <- getStore
   return r
 
-instance (Reacts IO r, ExplInit IO s) => ExplInit IO (Reactive r s) where
+instance (Reacts m r, ExplInit m s) => ExplInit m (Reactive r s) where
   explInit = liftM2 Reactive rempty explInit
 
-instance (Reacts IO r, ExplSet IO s, ExplGet IO s, Elem s ~ ReactElem r)
-  => ExplSet IO (Reactive r s) where
+instance (Reacts m r, ExplSet m s, ExplGet m s, Elem s ~ ReactElem r)
+  => ExplSet m (Reactive r s) where
   {-# INLINE explSet #-}
   explSet (Reactive r s) ety c = do
     old <- explGet (MaybeStore s) ety
     react (Entity ety) old (Just c) r
     explSet s ety c
 
-instance (Reacts IO r, ExplDestroy IO s, ExplGet IO s, Elem s ~ ReactElem r)
-  => ExplDestroy IO (Reactive r s) where
+instance (Reacts m r, ExplDestroy m s, ExplGet m s, Elem s ~ ReactElem r)
+  => ExplDestroy m (Reactive r s) where
   {-# INLINE explDestroy #-}
   explDestroy (Reactive r s) ety = do
     old <- explGet (MaybeStore s) ety
     react (Entity ety) old Nothing r
     explDestroy s ety
 
-instance ExplGet IO s => ExplGet IO (Reactive r s) where
+instance ExplGet m s => ExplGet m (Reactive r s) where
   {-# INLINE explExists #-}
   explExists (Reactive _ s) = explExists s
   {-# INLINE explGet    #-}
   explGet    (Reactive _ s) = explGet    s
 
-instance ExplMembers IO s => ExplMembers IO (Reactive r s) where
+instance ExplMembers m s => ExplMembers m (Reactive r s) where
   {-# INLINE explMembers #-}
   explMembers (Reactive _ s) = explMembers s
 

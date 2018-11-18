@@ -1,10 +1,10 @@
-name:                apecs-examples
+name:                examples
 version:             0.1.0.0
-homepage:            https://github.com/jonascarpay/apecs/apecs-examples#readme
+homepage:            https://github.com/jonascarpay/apecs/examples#readme
 license:             BSD3
 license-file:        LICENSE
 synopsis:            examples for apecs
-description:        Examples for apecs and related libraries
+description:         Examples for apecs and related libraries
 author:              Jonas Carpay
 maintainer:          jonascarpay@gmail.com
 category:            Game, Control, Data

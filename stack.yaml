@@ -4,7 +4,16 @@ packages:
   - apecs
   - apecs-physics
   - apecs-physics-gloss
-  - apecs-examples
+  - apecs-stm
+  - examples
+
+extra-deps:
+  - stm-containers-1.1.0.2
+  - deferred-folds-0.9.9
+  - stm-hamt-1.2.0.2
+  - containers-0.5.11.0
+  - primitive-extras-0.7.1
+
 
 nix:
   pure: false
