@@ -1,5 +1,6 @@
 *.nix
 tags
+*.c
 
 # Created by https://www.gitignore.io/api/haskell
 
