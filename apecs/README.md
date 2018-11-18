@@ -13,7 +13,7 @@ The apecs front-end DSL exposes a small number of combinators that allow game lo
 #### Performance
 [ecs-bench](https://github.com/lschmierer/ecs_bench) shows that apecs is competitive with the fastest Rust ECS frameworks.
 
-![Benchmarks](/bench/chart.png)
+![Benchmarks](bench/chart.png)
 
 #### Example
 ```haskell
