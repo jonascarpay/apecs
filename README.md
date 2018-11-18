@@ -5,13 +5,13 @@ ECS presents a data-driven approach to game development, that elegantly tackles 
 apecs aims to be
 * **Fast** - apecs is intended for high-performance applications. The DSL is built on top of mutable data structures, and its performance is competitive with ECS libraries written in Rust (see chart below).
 * **Safe** - The DSL is completely memory-safe unless explicitly requested otherwise.
-* **Simple** - Most game logic can be expressed efficiently using only the `cmap` combinator.
-* **Extensible** - apecs can be extended in many ways, such as adding [a physics subsystem](apecs-physics/) or [using STM for easy concurrency](apecs-stm/).
+* **Simple** - At the front-end, most game logic can be expressed efficiently using only the `cmap` combinator. The back-end storage interface makes it easy to write your own stores.
+* **Extensible** - See [apecs-physics](apecs-physics/) or [apecs-stm](apecs-stm/) for examples of ways apecs can be extended.
 
-![Benchmarks](bench/chart.png)
+![Benchmarks](apecs/bench/chart.png)
 
 #### Links
-- [paper (prepublication)](prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
+- [paper (prepublication)](apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
 - [tutorial](examples/Shmup.md) and other [examples](examples/)
 - [apecs-physics](apecs-physics/)
 - [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
