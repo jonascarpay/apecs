@@ -1,11 +1,15 @@
-resolver: lts-12.11
+resolver: nightly-2018-11-10
+
 packages:
-- .
-- apecs-physics-gloss
-- examples
-extra-deps:
-  - apecs-0.6.0.0
-flags: {}
-extra-package-dbs: []
+  - apecs
+  - apecs-physics
+  - apecs-physics-gloss
+  - apecs-examples
+
 nix:
-  packages: [libGL mesa_glu freeglut]
+  pure: false
+  packages:
+    - libGL
+    - freeglut
+    - mesa_glu
+    - zlib

@@ -29,7 +29,7 @@ game = do
   -- Add velocity to position
   cmap $ \(Position p, Velocity v) -> Position (v+p)
   -- Apply gravity to non-flying entities
-  cmap $ \(Velocity v, _ :: Not Flying) -> Velocity (v - (V2 0 1))
+  cmap $ \(Velocity v, _ :: Not Flying) -> Velocity (v - V2 0 1)
   -- Print a list of entities and their positions
   cmapM_ $ \(Position p, Entity e) -> liftIO . print $ (e, p)
 

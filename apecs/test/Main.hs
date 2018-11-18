@@ -19,6 +19,7 @@ import Data.List (sort)
 import Control.Monad
 
 import Apecs
+import Apecs.Reactive
 import Apecs.Core
 import Apecs.Stores
 import Apecs.Util
@@ -110,30 +111,29 @@ makeWorld "Tuples" [''T1, ''T2, ''T3]
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
 
-{--
 newtype TestBool = TestBool Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
-instance Component TestBool where type Storage TestBool = Register (Map TestBool)
+instance Component TestBool where type Storage TestBool = Reactive (EnumMap TestBool) (Map TestBool)
 
-makeWorld "Registered" [''TestBool]
+makeWorld "ReactiveWld" [''TestBool]
 
-prop_setGetRegister = genericSetGet initRegistered (undefined :: TestBool)
-prop_setSetRegister = genericSetSet initRegistered (undefined :: TestBool)
+prop_setGetReactive = genericSetGet initReactiveWld (undefined :: TestBool)
+prop_setSetReactive = genericSetSet initReactiveWld (undefined :: TestBool)
 prop_lookupValid :: [(Entity, TestBool)] -> [Entity] -> Property
-prop_lookupValid writes deletes = assertSys initRegistered $ do
+prop_lookupValid writes deletes = assertSys initReactiveWld $ do
   forM_ writes  $ uncurry set
   forM_ deletes $ flip destroy (Proxy @TestBool)
 
   et <- fmap snd . filter ((== TestBool True ) . fst) <$> getAll
   ef <- fmap snd . filter ((== TestBool False) . fst) <$> getAll
 
-  rt <- regLookup (TestBool True)
-  rf <- regLookup (TestBool False)
+  let lookup enum = rget >>= flip mapLookup enum
+  rt <- lookup (TestBool True)
+  rf <- lookup (TestBool False)
 
   return (  sort rt == sort et
          && sort rf == sort ef
          && all (`notElem` ef) et
          )
-         --}
 
 return []
 main = $quickCheckAll

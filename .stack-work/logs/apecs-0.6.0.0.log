@@ -1,5 +1,0 @@
-Configuring apecs-0.6.0.0...
-Preprocessing library for apecs-0.6.0.0..
-Building library for apecs-0.6.0.0..
-[1 of 7] Compiling Apecs.THTuples   ( src/Apecs/THTuples.hs, .stack-work/dist/x86_64-linux-nix/Cabal-2.2.0.1/build/Apecs/THTuples.o )
-[2 of 7] Compiling Apecs.Core       ( src/Apecs/Core.hs, .stack-work/dist/x86_64-linux-nix/Cabal-2.2.0.1/build/Apecs/Core.o )

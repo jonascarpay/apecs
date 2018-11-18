@@ -41,6 +41,7 @@ Finally, we use random for our RNG, and import some base stuff.
 > import           System.Random
 > import           Control.Monad
 > import           Data.Monoid
+> import           Data.Semigroup (Semigroup)
 
 With the imports taken care of, we can start defining components.
 We do so by first defining a data type for our component, and then give it an instance of `Component`.

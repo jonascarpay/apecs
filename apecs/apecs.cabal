@@ -1,5 +1,5 @@
 name:                apecs
-version:             0.6.0.0
+version:             0.6.1.0
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -28,6 +28,7 @@ library
     Apecs,
     Apecs.Core,
     Apecs.Stores,
+    Apecs.Reactive,
     Apecs.System,
     Apecs.TH,
     Apecs.Util

@@ -31,6 +31,7 @@ import           Control.Monad.Reader (ask, asks, lift, liftIO)
 import           Data.Proxy
 
 import           Apecs.Stores
+import           Apecs.Reactive
 import           Apecs.System
 import           Apecs.TH
 import           Apecs.Core
