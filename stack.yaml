@@ -4,7 +4,6 @@ packages:
   - apecs
   - apecs-physics
   - apecs-physics-gloss
-# - apecs-stm            disabled until stm-containers gets into stackage
   - examples
 
 nix:
