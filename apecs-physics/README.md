@@ -1,22 +1,16 @@
-# apecs-physics [![Build Status](https://travis-ci.org/jonascarpay/apecs-physics.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs-physics) [![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics) [![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics) [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics)
-
-**apecs-physics-gloss:**
-[![Hackage](https://img.shields.io/hackage/v/apecs-physics-gloss.svg)](https://hackage.haskell.org/package/apecs-physics-gloss)
-[![Stackage](https://www.stackage.org/package/apecs-physics-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics-gloss)
-[![Stackage](https://www.stackage.org/package/apecs-physics-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics-gloss)
-
+# apecs-physics
 
 2D physics library for apecs.
-Uses [Chipmunk](https://github.com/slembcke/Chipmunk2D) for C-speed physics.
-The [apecs-physics-gloss](https://github.com/jonascarpay/apecs-physics/tree/master/apecs-physics-gloss) package provides a simple optional [gloss](https://github.com/benl23x5/gloss)-based renderer.
+Uses the [Chipmunk](https://github.com/slembcke/Chipmunk2D) physics engine.
+The [apecs-physics-gloss](../apecs-physics-gloss) package provides a simple optional [gloss](https://github.com/benl23x5/gloss)-based renderer.
 
 Feel free to create an issue or PR for suggestions/questions/requests/critiques/spelling fixes/etc.
-See [TODO.md](https://github.com/jonascarpay/apecs-physics/blob/master/TODO.md) for suggestions if you want to help out with the code.
+See [TODO.md](TODO.md) for suggestions if you want to help out with the code.
 
 The examples directory contains a number of examples, each can be run with `stack build && stack <examplename>`:
 
 ### helloworld
-![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/helloworld.png)
+![Screenshot](helloworld.png)
 
 ```haskell
 makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
@@ -81,7 +75,7 @@ main = do
 You can find its definition in `Apecs.Physics.Gloss`, in case you want to change the rendering behavior.
 
 ### tumbler
-![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/tumbler.png)
+![Screenshot](tumbler.png)
 
 ```haskell
 initialize :: System World ()
@@ -140,7 +134,7 @@ If you don't, you will get a runtime error about simulating zero-mass `DynamicBo
 Finally, we randomly add a bunch of balls.
 
 ### constraints
-![Screenshot](https://raw.githubusercontent.com/jonascarpay/apecs-physics/master/examples/constraints.png)
+![Screenshot](constraints.png)
 
 The final example is a gallery of (some of) the available constraints.
 Drag shapes around with the left mouse button, create a new box with the right.
