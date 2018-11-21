@@ -1,3 +1,9 @@
+## [0.6.1.0]
+### Added
+- The `Reactive` store is a redesign of the `Register` store, and provides a more general solution for 'stores that perform additional actions when written to'.
+### Changed
+- I have consolidated all apecs packages into a single repo. This pmonly affects contributors, not users.
+
 ## [0.6.0.0]
 ### Changed
 - Nothing, but since 0.5.1 was API-breaking I've decided to bump to 0.6
