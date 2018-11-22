@@ -1,0 +1,34 @@
+name:                apecs-gloss
+version:             0.1.0.0
+synopsis:            Simple gloss renderer for apecs
+homepage:            https://github.com/jonascarpay/apecs-physics#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Jonas Carpay
+maintainer:          jonascarpay@gmail.com
+copyright:           MIT
+category:            Web
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+description:
+  Simple 2D gloss-based rendering for apecs.
+  Intended for prototyping.
+
+library
+  hs-source-dirs:
+    src
+  exposed-modules:
+    Apecs.Physics.Gloss
+  build-depends:
+    base >= 4.7 && < 5,
+    apecs-physics,
+    gloss,
+    apecs >= 0.6
+  default-language:
+    Haskell2010
+
+source-repository head
+  type: git
+  location: https://github.com/jonascarpay/apecs/apecs-gloss

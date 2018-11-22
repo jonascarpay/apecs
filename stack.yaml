@@ -3,7 +3,7 @@ resolver: lts-12.19
 packages:
   - apecs
   - apecs-physics
-  - apecs-physics-gloss
+  - apecs-gloss
   - examples
 
 nix:
