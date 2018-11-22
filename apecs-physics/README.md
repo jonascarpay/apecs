@@ -2,7 +2,7 @@
 
 2D physics library for apecs.
 Uses the [Chipmunk](https://github.com/slembcke/Chipmunk2D) physics engine.
-The [apecs-physics-gloss](../apecs-physics-gloss) package provides a simple optional [gloss](https://github.com/benl23x5/gloss)-based renderer.
+The [apecs-gloss](../apecs-gloss) package provides a simple optional [gloss](https://github.com/benl23x5/gloss)-based renderer.
 
 Feel free to create an issue or PR for suggestions/questions/requests/critiques/spelling fixes/etc.
 See [TODO.md](TODO.md) for suggestions if you want to help out with the code.

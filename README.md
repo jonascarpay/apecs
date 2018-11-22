@@ -21,31 +21,24 @@ apecs aims to be
 |---|---|---|---|
 | [apecs](apecs/) | [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs) | [![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=lts)](https://www.stackage.org/package/apecs) | [![Stackage](https://www.stackage.org/package/apecs/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs)
 | [apecs-physics](apecs-physics/) |  [![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics) | [![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics) | [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics) |
-| [apecs-physics-gloss](apecs-physics-gloss/) | [![Hackage](https://img.shields.io/hackage/v/apecs-physics-gloss.svg)](https://hackage.haskell.org/package/apecs-physics-gloss) | [![Stackage](https://www.stackage.org/package/apecs-physics-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics-gloss) | [![Stackage](https://www.stackage.org/package/apecs-physics-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics-gloss) |
+| [apecs-gloss](apecs-gloss/) | [![Hackage](https://img.shields.io/hackage/v/apecs-gloss.svg)](https://hackage.haskell.org/package/apecs-gloss) | [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-gloss) | [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-gloss) |
 | [apecs-stm](apecs-stm/) | - | - | - |
 | [examples](examples/) | - | - | - |
 
 #### Example
 ```haskell
-{-# LANGUAGE DataKinds, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
+{-# LANGUAGE DataKinds, FlexibleInstances, ScopedTypeVariables, TypeFamilies, MultiParamTypeClasses, TemplateHaskell #-}
 
 import Apecs
+import Control.Monad
+import Apecs.Util
 import Linear (V2 (..))
 
 newtype Position = Position (V2 Double) deriving Show
--- To declare a component, we need to specify how to store it
-instance Component Position where
-  type Storage Position = Map Position -- The simplest store is a Map
-
 newtype Velocity = Velocity (V2 Double) deriving Show
-instance Component Velocity where
-  type Storage Velocity = Cache 100 (Map Velocity) -- Caching adds fast reads/writes
-
 data Flying = Flying
-instance Component Flying where
-  type Storage Flying = Map Flying
 
-makeWorld "World" [''Position, ''Velocity, ''Flying] -- Generate World and instances
+makeWorldAndComponents "World" [''Position, ''Velocity, ''Flying]
 
 game :: System World ()
 game = do
@@ -53,11 +46,11 @@ game = do
   newEntity (Position 2, Velocity 1)
   newEntity (Position 1, Velocity 2, Flying)
 
-  -- Add velocity to position
+  -- 1. Add velocity to position
+  -- 2. Apply gravity to non-flying entities
+  -- 3. Print a list of entities and their positions
   cmap $ \(Position p, Velocity v) -> Position (v+p)
-  -- Apply gravity to non-flying entities
-  cmap $ \(Velocity v, _ :: Not Flying) -> Velocity (v - (V2 0 1))
-  -- Print a list of entities and their positions
+  cmap $ \(Velocity v, _ :: Not Flying) -> Velocity (v - V2 0 1)
   cmapM_ $ \(Position p, Entity e) -> liftIO . print $ (e, p)
 
 main :: IO ()

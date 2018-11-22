@@ -16,6 +16,7 @@ genName s = mkName . show <$> newName s
 
 -- | Same as 'makeWorld', but has no 'EntityCounter'
 makeWorldNoEC :: String -> [Name] -> Q [Dec]
+-- makeWorldNoEC _ [] = do
 makeWorldNoEC worldName cTypes = do
   cTypesNames <- forM cTypes $ \t -> do
     rec <- genName "rec"
@@ -52,7 +53,7 @@ makeComponent comp = do
   let ct = return$ ConT comp
   head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
   
--- | Same as makeWorld, but also makes a component instance:
+-- | Same as makeWorld, but also defines @Component@ instances with a @Map@ store.
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
