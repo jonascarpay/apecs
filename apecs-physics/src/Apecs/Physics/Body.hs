@@ -56,9 +56,6 @@ destroyBody spacePtr bodyPtr = withForeignPtr spacePtr $ \space -> [C.block| voi
   cpSpaceRemoveBody($(cpSpace* space), body);
   cpBodyFree(body); }|]
 
-bodyShapes :: Body -> IO [Entity]
-bodyShapes  = undefined
-
 instance Component Body where
   type Storage Body = Space Body
 
@@ -72,7 +69,9 @@ instance ExplSet IO (Space Body) where
                 Just (BodyRecord bdyPtr _ _ _) -> return bdyPtr
                 Nothing -> do
                   bdyPtr <- newBody spcPtr ety
-                  modifyIORef' bMap (M.insert ety $ BodyRecord bdyPtr btype mempty mempty)
+                  bsMap <- newIORef mempty
+                  bcMap <- newIORef mempty
+                  modifyIORef' bMap (M.insert ety $ BodyRecord bdyPtr btype bsMap bcMap)
                   return bdyPtr
     setBodyType bdyPtr btype
 
@@ -81,8 +80,8 @@ instance ExplDestroy IO (Space Body) where
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
     forM_ rd $ \(BodyRecord bPtr _ shapes constraints) -> do
-      forM_ (S.toList shapes) $ \s -> explDestroy (cast sp :: Space Shape) s
-      forM_ (S.toList constraints) $ \s -> explDestroy (cast sp :: Space Constraint) s
+      readIORef shapes >>= mapM_ (explDestroy (cast sp :: Space Shape))      . S.toList
+      readIORef shapes >>= mapM_ (explDestroy (cast sp :: Space Constraint)) . S.toList
       destroyBody spc bPtr
 
 instance ExplMembers IO (Space Body) where
@@ -90,7 +89,6 @@ instance ExplMembers IO (Space Body) where
 
 instance ExplGet IO (Space Body) where
   explExists (Space bMap _ _ _ _) ety = M.member ety <$> readIORef bMap
-
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord _ b _ _) <- M.lookup ety <$> readIORef bMap
     return b
@@ -405,3 +403,34 @@ instance ExplGet IO (Space CenterOfGravity) where
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b
 
+-- Shapes
+instance Component Shapes where
+  type Storage Shapes = Space Shapes
+
+instance Has w IO Physics => Has w IO Shapes where
+  getStore = (cast :: Space Physics -> Space Shapes) <$> getStore
+
+instance ExplMembers IO (Space Shapes) where
+  explMembers s = explMembers (cast s :: Space Body)
+
+instance ExplGet IO (Space Shapes) where
+  explExists s ety = explExists (cast s :: Space Body) ety
+  explGet (Space bMap _ _ _ _) ety = do
+    Just (BodyRecord _ _ sPtr _) <- M.lookup ety <$> readIORef bMap
+    Shapes . fmap Entity . S.toList <$> readIORef sPtr
+
+-- Constraints
+instance Component Constraints where
+  type Storage Constraints = Space Constraints
+
+instance Has w IO Physics => Has w IO Constraints where
+  getStore = (cast :: Space Physics -> Space Constraints) <$> getStore
+
+instance ExplMembers IO (Space Constraints) where
+  explMembers s = explMembers (cast s :: Space Body)
+
+instance ExplGet IO (Space Constraints) where
+  explExists s ety = explExists (cast s :: Space Body) ety
+  explGet (Space bMap _ _ _ _) ety = do
+    Just (BodyRecord _ _ sPtr _) <- M.lookup ety <$> readIORef bMap
+    Constraints . fmap Entity . S.toList <$> readIORef sPtr

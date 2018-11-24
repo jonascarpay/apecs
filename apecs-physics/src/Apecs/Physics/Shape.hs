@@ -63,14 +63,10 @@ instance ExplMembers IO (Space Shape) where
 instance ExplDestroy IO (Space Shape) where
   explDestroy (Space bMap sMap _ _ spc) sEty = do
     rd <- M.lookup sEty <$> readIORef sMap
-    forM_ rd $ \(Record sPtr _) -> do
-      bEty <- fromIntegral <$> getShapeBody sPtr
-
+    forM_ rd $ \(Record sPtr (ShapeExtend (Entity bEty) _)) -> do
       Just bRec <- M.lookup bEty <$> readIORef bMap
-      let brShapes' = S.delete sEty (brShapes bRec)
-
+      modifyIORef' (brShapes bRec) (S.delete sEty)
       modifyIORef' sMap (M.delete sEty)
-      modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
       destroyShape spc sPtr
 
 instance ExplSet IO (Space Shape) where
@@ -80,8 +76,7 @@ instance ExplSet IO (Space Shape) where
     rd <- M.lookup bEty <$> readIORef bMap
     forM_ rd $ \bRec -> do
       shPtr <- newShape spcPtr (brPtr bRec) sh sEty
-      let brShapes' = S.insert sEty (brShapes bRec)
-      modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
+      modifyIORef' (brShapes bRec) (S.insert sEty)
       modifyIORef' sMap (M.insert sEty (Record shPtr shape))
 
 instance ExplGet IO (Space Shape) where
@@ -361,22 +356,3 @@ instance ExplGet IO (Space CollisionType) where
   explGet (Space _ sMap _ _ _) ety = do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     CollisionType <$> getCollisionType s
-
--- ShapeBody
-getShapeBody :: Ptr Shape -> IO C.CUIntPtr
-getShapeBody shape = [C.exp| uintptr_t {
-  (intptr_t) cpBodyGetUserData(cpShapeGetBody($(cpShape* shape))) }|]
-
-instance Component ShapeBody where
-  type Storage ShapeBody = Space ShapeBody
-instance Has w IO Physics => Has w IO ShapeBody where
-  getStore = (cast :: Space Physics -> Space ShapeBody) <$> getStore
-
-instance ExplMembers IO (Space ShapeBody) where
-  explMembers s = explMembers (cast s :: Space Shape)
-
-instance ExplGet IO (Space ShapeBody) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
-    Just (Record s _) <- M.lookup ety <$> readIORef sMap
-    ShapeBody . Entity . fromIntegral <$> getShapeBody s

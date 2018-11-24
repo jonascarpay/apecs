@@ -158,30 +158,19 @@ instance ExplSet IO (Space Constraint) where
         cPtr <- newConstraint spcPtr (brPtr brA) (brPtr brB) cEty ctype
 
         modifyIORef' cMap (M.insert cEty (Record cPtr cons))
+        modifyIORef' (brConstraints brA) (S.insert cEty)
+        modifyIORef' (brConstraints brB) (S.insert cEty)
 
-        let brConstraintsA' = S.insert cEty (brConstraints brA)
-            brConstraintsB' = S.insert cEty (brConstraints brB)
-
-        modifyIORef' bMap ( M.insert bEtyA (brA {brConstraints = brConstraintsA'})
-                          . M.insert bEtyB (brB {brConstraints = brConstraintsB'}) )
       _ -> return ()
 
 instance ExplDestroy IO (Space Constraint) where
   explDestroy (Space bMap _ cMap _ spc) cEty = do
     rd <- M.lookup cEty <$> readIORef cMap
-    forM_ rd $ \(Record cPtr _) -> do
-      bEtyA <- getBodyA cPtr
-      bEtyB <- getBodyB cPtr
-      bMapRd <- readIORef bMap
-
-      let Just bRecA = M.lookup bEtyA bMapRd
-          Just bRecB = M.lookup bEtyB bMapRd
-          brConstraintsA' = S.delete cEty (brConstraints bRecA)
-          brConstraintsB' = S.delete cEty (brConstraints bRecB)
-
-      modifyIORef' cMap (M.delete cEty)
-      modifyIORef' bMap ( M.insert bEtyA (bRecA {brConstraints = brConstraintsA'})
-                        . M.insert bEtyB (bRecB {brConstraints = brConstraintsB'}) )
+    forM_ rd $ \(Record cPtr (ConstraintExtend (Entity bEtyA) (Entity bEtyB) _)) -> do
+      bMap' <- readIORef bMap
+      let rmConstraint ref = modifyIORef' (brConstraints ref) (S.delete cEty)
+      mapM_ rmConstraint (M.lookup bEtyA bMap')
+      mapM_ rmConstraint (M.lookup bEtyB bMap')
       destroyConstraint spc cPtr
 
 instance ExplMembers IO (Space Constraint) where
@@ -192,15 +181,6 @@ instance ExplGet IO (Space Constraint) where
   explGet    (Space _ _ cMap _ _) ety = do
     Just (Record _ cons)  <- M.lookup ety <$> readIORef cMap
     return cons
-
--- BodyAB
-getBodyA :: Ptr Constraint -> IO Int
-getBodyA c = fromIntegral <$> [C.exp| intptr_t {
-  (intptr_t) cpBodyGetUserData(cpConstraintGetBodyA($(cpConstraint* c))) }|]
-
-getBodyB :: Ptr Constraint -> IO Int
-getBodyB c = fromIntegral <$> [C.exp| intptr_t {
-  (intptr_t) cpBodyGetUserData(cpConstraintGetBodyB($(cpConstraint* c))) }|]
 
 -- MaxForce
 getMaxForce :: Ptr Constraint -> IO Double

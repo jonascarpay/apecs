@@ -75,6 +75,11 @@ newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
 newtype CenterOfGravity = CenterOfGravity BVec
 
+-- | The @Shape@s belonging to a body. Read-only.
+newtype Shapes = Shapes [Entity]
+-- | The @Constraint@s belonging to a body. Read-only.
+newtype Constraints = Constraints [Entity]
+
 -- | Shape component.
 --   Adding a shape to an entity that has no @Body@ is a noop.
 data Shape = Shape Convex
@@ -91,7 +96,6 @@ newtype Density         = Density         Double     deriving (Eq, Show)
 newtype Friction        = Friction        Double     deriving (Eq, Show)
 newtype SurfaceVelocity = SurfaceVelocity Vec        deriving (Eq, Show)
 newtype CollisionType   = CollisionType   C.CUIntPtr deriving (Eq, Show)
-newtype ShapeBody       = ShapeBody       Entity     deriving (Eq, Show)
 
 type CollisionGroup = CUInt
 
@@ -121,8 +125,8 @@ type instance Elem (Space a) = a
 data BodyRecord = BodyRecord
   { brPtr         :: Ptr Body
   , brBody        :: Body
-  , brShapes      :: S.IntSet
-  , brConstraints :: S.IntSet
+  , brShapes      :: IORef S.IntSet
+  , brConstraints :: IORef S.IntSet
   }
 
 data Record a = Record
