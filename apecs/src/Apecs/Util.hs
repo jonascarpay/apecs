@@ -26,6 +26,7 @@ import           System.Mem           (performMajorGC)
 
 import           Apecs.Core
 import           Apecs.Stores
+import           Apecs.Stores.Extra
 import           Apecs.System
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
@@ -37,20 +38,20 @@ global = Entity (-1)
 newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
 
 instance Component EntityCounter where
-  type Storage EntityCounter = Global EntityCounter
+  type Storage EntityCounter = ReadOnly (Global EntityCounter)
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
-nextEntity :: (Get w m EntityCounter, Set w m EntityCounter) => SystemT w m Entity
+nextEntity :: (Get w IO EntityCounter) => System w Entity
 nextEntity = do EntityCounter n <- get global
-                set global (EntityCounter $ n+1)
+                setReadOnly global (EntityCounter $ n+1)
                 return (Entity . getSum $ n)
 
 -- | Writes the given components to a new entity, and yields that entity.
 -- The return value is often ignored.
 {-# INLINE newEntity #-}
-newEntity :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
-          => c -> SystemT w m Entity
+newEntity :: (Set w IO c, Get w IO EntityCounter)
+          => c -> System w Entity
 newEntity c = do ety <- nextEntity
                  set ety c
                  return ety

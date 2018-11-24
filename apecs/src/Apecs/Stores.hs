@@ -18,7 +18,6 @@ module Apecs.Stores
 
 import           Control.Monad.Reader
 import qualified Data.IntMap.Strict          as M
-import qualified Data.IntSet                 as S
 import           Data.IORef
 import           Data.Maybe                  (fromJust)
 import           Data.Proxy
@@ -88,11 +87,14 @@ instance ExplMembers IO (Unique c) where
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
 
--- | A Global contains exactly one component.
+-- | A @Global@ contains exactly one component.
 --   The initial value is 'mempty' from the component's 'Monoid' instance.
 --
---   When operating on a global, any entity arguments are ignored.
---   For example, we can get a global component with @get 0@ or @get 1@ or even @get undefined@.
+--   When operating on a Global, any entity arguments are ignored.
+--   A Global component can be read with @get 0@ or @get 1@ or even @get undefined@.
+--   This means that you can read and write Globals while @cmap@ping over other components.
+--
+--   The integer @global@ is defined as -1, and can be used to make operations on a global explicit, i.e. 'Time t <- get global'.
 newtype Global c = Global (IORef c)
 type instance Elem (Global c) = c
 instance Monoid c => ExplInit IO (Global c) where

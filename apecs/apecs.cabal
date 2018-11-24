@@ -28,6 +28,7 @@ library
     Apecs,
     Apecs.Core,
     Apecs.Stores,
+    Apecs.Stores.Extra,
     Apecs.Reactive,
     Apecs.System,
     Apecs.TH,

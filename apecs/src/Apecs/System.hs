@@ -38,7 +38,6 @@ set (Entity ety) x = do
   lift$ explSet s ety x
 
 -- | Returns whether the given entity has component @c@
---   Note that @c@ is a phantom argument, used only to convey the type of the entity to be queried.
 {-# INLINE exists #-}
 exists :: forall w m c. Get w m c => Entity -> Proxy c -> SystemT w m Bool
 exists (Entity ety) _ = do
@@ -146,7 +145,6 @@ getAll = do
   forM (U.toList sl) $ lift . explGet s
 
 -- | Destroys component @c@ for the given entity.
--- Note that @c@ is a phantom argument, used only to convey the type of the entity to be destroyed.
 {-# INLINE destroy #-}
 destroy :: forall w m c. Destroy w m c => Entity -> Proxy c -> SystemT w m ()
 destroy (Entity ety) ~_ = do
