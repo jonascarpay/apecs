@@ -29,6 +29,10 @@ newtype Pushdown s c = Pushdown (s (Stack c))
 newtype Stack c = Stack {getStack :: [c]}
 
 type instance Elem (Pushdown s c) = c
+
+instance (Functor m, ExplInit m (s (Stack c))) => ExplInit m (Pushdown s c) where
+  explInit = Pushdown <$> explInit
+
 instance
   ( Monad m
   , ExplGet m (s (Stack c))
@@ -106,6 +110,10 @@ instance
 -- | Wrapper that makes a store read-only. Use @setReadOnly@ and @destroyReadOnly@ to override.
 newtype ReadOnly s = ReadOnly s
 type instance Elem (ReadOnly s) = Elem s
+
+instance (Functor m, ExplInit m s) => ExplInit m (ReadOnly s) where
+  explInit = ReadOnly <$> explInit
+
 instance ExplGet m s => ExplGet m (ReadOnly s) where
   explExists (ReadOnly s) = explExists s
   explGet    (ReadOnly s) = explGet s
