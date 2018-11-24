@@ -56,8 +56,8 @@ destroyBody spacePtr bodyPtr = withForeignPtr spacePtr $ \space -> [C.block| voi
   cpSpaceRemoveBody($(cpSpace* space), body);
   cpBodyFree(body); }|]
 
-fromBodyPtr :: Ptr Body -> BodyRecord
-fromBodyPtr ptr = BodyRecord ptr mempty mempty
+bodyShapes :: Body -> IO [Entity]
+bodyShapes  = undefined
 
 instance Component Body where
   type Storage Body = Space Body
@@ -69,10 +69,10 @@ instance ExplSet IO (Space Body) where
   explSet (Space bMap _ _ _ spcPtr) ety btype = do
     rd <- M.lookup ety <$> readIORef bMap
     bdyPtr <- case rd of
-                Just (BodyRecord bdyPtr _ _) -> return bdyPtr
+                Just (BodyRecord bdyPtr _ _ _) -> return bdyPtr
                 Nothing -> do
                   bdyPtr <- newBody spcPtr ety
-                  modifyIORef' bMap (M.insert ety $ fromBodyPtr bdyPtr)
+                  modifyIORef' bMap (M.insert ety $ BodyRecord bdyPtr btype mempty mempty)
                   return bdyPtr
     setBodyType bdyPtr btype
 
@@ -80,7 +80,7 @@ instance ExplDestroy IO (Space Body) where
   explDestroy sp@(Space bMap _ _ _ spc) ety = do
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
-    forM_ rd $ \(BodyRecord bPtr shapes constraints) -> do
+    forM_ rd $ \(BodyRecord bPtr _ shapes constraints) -> do
       forM_ (S.toList shapes) $ \s -> explDestroy (cast sp :: Space Shape) s
       forM_ (S.toList constraints) $ \s -> explDestroy (cast sp :: Space Constraint) s
       destroyBody spc bPtr
@@ -92,8 +92,8 @@ instance ExplGet IO (Space Body) where
   explExists (Space bMap _ _ _ _) ety = M.member ety <$> readIORef bMap
 
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
-    getBodyType b
+    Just (BodyRecord _ b _ _) <- M.lookup ety <$> readIORef bMap
+    return b
 
 -- Position
 getPosition :: Ptr Body -> IO (V2 Double)
@@ -123,12 +123,12 @@ instance ExplMembers IO (Space Position) where
 instance ExplSet IO (Space Position) where
   explSet (Space bMap _ _ _ _) ety (Position pos) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \(BodyRecord b _ _) -> setPosition b pos
+    forM_ rd$ \(BodyRecord b _ _ _) -> setPosition b pos
 
 instance ExplGet IO (Space Position) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Position <$> getPosition b
 
 -- Velocity
@@ -156,12 +156,12 @@ instance ExplMembers IO (Space Velocity) where
 instance ExplSet IO (Space Velocity) where
   explSet (Space bMap _ _ _ _) ety (Velocity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \(BodyRecord b _ _) -> setVelocity b vel
+    forM_ rd$ \(BodyRecord b _ _ _) -> setVelocity b vel
 
 instance ExplGet IO (Space Velocity) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Velocity <$> getVelocity b
 
 -- Angle
@@ -191,12 +191,12 @@ instance ExplMembers IO (Space Angle) where
 instance ExplSet IO (Space Angle) where
   explSet (Space bMap _ _ _ _) ety (Angle angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \(BodyRecord b _ _) -> setAngle b angle
+    forM_ rd $ \(BodyRecord b _ _ _) -> setAngle b angle
 
 instance ExplGet IO (Space Angle) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Angle <$> getAngle b
 
 -- AngularVelocity
@@ -226,12 +226,12 @@ instance ExplMembers IO (Space AngularVelocity) where
 instance ExplSet IO (Space AngularVelocity) where
   explSet (Space bMap _ _ _ _) ety (AngularVelocity angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \(BodyRecord b _ _) -> setAngularVelocity b angle
+    forM_ rd $ \(BodyRecord b _ _ _) -> setAngularVelocity b angle
 
 instance ExplGet IO (Space AngularVelocity) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     AngularVelocity <$> getAngularVelocity b
 
 -- Force
@@ -259,12 +259,12 @@ instance ExplMembers IO (Space Force) where
 instance ExplSet IO (Space Force) where
   explSet (Space bMap _ _ _ _) ety (Force frc) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \(BodyRecord b _ _) -> setForce b frc
+    forM_ rd$ \(BodyRecord b _ _ _) -> setForce b frc
 
 instance ExplGet IO (Space Force) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Force <$> getForce b
 
 -- BodyMass
@@ -294,12 +294,12 @@ instance ExplMembers IO (Space BodyMass) where
 instance ExplSet IO (Space BodyMass) where
   explSet (Space bMap _ _ _ _) ety (BodyMass angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \(BodyRecord b _ _) -> setBodyMass b angle
+    forM_ rd $ \(BodyRecord b _ _ _) -> setBodyMass b angle
 
 instance ExplGet IO (Space BodyMass) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     BodyMass <$> getBodyMass b
 
 -- Moment
@@ -329,12 +329,12 @@ instance ExplMembers IO (Space Moment) where
 instance ExplSet IO (Space Moment) where
   explSet (Space bMap _ _ _ _) ety (Moment angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \(BodyRecord b _ _) -> setMoment b angle
+    forM_ rd $ \(BodyRecord b _ _ _) -> setMoment b angle
 
 instance ExplGet IO (Space Moment) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Moment <$> getMoment b
 
 -- Torque
@@ -364,12 +364,12 @@ instance ExplMembers IO (Space Torque) where
 instance ExplSet IO (Space Torque) where
   explSet (Space bMap _ _ _ _) ety (Torque angle) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd $ \(BodyRecord b _ _) -> setTorque b angle
+    forM_ rd $ \(BodyRecord b _ _ _) -> setTorque b angle
 
 instance ExplGet IO (Space Torque) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Torque <$> getTorque b
 
 -- CenterOfGravity
@@ -397,11 +397,11 @@ instance ExplMembers IO (Space CenterOfGravity) where
 instance ExplSet IO (Space CenterOfGravity) where
   explSet (Space bMap _ _ _ _) ety (CenterOfGravity vel) = do
     rd <- M.lookup ety <$> readIORef bMap
-    forM_ rd$ \(BodyRecord b _ _) -> setCenterOfGravity b vel
+    forM_ rd$ \(BodyRecord b _ _ _) -> setCenterOfGravity b vel
 
 instance ExplGet IO (Space CenterOfGravity) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord b _ _) <- M.lookup ety <$> readIORef bMap
+    Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b
 

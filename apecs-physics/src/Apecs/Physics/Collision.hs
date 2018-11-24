@@ -115,17 +115,19 @@ instance ExplSet IO (Space CollisionHandler) where
   explSet sp@(Space _ _ _ hMap spcPtr) ety handler = do
     explDestroy sp ety
     hPtr <- newCollisionHandler spcPtr handler ety
-    modifyIORef' hMap (M.insert ety hPtr)
+    modifyIORef' hMap (M.insert ety (Record hPtr handler))
 
 instance ExplDestroy IO (Space CollisionHandler) where
   explDestroy (Space _ _ _ hMap _) ety = do
     rd <- M.lookup ety <$> readIORef hMap
-    forM_ rd$ \c -> destroyCollisionHandler c >> modifyIORef' hMap (M.delete ety)
+    forM_ rd$ \(Record c _) -> destroyCollisionHandler c >> modifyIORef' hMap (M.delete ety)
 
 instance ExplMembers IO (Space CollisionHandler) where
   explMembers (Space _ _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
 
 instance ExplGet IO (Space CollisionHandler) where
   explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
-  explGet _ _ = return (error "CollisionHandler is a write-only component")
+  explGet (Space _ _ _ hMap _) ety = do
+    Just (Record _ handler) <- M.lookup ety <$> readIORef hMap
+    return handler
 

@@ -63,7 +63,7 @@ instance ExplMembers IO (Space Shape) where
 instance ExplDestroy IO (Space Shape) where
   explDestroy (Space bMap sMap _ _ spc) sEty = do
     rd <- M.lookup sEty <$> readIORef sMap
-    forM_ rd $ \sPtr -> do
+    forM_ rd $ \(Record sPtr _) -> do
       bEty <- fromIntegral <$> getShapeBody sPtr
 
       Just bRec <- M.lookup bEty <$> readIORef bMap
@@ -74,20 +74,20 @@ instance ExplDestroy IO (Space Shape) where
       destroyShape spc sPtr
 
 instance ExplSet IO (Space Shape) where
-  explSet _ _ ShapeRead = return ()
   explSet sp ety (Shape sh) = explSet sp ety (ShapeExtend (Entity ety) sh)
-
-  explSet sp@(Space bMap sMap _ _ spcPtr) sEty (ShapeExtend (Entity bEty) sh) = do
+  explSet sp@(Space bMap sMap _ _ spcPtr) sEty shape@(ShapeExtend (Entity bEty) sh) = do
     explDestroy sp sEty
     rd <- M.lookup bEty <$> readIORef bMap
     forM_ rd $ \bRec -> do
-      s <- newShape spcPtr (brPtr bRec) sh sEty
+      shPtr <- newShape spcPtr (brPtr bRec) sh sEty
       let brShapes' = S.insert sEty (brShapes bRec)
       modifyIORef' bMap (M.insert bEty (bRec {brShapes = brShapes'}))
-      modifyIORef' sMap (M.insert sEty s)
+      modifyIORef' sMap (M.insert sEty (Record shPtr shape))
 
 instance ExplGet IO (Space Shape) where
-  explGet _ _ = return ShapeRead
+  explGet    (Space _ sMap _ _ _) ety = do
+    Just (Record _ s) <- M.lookup ety <$> readIORef sMap
+    return s
   explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
 
 newShape :: SpacePtr -> Ptr Body -> Convex -> Int -> IO (Ptr Shape)
@@ -146,12 +146,12 @@ instance ExplMembers IO (Space Sensor) where
 instance ExplSet IO (Space Sensor) where
   explSet (Space _ sMap _ _ _) ety (Sensor vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setSensor s vec
+    forM_ rd$ \(Record s _) -> setSensor s vec
 
 instance ExplGet IO (Space Sensor) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Sensor <$> getSensor s
 
 -- Elasticity
@@ -174,12 +174,12 @@ instance ExplMembers IO (Space Elasticity) where
 instance ExplSet IO (Space Elasticity) where
   explSet (Space _ sMap _ _ _) ety (Elasticity vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setElasticity s vec
+    forM_ rd$ \(Record s _) -> setElasticity s vec
 
 instance ExplGet IO (Space Elasticity) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Elasticity <$> getElasticity s
 
 -- Mass
@@ -202,12 +202,12 @@ instance ExplMembers IO (Space Mass) where
 instance ExplSet IO (Space Mass) where
   explSet (Space _ sMap _ _ _) ety (Mass vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setMass s vec
+    forM_ rd$ \(Record s _) -> setMass s vec
 
 instance ExplGet IO (Space Mass) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Mass <$> getMass s
 
 -- Density
@@ -230,12 +230,12 @@ instance ExplMembers IO (Space Density) where
 instance ExplSet IO (Space Density) where
   explSet (Space _ sMap _ _ _) ety (Density vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setDensity s vec
+    forM_ rd$ \(Record s _) -> setDensity s vec
 
 instance ExplGet IO (Space Density) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Density <$> getDensity s
 
 -- Friction
@@ -258,12 +258,12 @@ instance ExplMembers IO (Space Friction) where
 instance ExplSet IO (Space Friction) where
   explSet (Space _ sMap _ _ _) ety (Friction vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setFriction s vec
+    forM_ rd$ \(Record s _) -> setFriction s vec
 
 instance ExplGet IO (Space Friction) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Friction <$> getFriction s
 
 -- SurfaceVelocity
@@ -290,12 +290,12 @@ instance ExplMembers IO (Space SurfaceVelocity) where
 instance ExplSet IO (Space SurfaceVelocity) where
   explSet (Space _ sMap _ _ _) ety (SurfaceVelocity vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setSurfaceVelocity s vec
+    forM_ rd$ \(Record s _) -> setSurfaceVelocity s vec
 
 instance ExplGet IO (Space SurfaceVelocity) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     SurfaceVelocity <$> getSurfaceVelocity s
 
 -- CollisionFilter
@@ -326,12 +326,12 @@ instance ExplMembers IO (Space CollisionFilter) where
 instance ExplSet IO (Space CollisionFilter) where
   explSet (Space _ sMap _ _ _) ety cfilter = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setFilter s cfilter
+    forM_ rd$ \(Record s _) -> setFilter s cfilter
 
 instance ExplGet IO (Space CollisionFilter) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     getFilter s
 
 -- CollisionType
@@ -354,12 +354,12 @@ instance ExplMembers IO (Space CollisionType) where
 instance ExplSet IO (Space CollisionType) where
   explSet (Space _ sMap _ _ _) ety (CollisionType vec) = do
     rd <- M.lookup ety <$> readIORef sMap
-    forM_ rd$ \s -> setCollisionType s vec
+    forM_ rd$ \(Record s _) -> setCollisionType s vec
 
 instance ExplGet IO (Space CollisionType) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     CollisionType <$> getCollisionType s
 
 -- ShapeBody
@@ -378,5 +378,5 @@ instance ExplMembers IO (Space ShapeBody) where
 instance ExplGet IO (Space ShapeBody) where
   explExists s ety = explExists (cast s :: Space Shape) ety
   explGet (Space _ sMap _ _ _) ety = do
-    Just s <- M.lookup ety <$> readIORef sMap
+    Just (Record s _) <- M.lookup ety <$> readIORef sMap
     ShapeBody . Entity . fromIntegral <$> getShapeBody s

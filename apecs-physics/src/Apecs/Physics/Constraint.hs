@@ -148,10 +148,8 @@ instance Has w IO Physics => Has w IO Constraint where
   getStore = (cast :: Space Physics -> Space Constraint) <$> getStore
 
 instance ExplSet IO (Space Constraint) where
-
-  explSet _ _ ConstraintRead = return ()
   explSet s ety (Constraint b ctype) = explSet s ety (ConstraintExtend (Entity ety) b ctype)
-  explSet sp@(Space bMap _ cMap _ spcPtr) cEty (ConstraintExtend (Entity bEtyA) (Entity bEtyB) ctype) = do
+  explSet sp@(Space bMap _ cMap _ spcPtr) cEty cons@(ConstraintExtend (Entity bEtyA) (Entity bEtyB) ctype) = do
     explDestroy sp cEty
     mBrA <- M.lookup bEtyA <$> readIORef bMap
     mBrB <- M.lookup bEtyB <$> readIORef bMap
@@ -159,10 +157,11 @@ instance ExplSet IO (Space Constraint) where
       (Just brA, Just brB) -> do
         cPtr <- newConstraint spcPtr (brPtr brA) (brPtr brB) cEty ctype
 
+        modifyIORef' cMap (M.insert cEty (Record cPtr cons))
+
         let brConstraintsA' = S.insert cEty (brConstraints brA)
             brConstraintsB' = S.insert cEty (brConstraints brB)
 
-        modifyIORef' cMap (M.insert cEty cPtr)
         modifyIORef' bMap ( M.insert bEtyA (brA {brConstraints = brConstraintsA'})
                           . M.insert bEtyB (brB {brConstraints = brConstraintsB'}) )
       _ -> return ()
@@ -170,7 +169,7 @@ instance ExplSet IO (Space Constraint) where
 instance ExplDestroy IO (Space Constraint) where
   explDestroy (Space bMap _ cMap _ spc) cEty = do
     rd <- M.lookup cEty <$> readIORef cMap
-    forM_ rd $ \cPtr -> do
+    forM_ rd $ \(Record cPtr _) -> do
       bEtyA <- getBodyA cPtr
       bEtyB <- getBodyB cPtr
       bMapRd <- readIORef bMap
@@ -190,8 +189,9 @@ instance ExplMembers IO (Space Constraint) where
 
 instance ExplGet IO (Space Constraint) where
   explExists (Space _ _ cMap _ _) ety = M.member ety <$> readIORef cMap
-
-  explGet _ _ = return ConstraintRead
+  explGet    (Space _ _ cMap _ _) ety = do
+    Just (Record _ cons)  <- M.lookup ety <$> readIORef cMap
+    return cons
 
 -- BodyAB
 getBodyA :: Ptr Constraint -> IO Int
@@ -225,12 +225,12 @@ instance ExplSet IO (Space MaxForce) where
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
-      Just c  -> setMaxForce c vec
+      Just (Record c _) -> setMaxForce c vec
 
 instance ExplGet IO (Space MaxForce) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explGet (Space _ _ cMap _ _) ety = do
-    Just c <- M.lookup ety <$> readIORef cMap
+    Just (Record c _) <- M.lookup ety <$> readIORef cMap
     MaxForce <$> getMaxForce c
 
 -- MaxBias
@@ -256,11 +256,11 @@ instance ExplSet IO (Space MaxBias) where
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
-      Just c  -> setMaxBias c vec
+      Just (Record c _) -> setMaxBias c vec
 
 instance ExplGet IO (Space MaxBias) where
   explGet (Space _ _ cMap _ _) ety = do
-    Just c <- M.lookup ety <$> readIORef cMap
+    Just (Record c _) <- M.lookup ety <$> readIORef cMap
     MaxBias <$> getMaxBias c
   explExists s ety = explExists (cast s :: Space Constraint) ety
 
@@ -287,12 +287,12 @@ instance ExplSet IO (Space ErrorBias) where
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
-      Just c  -> setErrorBias c vec
+      Just (Record c _) -> setErrorBias c vec
 
 instance ExplGet IO (Space ErrorBias) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explGet (Space _ _ cMap _ _) ety = do
-    Just c <- M.lookup ety <$> readIORef cMap
+    Just (Record c _) <- M.lookup ety <$> readIORef cMap
     ErrorBias <$> getErrorBias c
 
 -- CollideBodies
@@ -318,10 +318,10 @@ instance ExplSet IO (Space CollideBodies) where
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
-      Just c  -> setCollideBodies c vec
+      Just (Record c _) -> setCollideBodies c vec
 
 instance ExplGet IO (Space CollideBodies) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
   explGet (Space _ _ cMap _ _) ety = do
-    Just c <- M.lookup ety <$> readIORef cMap
+    Just (Record c _) <- M.lookup ety <$> readIORef cMap
     CollideBodies <$> getCollideBodies c

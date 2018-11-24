@@ -1,5 +1,5 @@
 name:                apecs-physics
-version:             0.2.0.1
+version:             0.3.0
 synopsis:            2D physics for apecs
 description:         2D physics for apecs. Uses Chipmunk physics library under the hood.
 homepage:            https://github.com/jonascarpay/apecs-physics#readme
@@ -44,9 +44,6 @@ extra-source-files:
   Chipmunk2D/include/chipmunk/cpDampedSpring.h,
   Chipmunk2D/include/chipmunk/cpPolyShape.h,
   Chipmunk2D/include/chipmunk/cpPivotJoint.h
-
-
-
 
 source-repository HEAD
   type:     git

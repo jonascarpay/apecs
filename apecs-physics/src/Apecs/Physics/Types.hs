@@ -79,7 +79,6 @@ newtype CenterOfGravity = CenterOfGravity BVec
 --   Adding a shape to an entity that has no @Body@ is a noop.
 data Shape = Shape Convex
            | ShapeExtend Entity Convex
-           | ShapeRead -- ^ Shapes are write-only, this is returned when you attempt to read
 
 -- | A convex polygon.
 --   Consists of a list of vertices, and a radius.
@@ -104,16 +103,16 @@ data CollisionFilter = CollisionFilter
 
 newtype Bitmask = Bitmask CUInt deriving (Eq, Bits)
 instance Show Bitmask where
-  show (Bitmask mask) = "Bitmask " ++ showIntAtBase 2 intToDigit mask ""
+  show (Bitmask mask) = "Bitmask 0b" ++ showIntAtBase 2 intToDigit mask ""
 
 data FrnSpace
 data FrnVec
 
 data Space c = Space
   { spBodies      :: IOMap BodyRecord
-  , spShapes      :: PtrMap Shape
-  , spConstraints :: PtrMap Constraint
-  , spHandlers    :: PtrMap CollisionHandler
+  , spShapes      :: IOMap (Record Shape)
+  , spConstraints :: IOMap (Record Constraint)
+  , spHandlers    :: IOMap (Record CollisionHandler)
   , spacePtr      :: SpacePtr
   }
 
@@ -121,8 +120,14 @@ type instance Elem (Space a) = a
 
 data BodyRecord = BodyRecord
   { brPtr         :: Ptr Body
+  , brBody        :: Body
   , brShapes      :: S.IntSet
   , brConstraints :: S.IntSet
+  }
+
+data Record a = Record
+  { recPtr :: Ptr a
+  , recVal :: a
   }
 
 type IOMap a = IORef (M.IntMap a)
@@ -155,7 +160,6 @@ newtype CollideBodies = CollideBodies Bool
 
 data Constraint = Constraint Entity ConstraintType
                 | ConstraintExtend Entity Entity ConstraintType
-                | ConstraintRead
 
 data ConstraintType
   = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points
@@ -225,4 +229,3 @@ data PointQueryResult = PointQueryResult
   , pqDistance :: Double
   , pqGradient :: Double
   } deriving (Eq, Show)
-
