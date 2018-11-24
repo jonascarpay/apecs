@@ -7,30 +7,31 @@ module Apecs.Gloss
   ) where
 
 import Graphics.Gloss.Interface.IO.Game as G
+import Linear.V2
+import Linear.Vector
 
 import           Apecs
 
 data Camera = Camera
-  { camX     :: Double
-  , camY     :: Double
-  , camScale :: Double
+  { camOffset :: V2 Double
+  , camScale  :: Double
   } deriving (Eq, Show, Read)
 
 instance Semigroup Camera where
-  Camera x1 y1 r1 <> Camera x2 y2 r2 = Camera (x1 + x2) (y1 + y2) (r1 * r2)
+  Camera x1 r1 <> Camera x2 r2 = Camera (x1 + x2) (r1 * r2)
 instance Monoid Camera where
-  mempty = Camera 0 0 1
+  mempty = Camera 0 1
   mappend = (<>)
 
 -- | Apply a camera transformation to a picture
 cameraTransform :: Camera -> Picture -> Picture
-cameraTransform (Camera cx cy cs) =
+cameraTransform (Camera (V2 cx cy) cs) =
     Scale (f cs) (f cs) .  Translate (f . negate $ cx) (f . negate $ cy)
   where f = realToFrac
 
-windowToWorld :: Camera -> (Float,Float) -> (Double, Double)
-windowToWorld (Camera cx cy cs) (x,y) = ((f x-cx)/cs, (f y-cy)/cs)
-  where f = realToFrac
+windowToWorld :: Camera -> (Float,Float) -> V2 Double
+windowToWorld (Camera cx cs) (x,y) =  (cx - v) ^/ cs
+  where v = V2 (realToFrac x) (realToFrac y)
 
 instance Component Camera where
   type Storage Camera = Global Camera

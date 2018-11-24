@@ -3,7 +3,12 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Apecs.Physics.Gloss where
+module Apecs.Physics.Gloss
+  ( convexToPicture
+  , drawBody
+  , simulate
+  , module Apecs.Gloss
+  ) where
 
 import           Control.Monad                        (foldM)
 import           Data.Semigroup                       (Semigroup (..))
