@@ -6,9 +6,10 @@ module Apecs.Gloss
   , module G
   ) where
 
-import Graphics.Gloss.Interface.IO.Game as G
-import Linear.V2
-import Linear.Vector
+import           Data.Semigroup                   (Semigroup (..))
+import           Graphics.Gloss.Interface.IO.Game as G
+import           Linear.V2
+import           Linear.Vector
 
 import           Apecs
 
