@@ -37,4 +37,3 @@ initialize = do
   return ()
 
 main = initWorld >>= runSystem (initialize >> simulate "Tumbler")
-

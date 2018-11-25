@@ -3,9 +3,9 @@
 apecs is an _Entity Component System_ (ECS) framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 ECS presents a data-driven approach to game development, that elegantly tackles many of the unique issues of game programming.
 apecs aims to be
-* **Fast** - apecs is designed for high-performance applications. Its performance is competitive with Rust ECS libraries.
+* **Fast** - apecs is designed for high-performance applications. Its performance is competitive with Rust ECS libraries (see benchmark results below).
 * **Simple** - Game logic is expressed using a small number of combinators, and minimal boilerplate.
-* **Safe** - The `cmap`/`cfold`-DSL hides all the dangers of the low-level API.
+* **Safe** - The `cmap`/`cfold`-DSL completely hides the dangers of the low-level API.
 * **Extensible** - apecs can be used with anything that implements the low-level API. See [apecs-physics](apecs-physics/) or [apecs-stm](apecs-stm/) for examples.
 
 ![Benchmarks](apecs/bench/chart.png)
