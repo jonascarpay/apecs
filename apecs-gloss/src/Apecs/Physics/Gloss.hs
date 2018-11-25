@@ -19,11 +19,6 @@ import           Apecs.Physics
 
 import           Apecs.Gloss
 
-newtype PicBuffer = PicBuffer Picture deriving (Semigroup, Monoid)
-
-instance Component PicBuffer where
-  type Storage PicBuffer = Map PicBuffer
-
 convexToPicture :: Convex -> Picture
 convexToPicture (Convex [V2 x y] radius) = Translate (realToFrac x) (realToFrac y) $ Circle (realToFrac radius)
 convexToPicture (Convex [a,b] _) = Line [v2ToTuple a, v2ToTuple b]
@@ -36,7 +31,7 @@ drawBody :: Has w IO Shape => (Position, Angle, Shapes) -> System w Picture
 drawBody (Position (V2 x y), Angle theta, Shapes shapes) = do
   let fold pic shapeEty = do
         ShapeExtend _ convex <- get shapeEty
-        return $ pic <> convexToPicture convex
+        return . mappend pic $ convexToPicture convex
   bodyPic <- foldM fold mempty shapes
   return . Translate (realToFrac x) (realToFrac y)
          . Rotate (negate . radToDeg . realToFrac $ theta)
