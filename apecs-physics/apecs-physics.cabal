@@ -77,7 +77,7 @@ library
     Apecs.Physics.Query
   build-depends:
     base >= 4.7 && < 4.13,
-    apecs >= 0.6,
+    apecs,
     containers,
     inline-c,
     linear,

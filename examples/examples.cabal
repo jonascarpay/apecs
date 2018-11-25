@@ -16,7 +16,7 @@ executable simple
     Simple.hs
   build-depends:
     base >= 4.7 && < 5,
-    apecs >= 0.6,
+    apecs,
     linear
   default-language:
     Haskell2010
@@ -26,7 +26,7 @@ executable shmup
     Shmup.lhs
   build-depends:
     base >= 4.7 && < 5,
-    apecs >= 0.6,
+    apecs,
     linear,
     gloss,
     random
@@ -40,7 +40,7 @@ executable helloworld
   main-is:             HelloWorld.hs
   build-depends:
     base >= 4.7 && < 5,
-    apecs >= 0.6,
+    apecs,
     apecs-physics,
     apecs-gloss,
     gloss
@@ -51,7 +51,7 @@ executable tumbler
   main-is:             Tumbler.hs
   build-depends:
     base >= 4.7 && < 5,
-    apecs >= 0.6,
+    apecs,
     apecs-physics,
     apecs-gloss,
     gloss,
@@ -63,7 +63,7 @@ executable constraints
   main-is:             Constraints.hs
   build-depends:
     base >= 4.7 && < 5,
-    apecs >= 0.6,
+    apecs,
     apecs-physics,
     apecs-gloss,
     gloss

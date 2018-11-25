@@ -34,6 +34,6 @@ library
     list-t,
     vector,
     stm-containers >= 1.1,
-    apecs >= 0.6
+    apecs
   ghc-options:
     -Wall
