@@ -10,9 +10,10 @@ module Apecs.Physics.Gloss
   , module Apecs.Gloss
   ) where
 
-import           Control.Monad                        (foldM)
-import           Data.Semigroup                       (Semigroup (..))
-import           Graphics.Gloss.Geometry.Angle        (radToDeg)
+import           Control.Monad                 (foldM)
+import           Data.Foldable                 (fold)
+import           Data.Semigroup                (Semigroup (..))
+import           Graphics.Gloss.Geometry.Angle (radToDeg)
 
 import           Apecs
 import           Apecs.Physics
