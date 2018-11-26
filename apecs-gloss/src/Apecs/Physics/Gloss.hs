@@ -11,7 +11,6 @@ module Apecs.Physics.Gloss
   ) where
 
 import           Control.Monad                 (foldM)
-import           Data.Foldable                 (fold)
 import           Data.Semigroup                (Semigroup (..))
 import           Graphics.Gloss.Geometry.Angle (radToDeg)
 
@@ -28,13 +27,20 @@ convexToPicture (Convex verts _) = Polygon (v2ToTuple <$> verts)
 v2ToTuple :: V2 Double -> (Float, Float)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
-drawBody :: Has w IO Shape => (Position, Angle, Shapes) -> System w Picture
-drawBody (Position (V2 x y), Angle theta, Shapes shapes) = do
-  let fold pic shapeEty = do
-        ShapeExtend _ convex <- get shapeEty
-        return . mappend pic $ convexToPicture convex
-  bodyPic <- foldM fold mempty shapes
-  return . Translate (realToFrac x) (realToFrac y)
+drawBody :: Has w IO Shape => (Body, Position, Angle, Shapes) -> System w Picture
+drawBody (btype, Position (V2 x y), Angle theta, Shapes shapes) = do
+  let foldfn pic shapeEty = do
+        shape <- get shapeEty
+        return $ case shape of
+          ShapeExtend _ convex -> mappend pic $ convexToPicture convex
+          _                    -> error "Impossible read of Shape component"
+      shColor = case btype of
+                  DynamicBody   -> red
+                  KinematicBody -> green
+                  StaticBody    -> blue
+  bodyPic <- foldM foldfn mempty shapes
+  return . color shColor
+         . Translate (realToFrac x) (realToFrac y)
          . Rotate (negate . radToDeg . realToFrac $ theta)
          $ bodyPic
 
