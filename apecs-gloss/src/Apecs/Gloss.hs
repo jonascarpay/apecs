@@ -31,7 +31,7 @@ cameraTransform (Camera (V2 cx cy) cs) =
   where f = realToFrac
 
 windowToWorld :: Camera -> (Float,Float) -> V2 Double
-windowToWorld (Camera cx cs) (x,y) =  (cx - v) ^/ cs
+windowToWorld (Camera cx cs) (x,y) = v ^/ cs - cx
   where v = V2 (realToFrac x) (realToFrac y)
 
 instance Component Camera where
