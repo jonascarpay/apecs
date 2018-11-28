@@ -171,6 +171,7 @@ instance ExplDestroy IO (Space Constraint) where
       let rmConstraint ref = modifyIORef' (brConstraints ref) (S.delete cEty)
       mapM_ rmConstraint (M.lookup bEtyA bMap')
       mapM_ rmConstraint (M.lookup bEtyB bMap')
+      modifyIORef' cMap $ M.delete cEty
       destroyConstraint spc cPtr
 
 instance ExplMembers IO (Space Constraint) where
