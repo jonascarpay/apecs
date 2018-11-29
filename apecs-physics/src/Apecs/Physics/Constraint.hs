@@ -148,8 +148,7 @@ instance Has w IO Physics => Has w IO Constraint where
   getStore = (cast :: Space Physics -> Space Constraint) <$> getStore
 
 instance ExplSet IO (Space Constraint) where
-  explSet s ety (Constraint b ctype) = explSet s ety (ConstraintExtend (Entity ety) b ctype)
-  explSet sp@(Space bMap _ cMap _ spcPtr) cEty cons@(ConstraintExtend (Entity bEtyA) (Entity bEtyB) ctype) = do
+  explSet sp@(Space bMap _ cMap _ spcPtr) cEty cons@(Constraint (Entity bEtyA) (Entity bEtyB) ctype) = do
     explDestroy sp cEty
     mBrA <- M.lookup bEtyA <$> readIORef bMap
     mBrB <- M.lookup bEtyB <$> readIORef bMap
@@ -166,7 +165,7 @@ instance ExplSet IO (Space Constraint) where
 instance ExplDestroy IO (Space Constraint) where
   explDestroy (Space bMap _ cMap _ spc) cEty = do
     rd <- M.lookup cEty <$> readIORef cMap
-    forM_ rd $ \(Record cPtr (ConstraintExtend (Entity bEtyA) (Entity bEtyB) _)) -> do
+    forM_ rd $ \(Record cPtr (Constraint (Entity bEtyA) (Entity bEtyB) _)) -> do
       bMap' <- readIORef bMap
       let rmConstraint ref = modifyIORef' (brConstraints ref) (S.delete cEty)
       mapM_ rmConstraint (M.lookup bEtyA bMap')

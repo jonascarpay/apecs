@@ -80,8 +80,8 @@ instance ExplDestroy IO (Space Body) where
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
     forM_ rd $ \(BodyRecord bPtr _ shapes constraints) -> do
-      readIORef shapes >>= mapM_ (explDestroy (cast sp :: Space Shape))      . S.toList
-      readIORef shapes >>= mapM_ (explDestroy (cast sp :: Space Constraint)) . S.toList
+      readIORef shapes      >>= mapM_ (explDestroy (cast sp :: Space Shape))      . S.toList
+      readIORef constraints >>= mapM_ (explDestroy (cast sp :: Space Constraint)) . S.toList
       destroyBody spc bPtr
 
 instance ExplMembers IO (Space Body) where
