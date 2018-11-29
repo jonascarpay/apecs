@@ -100,13 +100,12 @@ handle (EventKey (MouseButton RightButton) Down _ mscreen) = do
 
 handle _ = return ()
 
-main = do
-  w <- initWorld
-  runWith w $ do
-    initialize
-    play (InWindow "Constraint Gallery" (640,480) (100,100))
-         black
-         60
-         (foldDrawM drawBody)
-         handle
-         (const $ stepPhysics (1/60))
+disp = InWindow "Constraint Gallery" (640,640) (10,10)
+main = (initWorld >>=) . runSystem $ do
+  initialize
+  play disp
+       black
+       60
+       (foldDrawM drawBody)
+       handle
+       (const $ stepPhysics (1/60))

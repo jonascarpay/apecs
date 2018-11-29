@@ -36,4 +36,5 @@ initialize = do
 
   return ()
 
-main = initWorld >>= runSystem (initialize >> simulate "Tumbler")
+disp = InWindow "Tumbler" (640,640) (10,10)
+main = initWorld >>= runSystem (initialize >> simulate disp)

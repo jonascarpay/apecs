@@ -23,4 +23,5 @@ initialize = do
             , Density 1
             , Elasticity 0.9 )
 
-main = initWorld >>= runSystem (initialize >> simulate "Hello World")
+disp = InWindow "Hello World" (640,640) (10,10)
+main = initWorld >>= runSystem (initialize >> simulate disp)
