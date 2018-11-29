@@ -17,7 +17,7 @@ module Apecs.Physics (
   -- * Shape
   Convex (..), Shape (Shape, ShapeExtend),
   Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..), CollisionFilter (..),
-  maskAll, maskNone, maskList, defaultFilter, boxShape,
+  Bitmask (..), maskAll, maskNone, maskList, defaultFilter, boxShape,
 
   -- * Constraint
   Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), CollideBodies (..),
@@ -33,6 +33,7 @@ module Apecs.Physics (
 
   -- * Geometry
   module Apecs.Physics.Geometry,
+  BVec, WVec,
 
   module Apecs,
   module Linear.V2,

@@ -49,7 +49,7 @@ phycsTypesTable = Map.fromList
   , (C.TypeName "cpSpace",            [t| FrnSpace         |])
   ]
 
--- | Uninhabited data type for constructing a world with a chipmunk space.
+-- | Uninhabited, should be added to the world as a component to add a physics space.
 data Physics
 
 -- | Vector type used by the library
@@ -105,6 +105,7 @@ data CollisionFilter = CollisionFilter
   , filterMask       :: Bitmask
   } deriving (Eq, Show)
 
+-- | A bitmask used for collision handling
 newtype Bitmask = Bitmask CUInt deriving (Eq, Bits)
 instance Show Bitmask where
   show (Bitmask mask) = "Bitmask 0b" ++ showIntAtBase 2 intToDigit mask ""
@@ -162,21 +163,20 @@ newtype MaxBias       = MaxBias       Double
 newtype ErrorBias     = ErrorBias     Double
 newtype CollideBodies = CollideBodies Bool
 
-data Constraint = Constraint Entity ConstraintType
-                | ConstraintExtend Entity Entity ConstraintType
+data Constraint = Constraint Entity Entity ConstraintType
 
 data ConstraintType
   = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points
-  | SlideJoint BVec BVec Double Double -- offsetA offsetB min max
+  | SlideJoint BVec BVec Double Double -- ^ A @PinJoint@ with minimum and maximum distance
   | PivotJoint WVec -- ^ Creates a pivot point at the given world coordinate
   | PivotJoint2 BVec BVec -- ^ Creates a pivot point at the given body coordinates
-  | GrooveJoint BVec BVec BVec
-  | DampedSpring BVec BVec Double Double Double -- offA offB restlength stiffness damping
-  | DampedRotarySpring Double Double Double -- restAngle stiffness damping
-  | RotaryLimitJoint Double Double -- min max
-  | RatchetJoint Double Double -- phase ratchet
-  | GearJoint Double Double -- phase ratio
-  | SimpleMotor Double -- rate
+  | GrooveJoint BVec BVec BVec -- ^ The first two vectors are the start and end of the groove on body A, the third argument is the anchor point on body B.
+  | DampedSpring BVec BVec Double Double Double -- ^ Spring between two anchor points, with given rest length, stiffness, and damping.
+  | DampedRotarySpring Double Double Double -- ^ Rotary sping, with given rest angle, stiffness, and damping.
+  | RotaryLimitJoint Double Double -- ^ Joint with minimum and maximum angle
+  | RatchetJoint Double Double -- ^ Rathet joint with given phase and ratchet (distance between clicks).
+  | GearJoint Double Double -- Keeps angular velocity ratio constant. The first argument is phase, the initial offset, the second argument is the ratio
+  | SimpleMotor Double -- ^ Keeps relative angular velocity constant
 
 -- TODO
 -- getConstraintImpulse

@@ -35,6 +35,7 @@ C.include "<chipmunk.h>"
 maskAll, maskNone :: Bitmask
 maskAll  = complement zeroBits
 maskNone = zeroBits
+-- | Makes a bitmask from a list of indices
 maskList :: [Int] -> Bitmask
 maskList = foldr (flip setBit) maskNone
 
