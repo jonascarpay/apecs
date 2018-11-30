@@ -18,14 +18,17 @@ makeWorld "World" [''Physics, ''Camera, ''MouseBody]
 
 material = (Friction 0.4, Elasticity 0.8, Density 1)
 
+collisionFilter = CollisionFilter 1 maskAll maskAll
+
 initialize = do
   set global ( Camera 0 150
              , earthGravity )
 
-  let gridLines' = gridLines (V2 4 3) 4 1
+  let gridLines' = gridLines (V2 4 3) 4 3
 
   grid <- newEntity StaticBody
-  forM_ gridLines' (newEntity . Shape grid . setRadius 0.01)
+  forM_ gridLines' $ \gline ->
+    newEntity (Shape grid $ setRadius 0.01 gline, collisionFilter)
 
   let mkBall pos = do
         ball <- newEntity (DynamicBody, pos)
@@ -39,6 +42,7 @@ initialize = do
   let mkBox pos = do
         box <- newEntity (DynamicBody, pos)
         newEntity (Shape box (oRectangle 0 0.2))
+        return box
 
   pinA <- mkBox $ Position (V2 (-0.55) 1)
   pinB <- mkBox $ Position (V2 (-0.3) 1)
@@ -58,6 +62,7 @@ initialize = do
         paddle <- newEntity (DynamicBody, Position pos)
         newEntity $ Shape paddle (cRectangle (V2 0.06 0.4))
         newEntity $ Constraint paddle grid (PivotJoint pos)
+        return paddle
 
   gearA <- mkPaddle $ Position (V2 (-1.25) 0)
   gearB <- mkPaddle $ Position (V2 (-1.75) 0)
@@ -84,10 +89,11 @@ handle (EventMotion mouseWin) = do
 
 handle (EventKey (MouseButton LeftButton) Down _ mouseWin) = do
   mouseWld <- flip windowToWorld mouseWin <$> get global
-  pq <- pointQuery mouseWld 0 defaultFilter
-  forM_ pq $ \(PointQueryResult other _ _ _) -> do
+  pq <- pointQuery mouseWld 0 collisionFilter
+  forM_ pq $ \(PointQueryResult shape _ _ _) -> do
+    Shape otherEty _ <- get shape
     mouse <- newEntity (MouseBody, StaticBody, Position mouseWld)
-    newEntity (Constraint mouse other (PivotJoint mouseWld), MaxForce 2)
+    newEntity (Constraint mouse otherEty (PivotJoint mouseWld), MaxForce 2)
 
 handle (EventKey (MouseButton LeftButton) Up _ _) =
   cmap $ \MouseBody -> Not :: Not (MouseBody, Body)
