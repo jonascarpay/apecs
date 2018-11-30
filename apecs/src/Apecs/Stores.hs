@@ -32,58 +32,58 @@ import           Apecs.Core
 newtype Map c = Map (IORef (M.IntMap c))
 
 type instance Elem (Map c) = c
-instance ExplInit IO (Map c) where
-  explInit = Map <$> newIORef mempty
+instance MonadIO m => ExplInit m (Map c) where
+  explInit = liftIO$ Map <$> newIORef mempty
 
-instance ExplGet IO (Map c) where
-  explExists (Map ref) ety = M.member ety <$> readIORef ref
-  explGet    (Map ref) ety =
+instance MonadIO m => ExplGet m (Map c) where
+  explExists (Map ref) ety = liftIO$ M.member ety <$> readIORef ref
+  explGet    (Map ref) ety = liftIO$
     fromJust . M.lookup ety <$> readIORef ref
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
-instance ExplSet IO (Map c) where
+instance MonadIO m => ExplSet m (Map c) where
   {-# INLINE explSet #-}
-  explSet (Map ref) ety x =
+  explSet (Map ref) ety x = liftIO$
     modifyIORef' ref (M.insert ety x)
 
-instance ExplDestroy IO (Map c) where
+instance MonadIO m => ExplDestroy m (Map c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Map ref) ety =
+  explDestroy (Map ref) ety = liftIO$
     readIORef ref >>= writeIORef ref . M.delete ety
 
-instance ExplMembers IO (Map c) where
+instance MonadIO m => ExplMembers m (Map c) where
   {-# INLINE explMembers #-}
-  explMembers (Map ref) = U.fromList . M.keys <$> readIORef ref
+  explMembers (Map ref) = liftIO$ U.fromList . M.keys <$> readIORef ref
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
 --   Its main purpose is to be a @Map@ optimized for when only ever one component inhabits it.
 newtype Unique c = Unique (IORef (Maybe (Int, c)))
 type instance Elem (Unique c) = c
-instance ExplInit IO (Unique c) where
-  explInit = Unique <$> newIORef Nothing
+instance MonadIO m => ExplInit m (Unique c) where
+  explInit = liftIO$ Unique <$> newIORef Nothing
 
-instance ExplGet IO (Unique c) where
+instance MonadIO m => ExplGet m (Unique c) where
   {-# INLINE explGet #-}
-  explGet (Unique ref) _ = flip fmap (readIORef ref) $ \case
+  explGet (Unique ref) _ = liftIO$ flip fmap (readIORef ref) $ \case
     Nothing -> error "Reading empty Unique"
     Just (_, c)  -> c
   {-# INLINE explExists #-}
-  explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readIORef ref
+  explExists (Unique ref) ety = liftIO$ maybe False ((==ety) . fst) <$> readIORef ref
 
-instance ExplSet IO (Unique c) where
+instance MonadIO m => ExplSet m (Unique c) where
   {-# INLINE explSet #-}
-  explSet (Unique ref) ety c = writeIORef ref (Just (ety, c))
+  explSet (Unique ref) ety c = liftIO$ writeIORef ref (Just (ety, c))
 
-instance ExplDestroy IO (Unique c) where
+instance MonadIO m => ExplDestroy m (Unique c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Unique ref) ety = readIORef ref >>=
+  explDestroy (Unique ref) ety = liftIO$ readIORef ref >>=
     mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
 
-instance ExplMembers IO (Unique c) where
+instance MonadIO m => ExplMembers m (Unique c) where
   {-# INLINE explMembers #-}
-  explMembers (Unique ref) = flip fmap (readIORef ref) $ \case
+  explMembers (Unique ref) = liftIO$ flip fmap (readIORef ref) $ \case
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
 
@@ -97,19 +97,19 @@ instance ExplMembers IO (Unique c) where
 --   The integer @global@ is defined as -1, and can be used to make operations on a global explicit, i.e. 'Time t <- get global'.
 newtype Global c = Global (IORef c)
 type instance Elem (Global c) = c
-instance Monoid c => ExplInit IO (Global c) where
+instance (Monoid c, MonadIO m) => ExplInit m (Global c) where
   {-# INLINE explInit #-}
-  explInit = Global <$> newIORef mempty
+  explInit = liftIO$ Global <$> newIORef mempty
 
-instance ExplGet IO (Global c) where
+instance MonadIO m => ExplGet m (Global c) where
   {-# INLINE explGet #-}
-  explGet (Global ref) _ = readIORef ref
+  explGet (Global ref) _ = liftIO$ readIORef ref
   {-# INLINE explExists #-}
   explExists _ _ = return True
 
-instance ExplSet IO (Global c) where
+instance MonadIO m => ExplSet m (Global c) where
   {-# INLINE explSet #-}
-  explSet (Global ref) _ c = writeIORef ref c
+  explSet (Global ref) _ c = liftIO$ writeIORef ref c
 
 -- | An empty type class indicating that the store behaves like a regular map, and can therefore safely be cached.
 class Cachable s
@@ -133,54 +133,54 @@ cacheMiss = error "Cache miss!"
 
 type instance Elem (Cache n s) = Elem s
 
-instance (ExplInit IO s, KnownNat n, Cachable s) => ExplInit IO (Cache n s) where
+instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (Cache n s) where
   {-# INLINE explInit #-}
   explInit = do
     let n = fromIntegral$ natVal (Proxy @n)
-    tags <- UM.replicate n (-2)
-    cache <- VM.replicate n cacheMiss
+    tags <- liftIO$ UM.replicate n (-2)
+    cache <- liftIO$ VM.replicate n cacheMiss
     child <- explInit
     return (Cache n tags cache child)
 
-instance ExplGet IO s => ExplGet IO (Cache n s) where
+instance (MonadIO m, ExplGet m s) => ExplGet m (Cache n s) where
   {-# INLINE explGet #-}
   explGet (Cache n tags cache s) ety = do
     let index = ety `rem` n
-    tag <- UM.unsafeRead tags index
+    tag <- liftIO$ UM.unsafeRead tags index
     if tag == ety
-       then VM.unsafeRead cache index
+       then liftIO$ VM.unsafeRead cache index
        else explGet s ety
 
   {-# INLINE explExists #-}
   explExists (Cache n tags _ s) ety = do
-    tag <- UM.unsafeRead tags (ety `rem` n)
+    tag <- liftIO$ UM.unsafeRead tags (ety `rem` n)
     if tag == ety then return True else explExists s ety
 
-instance ExplSet IO s => ExplSet IO (Cache n s) where
+instance (MonadIO m, ExplSet m s) => ExplSet m (Cache n s) where
   {-# INLINE explSet #-}
   explSet (Cache n tags cache s) ety x = do
     let index = ety `rem` n
-    tag <- UM.unsafeRead tags index
+    tag <- liftIO$ UM.unsafeRead tags index
     when (tag /= (-2) && tag /= ety) $ do
-      cached <- VM.unsafeRead cache index
+      cached <- liftIO$ VM.unsafeRead cache index
       explSet s tag cached
-    UM.unsafeWrite tags  index ety
-    VM.unsafeWrite cache index x
+    liftIO$ UM.unsafeWrite tags  index ety
+    liftIO$ VM.unsafeWrite cache index x
 
-instance ExplDestroy IO s => ExplDestroy IO (Cache n s) where
+instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
   {-# INLINE explDestroy #-}
   explDestroy (Cache n tags cache s) ety = do
     let index = ety `rem` n
-    tag <- UM.unsafeRead tags (ety `rem` n)
+    tag <- liftIO$ UM.unsafeRead tags (ety `rem` n)
     if tag == ety
        then do
-         UM.unsafeWrite tags  index (-2)
-         VM.unsafeWrite cache index cacheMiss
+         liftIO$ UM.unsafeWrite tags  index (-2)
+         liftIO$ VM.unsafeWrite cache index cacheMiss
        else explDestroy s ety
 
-instance ExplMembers IO s => ExplMembers IO (Cache n s) where
+instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
   {-# INLINE explMembers #-}
   explMembers (Cache _ tags _ s) = do
-    cached <- U.filter (/= (-2)) <$> U.freeze tags
+    cached <- liftIO$ U.filter (/= (-2)) <$> U.freeze tags
     stored <- explMembers s
     return $! cached U.++ stored

@@ -93,15 +93,15 @@ instance ExplMembers m s => ExplMembers m (Reactive r s) where
 data Printer c = Printer
 type instance ReactElem (Printer c) = c
 
-instance Show c => Reacts IO (Printer c) where
+instance (MonadIO m, Show c) => Reacts m (Printer c) where
   {-# INLINE rempty #-}
   rempty = return Printer
   {-# INLINE react #-}
-  react (Entity ety) (Just c) Nothing _ =
+  react (Entity ety) (Just c) Nothing _ = liftIO$
     putStrLn $ "Entity " ++ show ety ++ ": destroyed component " ++ show c
-  react (Entity ety) Nothing (Just c) _ =
+  react (Entity ety) Nothing (Just c) _ = liftIO$
     putStrLn $ "Entity " ++ show ety ++ ": created component " ++ show c
-  react (Entity ety) (Just old) (Just new) _ =
+  react (Entity ety) (Just old) (Just new) _ = liftIO$
     putStrLn $ "Entity " ++ show ety ++ ": update component " ++ show old ++ " to " ++ show new
   react _ _ _ _ = return ()
 
@@ -110,16 +110,16 @@ instance Show c => Reacts IO (Printer c) where
 newtype EnumMap c = EnumMap (IORef (M.IntMap S.IntSet))
 
 type instance ReactElem (EnumMap c) = c
-instance Enum c => Reacts IO (EnumMap c) where
+instance (MonadIO m, Enum c) => Reacts m (EnumMap c) where
   {-# INLINE rempty #-}
-  rempty = EnumMap <$> newIORef mempty
+  rempty = liftIO$ EnumMap <$> newIORef mempty
   {-# INLINE react #-}
   react _ Nothing Nothing _ = return ()
-  react (Entity ety) (Just c) Nothing (EnumMap ref) =
+  react (Entity ety) (Just c) Nothing (EnumMap ref) = liftIO$
     modifyIORef' ref (M.adjust (S.delete ety) (fromEnum c))
-  react (Entity ety) Nothing (Just c) (EnumMap ref) =
+  react (Entity ety) Nothing (Just c) (EnumMap ref) = liftIO$
     modifyIORef' ref (M.insertWith mappend (fromEnum c) (S.singleton ety))
-  react (Entity ety) (Just old) (Just new) (EnumMap ref) = do
+  react (Entity ety) (Just old) (Just new) (EnumMap ref) = liftIO$ do
     modifyIORef' ref (M.adjust (S.delete ety) (fromEnum old))
     modifyIORef' ref (M.insertWith mappend (fromEnum new) (S.singleton ety))
 

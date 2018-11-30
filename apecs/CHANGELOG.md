@@ -5,7 +5,8 @@
 - The `EntityCounter` and associated functions have all been specified to `IO`, since `Global EntityCounter` only works in IO. Furthermore, `EntityCounter` now uses a `ReadOnly` store, to prevent users from accidentally changing its value.
 - `Redirect` component that writes to another entity in `cmap`.
 ### Changed
-- I have consolidated all apecs packages into a single repo. This mostly affects contributors, not users.
+- Default stores have `MonadIO m => m` instances, rather than `IO`. This makes it easier to nest `SystemT`.
+- All apecs packages have been consolidated into a single git repo.
 - `Apecs.Components` contains the components (and corresponding stores) from `Apecs.Core`.
 
 ## [0.6.0.0]

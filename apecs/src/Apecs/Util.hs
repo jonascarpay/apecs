@@ -42,7 +42,7 @@ instance Component EntityCounter where
 
 -- | Bumps the EntityCounter and yields its value
 {-# INLINE nextEntity #-}
-nextEntity :: (Get w IO EntityCounter) => System w Entity
+nextEntity :: (MonadIO m, Get w m EntityCounter) => SystemT w m Entity
 nextEntity = do EntityCounter n <- get global
                 setReadOnly global (EntityCounter $ n+1)
                 return (Entity . getSum $ n)
@@ -50,8 +50,8 @@ nextEntity = do EntityCounter n <- get global
 -- | Writes the given components to a new entity, and yields that entity.
 -- The return value is often ignored.
 {-# INLINE newEntity #-}
-newEntity :: (Set w IO c, Get w IO EntityCounter)
-          => c -> System w Entity
+newEntity :: (MonadIO m, Set w m c, Get w m EntityCounter)
+          => c -> SystemT w m Entity
 newEntity c = do ety <- nextEntity
                  set ety c
                  return ety

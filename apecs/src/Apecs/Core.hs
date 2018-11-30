@@ -20,12 +20,12 @@ import qualified Data.Vector.Unboxed   as U
 --   For performance reasons, negative values like (-1) are reserved for stores to represent special values, so avoid using these.
 newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show, Enum)
 
--- | A SystemT is a newtype around `ReaderT w IO a`, where `w` is the game world variable.
---   Systems mainly serve to
---
---   * Lift side effects into the IO Monad.
+-- | A SystemT is a newtype around `ReaderT w m a`, where `w` is the game world variable.
+--   Systems serve to
 --
 --   * Allow type-based lookup of a component's store through @getStore@.
+--
+--   * Lift side effects into their host Monad.
 newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO)
 type System w a = SystemT w IO a
 
