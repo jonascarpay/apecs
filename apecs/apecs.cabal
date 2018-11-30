@@ -27,6 +27,7 @@ library
   exposed-modules:
     Apecs,
     Apecs.Core,
+    Apecs.Components,
     Apecs.Stores,
     Apecs.Stores.Extra,
     Apecs.Reactive,

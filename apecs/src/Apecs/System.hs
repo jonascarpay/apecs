@@ -11,6 +11,7 @@ import           Data.Proxy
 import qualified Data.Vector.Unboxed  as U
 
 import           Apecs.Core
+import           Apecs.Components ()
 
 -- | Run a system with a game world
 {-# INLINE runSystem #-}

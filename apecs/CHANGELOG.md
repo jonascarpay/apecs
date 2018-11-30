@@ -3,8 +3,10 @@
 - The `Reactive` store and module is a redesign of the `Register` store, and provides a more general solution for 'stores that perform additional actions when written to'.
 - The `Apecs.Stores.Extra` submodule, which contains the `Pushdown` and `ReadOnly` stores. `Pushdown` adds pushdown semantics to stores, and `ReadOnly` hides the `ExplSet` instances of whatever it wraps.
 - The `EntityCounter` and associated functions have all been specified to `IO`, since `Global EntityCounter` only works in IO. Furthermore, `EntityCounter` now uses a `ReadOnly` store, to prevent users from accidentally changing its value.
+- `Redirect` component that writes to another entity in `cmap`.
 ### Changed
-- I have consolidated all apecs packages into a single repo. This pmonly affects contributors, not users.
+- I have consolidated all apecs packages into a single repo. This mostly affects contributors, not users.
+- `Apecs.Components` contains the components (and corresponding stores) from `Apecs.Core`.
 
 ## [0.6.0.0]
 ### Changed

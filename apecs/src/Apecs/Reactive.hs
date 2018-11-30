@@ -10,21 +10,22 @@ Adds the @Reactive r s@ store, which when wrapped around store @s@, will call th
 Use e.g. @rget >>= mapLookup True@ to retrieve a list of entities that have a @True@ component.
 
 -}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Apecs.Reactive where
 
-import Data.IORef
-import qualified Data.IntSet as S
-import qualified Data.IntMap.Strict as M
-import Control.Monad.Reader
+import           Control.Monad.Reader
+import qualified Data.IntMap.Strict   as M
+import qualified Data.IntSet          as S
+import           Data.IORef
 
-import Apecs.Core
+import           Apecs.Core
+import           Apecs.Components
 
 -- | Analogous to @Elem@, but for @Reacts@ instances.
 --   For a @Reactive r s@ to be valid, @ReactElem r = Elem s@
@@ -50,7 +51,7 @@ data Reactive r s = Reactive r s
 type instance Elem (Reactive r s) = Elem s
 
 -- | Reads @r@ from the game world.
-rget :: forall w m r s. 
+rget :: forall w m r s.
   ( Component (ReactElem r)
   , Has w m (ReactElem r)
   , Storage (ReactElem r) ~ Reactive r s
