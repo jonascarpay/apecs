@@ -76,14 +76,13 @@ newtype AngularVelocity = AngularVelocity Double
 newtype CenterOfGravity = CenterOfGravity BVec
 
 -- | The @Shape@s belonging to a body. Read-only.
-newtype Shapes = Shapes [Entity]
+newtype ShapeList = ShapeList [Entity]
 -- | The @Constraint@s belonging to a body. Read-only.
-newtype Constraints = Constraints [Entity]
+newtype ConstraintList = ConstraintList [Entity]
 
 -- | Shape component.
 --   Adding a shape to an entity that has no @Body@ is a noop.
-data Shape = Shape Convex
-           | ShapeExtend Entity Convex
+data Shape = Shape Entity Convex
 
 -- | A convex polygon.
 --   Consists of a list of vertices, and a radius.
@@ -140,30 +139,30 @@ type PtrMap a = IOMap (Ptr a)
 type SpacePtr = ForeignPtr FrnSpace
 
 -- | Number of iterations per step, global value
-newtype Iterations = Iterations Int
+newtype Iterations = Iterations Int deriving (Eq, Show)
 -- | Gravity force vector, global value
 newtype Gravity = Gravity Vec deriving (Eq, Show)
 -- | Daming factor, global value
-newtype Damping = Damping Double
+newtype Damping = Damping Double deriving (Eq, Show)
 -- | Speed threshold to be considered idle, and a candidate for being put to sleep. Global value
-newtype IdleSpeedThreshold = IdleSpeedThreshold Double
+newtype IdleSpeedThreshold = IdleSpeedThreshold Double deriving (Eq, Show)
 -- | Sleep idle time threshold, global value
-newtype SleepIdleTime = SleepIdleTime Double
+newtype SleepIdleTime = SleepIdleTime Double deriving (Eq, Show)
 -- | Collision parameter, global value
-newtype CollisionSlop = CollisionSlop Double
+newtype CollisionSlop = CollisionSlop Double deriving (Eq, Show)
 -- | Collision parameter, global value
-newtype CollisionBias = CollisionBias Double
+newtype CollisionBias = CollisionBias Double deriving (Eq, Show)
 
 cast :: Space a -> Space b
 cast (Space b s c h w) = Space b s c h w
 
 -- Constraint subcomponents
-newtype MaxForce      = MaxForce      Double
-newtype MaxBias       = MaxBias       Double
-newtype ErrorBias     = ErrorBias     Double
-newtype CollideBodies = CollideBodies Bool
+newtype MaxForce      = MaxForce      Double deriving (Eq, Show)
+newtype MaxBias       = MaxBias       Double deriving (Eq, Show)
+newtype ErrorBias     = ErrorBias     Double deriving (Eq, Show)
+newtype CollideBodies = CollideBodies Bool   deriving (Eq, Show)
 
-data Constraint = Constraint Entity Entity ConstraintType
+data Constraint = Constraint Entity Entity ConstraintType deriving (Eq, Show)
 
 data ConstraintType
   = PinJoint BVec BVec -- ^ Maintains a fixed distance between two anchor points
@@ -177,6 +176,7 @@ data ConstraintType
   | RatchetJoint Double Double -- ^ Rathet joint with given phase and ratchet (distance between clicks).
   | GearJoint Double Double -- Keeps angular velocity ratio constant. The first argument is phase, the initial offset, the second argument is the ratio
   | SimpleMotor Double -- ^ Keeps relative angular velocity constant
+  deriving (Eq, Show)
 
 -- TODO
 -- getConstraintImpulse

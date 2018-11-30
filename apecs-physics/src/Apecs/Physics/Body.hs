@@ -403,34 +403,34 @@ instance ExplGet IO (Space CenterOfGravity) where
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b
 
--- Shapes
-instance Component Shapes where
-  type Storage Shapes = Space Shapes
+-- ShapeList
+instance Component ShapeList where
+  type Storage ShapeList = Space ShapeList
 
-instance Has w IO Physics => Has w IO Shapes where
-  getStore = (cast :: Space Physics -> Space Shapes) <$> getStore
+instance Has w IO Physics => Has w IO ShapeList where
+  getStore = (cast :: Space Physics -> Space ShapeList) <$> getStore
 
-instance ExplMembers IO (Space Shapes) where
+instance ExplMembers IO (Space ShapeList) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplGet IO (Space Shapes) where
+instance ExplGet IO (Space ShapeList) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord _ _ sPtr _) <- M.lookup ety <$> readIORef bMap
-    Shapes . fmap Entity . S.toList <$> readIORef sPtr
+    ShapeList . fmap Entity . S.toList <$> readIORef sPtr
 
--- Constraints
-instance Component Constraints where
-  type Storage Constraints = Space Constraints
+-- ConstraintList
+instance Component ConstraintList where
+  type Storage ConstraintList = Space ConstraintList
 
-instance Has w IO Physics => Has w IO Constraints where
-  getStore = (cast :: Space Physics -> Space Constraints) <$> getStore
+instance Has w IO Physics => Has w IO ConstraintList where
+  getStore = (cast :: Space Physics -> Space ConstraintList) <$> getStore
 
-instance ExplMembers IO (Space Constraints) where
+instance ExplMembers IO (Space ConstraintList) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplGet IO (Space Constraints) where
+instance ExplGet IO (Space ConstraintList) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
     Just (BodyRecord _ _ sPtr _) <- M.lookup ety <$> readIORef bMap
-    Constraints . fmap Entity . S.toList <$> readIORef sPtr
+    ConstraintList . fmap Entity . S.toList <$> readIORef sPtr

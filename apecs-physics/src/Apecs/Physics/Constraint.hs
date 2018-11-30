@@ -184,9 +184,7 @@ instance ExplGet IO (Space Constraint) where
 
 -- MaxForce
 getMaxForce :: Ptr Constraint -> IO Double
-getMaxForce c = do
-  maxForce <- [C.exp| double { cpConstraintGetMaxForce ($(cpConstraint* c)) } |]
-  return (realToFrac maxForce)
+getMaxForce c = realToFrac <$> [C.exp| double { cpConstraintGetMaxForce ($(cpConstraint* c)) } |]
 
 setMaxForce :: Ptr Constraint -> Double -> IO ()
 setMaxForce c (realToFrac -> maxForce) = [C.exp| void { cpConstraintSetMaxForce($(cpConstraint* c), $(double maxForce)); } |]

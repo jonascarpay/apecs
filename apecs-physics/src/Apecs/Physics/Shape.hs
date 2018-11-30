@@ -64,15 +64,14 @@ instance ExplMembers IO (Space Shape) where
 instance ExplDestroy IO (Space Shape) where
   explDestroy (Space bMap sMap _ _ spc) sEty = do
     rd <- M.lookup sEty <$> readIORef sMap
-    forM_ rd $ \(Record sPtr (ShapeExtend (Entity bEty) _)) -> do
-      Just bRec <- M.lookup bEty <$> readIORef bMap
-      modifyIORef' (brShapes bRec) (S.delete sEty)
+    forM_ rd $ \(Record sPtr (Shape (Entity bEty) _)) -> do
+      rd <- M.lookup bEty <$> readIORef bMap
+      forM_ rd $ \bRec -> modifyIORef' (brShapes bRec) (S.delete sEty)
       modifyIORef' sMap (M.delete sEty)
       destroyShape spc sPtr
 
 instance ExplSet IO (Space Shape) where
-  explSet sp ety (Shape sh) = explSet sp ety (ShapeExtend (Entity ety) sh)
-  explSet sp@(Space bMap sMap _ _ spcPtr) sEty shape@(ShapeExtend (Entity bEty) sh) = do
+  explSet sp@(Space bMap sMap _ _ spcPtr) sEty shape@(Shape (Entity bEty) sh) = do
     explDestroy sp sEty
     rd <- M.lookup bEty <$> readIORef bMap
     forM_ rd $ \bRec -> do
