@@ -1,19 +1,20 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-import           Apecs.Physics                    as P
+import           Apecs.Physics       as P
 import           Apecs.Physics.Gloss
 import           Apecs.Util
 import           Control.Monad
 
-data Target = Target
-instance Component Target
-  where type Storage Target = Unique Target
+data MouseBody = MouseBody
+instance Component MouseBody
+  where type Storage MouseBody = Unique MouseBody
 
-makeWorld "World" [''Physics, ''Camera, ''Target]
+makeWorld "World" [''Physics, ''Camera, ''MouseBody]
 
 material = (Friction 0.4, Elasticity 0.8, Density 1)
 
@@ -21,81 +22,80 @@ initialize = do
   set global ( Camera 0 150
              , earthGravity )
 
-  let gridLines' = gridLines (V2 4 3) 4 3
+  let gridLines' = gridLines (V2 4 3) 4 1
 
-  grid <- newEntity ( StaticBody
-                    , material
-                    )
-  forM_ gridLines' $ \line ->
-    newEntity ( ShapeExtend grid (setRadius 0.01 line), material )
+  grid <- newEntity StaticBody
+  forM_ gridLines' (newEntity . Shape grid . setRadius 0.01)
 
-  let ball = ( DynamicBody
-             , Shape (cCircle 0.1)
-             , material )
+  let mkBall pos = do
+        ball <- newEntity (DynamicBody, pos)
+        newEntity (Shape ball (cCircle 0.1))
+        return ball
 
-  springA <- newEntity (ball, Position (V2 (-1.7) 1))
-  newEntity (ball, Position (V2 (-1.5) 1), Constraint springA $ DampedSpring 0 0 0.3 3 1e-4)
+  springA <- mkBall $ Position (V2 (-1.5) 1)
+  springB <- mkBall $ Position (V2 (-1.7) 1)
+  newEntity $ Constraint springA springB (DampedSpring 0 0 0.3 3 1e-4)
 
-  let box = ( DynamicBody
-            , Shape (oRectangle 0 0.2)
-            , material )
+  let mkBox pos = do
+        box <- newEntity (DynamicBody, pos)
+        newEntity (Shape box (oRectangle 0 0.2))
 
-  pinB <- newEntity (box, Position (V2 (-0.3) 1))
-  newEntity (box, Position (V2 (-0.55) 1), Constraint pinB (PinJoint (V2 0.2 0.2) (V2 0 0.2)))
+  pinA <- mkBox $ Position (V2 (-0.55) 1)
+  pinB <- mkBox $ Position (V2 (-0.3) 1)
+  newEntity $ Constraint pinA pinB (PinJoint (V2 0.2 0.2) (V2 0 0.2))
 
-  slideB <- newEntity (box, Position (V2 0.5 1))
-  newEntity (box, Position (V2 0.75 1), Constraint slideB (SlideJoint (V2 0.2 0.2) (V2 0 0.2) 0 0.1))
+  slideA <- mkBox $ Position (V2 0.75 1)
+  slideB <- mkBox $ Position (V2 0.5 1)
+  newEntity $ Constraint slideA slideB (SlideJoint (V2 0.2 0.2) (V2 0 0.2) 0 0.1)
 
-  pivotA <- newEntity (box, Position (V2 1.1 1))
-  pivotB <- newEntity (box, Position (V2 1.3 1), Constraint pivotA (PivotJoint (V2 1.3 1)))
-  newEntity (box, Position (V2 1.5 1), Constraint pivotB (PivotJoint (V2 1.5 1)))
+  pivotA <- mkBox $ Position (V2 1.1 1)
+  pivotB <- mkBox $ Position (V2 1.3 1)
+  pivotC <- mkBox $ Position (V2 1.5 1)
+  newEntity $ Constraint pivotA pivotB (PivotJoint (V2 1.3 1))
+  newEntity $ Constraint pivotB pivotC (PivotJoint (V2 1.5 1))
 
-  let paddle pos = ( DynamicBody
-                   , Position pos
-                   , Shape (cRectangle (V2 0.06 0.4))
-                   , Constraint grid (PivotJoint pos)
-                   , material )
+  let mkPaddle (Position pos) = do
+        paddle <- newEntity (DynamicBody, Position pos)
+        newEntity $ Shape paddle (cRectangle (V2 0.06 0.4))
+        newEntity $ Constraint paddle grid (PivotJoint pos)
 
-  drsA <- newEntity (paddle (V2 (-1.25) 0))
-  drsB <- newEntity (paddle (V2 (-1.75) 0))
-  newEntity (ConstraintExtend drsA drsB (GearJoint 0 3))
+  gearA <- mkPaddle $ Position (V2 (-1.25) 0)
+  gearB <- mkPaddle $ Position (V2 (-1.75) 0)
+  newEntity $ Constraint gearA gearB (GearJoint 0 3)
 
-  drsA <- newEntity (paddle (V2 (-0.25) 0))
-  drsB <- newEntity (paddle (V2 (-0.75) 0))
-  newEntity (ConstraintExtend drsA drsB (DampedRotarySpring 0 1e-2 1e-4))
+  drsA <- mkPaddle $ Position (V2 (-0.25) 0)
+  drsB <- mkPaddle $ Position (V2 (-0.75) 0)
+  newEntity $ Constraint drsA drsB (DampedRotarySpring 0 1e-2 1e-4)
 
-  rlA <- newEntity (paddle (V2 0.25 0))
-  rlB <- newEntity (paddle (V2 0.75 0))
-  newEntity (ConstraintExtend rlA rlB (RotaryLimitJoint 0 1))
+  rlA <- mkPaddle $ Position (V2 0.25 0)
+  rlB <- mkPaddle $ Position (V2 0.75 0)
+  newEntity (Constraint rlA rlB (RotaryLimitJoint 0 1))
 
-  motA <- newEntity (paddle (V2 1.25 0))
-  motB <- newEntity (paddle (V2 1.75 0))
-  newEntity (ConstraintExtend motA motB (SimpleMotor pi))
+  motA <- mkPaddle $ Position (V2 1.25 0)
+  motB <- mkPaddle $ Position (V2 1.75 0)
+  newEntity (Constraint motA motB (SimpleMotor pi))
 
-  newEntity (StaticBody, Target)
+  cmap $ \(_ :: Shape) -> material
 
 handle :: Event -> System World ()
-handle (EventMotion mscreen) = do
-  mpos <- flip windowToWorld mscreen <$> get global
-  cmap $ \Target -> Position mpos
+handle (EventMotion mouseWin) = do
+  mouseWld <- flip windowToWorld mouseWin <$> get global
+  cmap $ \MouseBody -> Position mouseWld
 
-handle (EventKey (MouseButton LeftButton) Down _ mscreen) = do
-  mpos <- flip windowToWorld mscreen <$> get global
-  pq <- pointQuery mpos 0 defaultFilter
-  case pq of
-    Nothing                         -> return ()
-    Just (PointQueryResult s _ _ _) -> cmap $
-      \Target -> ( Constraint s (PivotJoint mpos), MaxForce 2)
+handle (EventKey (MouseButton LeftButton) Down _ mouseWin) = do
+  mouseWld <- flip windowToWorld mouseWin <$> get global
+  pq <- pointQuery mouseWld 0 defaultFilter
+  forM_ pq $ \(PointQueryResult other _ _ _) -> do
+    mouse <- newEntity (MouseBody, StaticBody, Position mouseWld)
+    newEntity (Constraint mouse other (PivotJoint mouseWld), MaxForce 2)
 
 handle (EventKey (MouseButton LeftButton) Up _ _) =
-  cmap $ \Target -> Not :: Not Constraint
+  cmap $ \MouseBody -> Not :: Not (MouseBody, Body)
 
-handle (EventKey (MouseButton RightButton) Down _ mscreen) = do
-  mpos <- flip windowToWorld mscreen <$> get global
-  newEntity ( DynamicBody
-            , Position mpos
-            , Shape (cRectangle 0.3)
-            , material )
+handle (EventKey (MouseButton RightButton) Down _ mouseWin) = do
+  mouseWld <- flip windowToWorld mouseWin <$> get global
+  box <- newEntity (DynamicBody, Position mouseWld)
+  newEntity (Shape box (cRectangle 0.3), material)
   return ()
 
 handle _ = return ()

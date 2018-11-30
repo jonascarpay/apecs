@@ -1,6 +1,6 @@
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Apecs.Physics.Gloss
   ( convexToPicture
@@ -29,17 +29,15 @@ v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
 
 type Transform = (Position, Angle)
 worldTransform :: Transform -> Picture -> Picture
-worldTransform (Position (V2 x y), Angle theta) = 
+worldTransform (Position (V2 x y), Angle theta) =
  Translate (realToFrac x) (realToFrac y) .
  Rotate (negate . radToDeg . realToFrac $ theta)
 
-drawBody :: Has w IO Shape => (Body, Transform, Shapes) -> System w Picture
-drawBody (btype, transform, Shapes shapes) = color shColor . worldTransform transform <$> foldM foldfn mempty shapes
+drawBody :: Has w IO Shape => (Body, Transform, ShapeList) -> System w Picture
+drawBody (btype, transform, ShapeList shapes) = color shColor . worldTransform transform <$> foldM foldfn mempty shapes
   where foldfn pic shapeEty = do
-          shape <- get shapeEty
-          return $ case shape of
-            ShapeExtend _ convex -> mappend pic $ convexToPicture convex
-            _                    -> error "Impossible read of Shape component"
+          Shape _ convex <- get shapeEty
+          return . mappend pic $ convexToPicture convex
         shColor = case btype of
                     DynamicBody   -> red
                     KinematicBody -> green
@@ -58,5 +56,11 @@ simulate disp = do
                 black
                 60
                 w
-                (\_     -> runSystem (foldDrawM drawBody) w)
+                (\_     -> runSystem draw w)
                 (\_ _ _ -> runSystem (stepPhysics (1/60)) w >> return w)
+
+  where
+    draw = do
+      pic <- foldDrawM drawBody
+      cam <- get global
+      return $ cameraTransform cam pic

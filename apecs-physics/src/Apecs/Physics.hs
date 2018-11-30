@@ -12,7 +12,7 @@ module Apecs.Physics (
 
   -- * Body
   Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
-  BodyMass (..), Moment (..), CenterOfGravity (..), Torque (..), Shapes (..), Constraints (..),
+  BodyMass (..), Moment (..), CenterOfGravity (..), Torque (..), ShapeList (..), ConstraintList (..),
 
   -- * Shape
   Convex (..), Shape (..),
