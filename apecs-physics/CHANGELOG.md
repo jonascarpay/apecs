@@ -1,3 +1,7 @@
+## [0.3.1]
+### Changed
+- added `apecs` version bound
+
 ## [0.3.0]
 ### Added
 - `ShapeList` and `ConstraintList` components for bodies, that contain a list of entity indices of their shapes and constraints (read-only).
