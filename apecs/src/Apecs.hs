@@ -13,10 +13,11 @@ module Apecs (
     explInit,
 
   -- * Systems
-    get, set, getAll,
-    cmap, cmapM, cmapM_,
+    get, set, ($=),
+    destroy, exists,
+    modify, ($~), 
+    cmap,  cmapM,  cmapM_,
     cfold, cfoldM, cfoldM_,
-    modify, destroy, exists,
 
   -- * Other
     runSystem, runWith,

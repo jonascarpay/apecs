@@ -13,30 +13,33 @@ import qualified Data.Vector.Unboxed  as U
 import           Apecs.Core
 import           Apecs.Components ()
 
--- | Run a system with a game world
+-- | Run a system in a game world
 {-# INLINE runSystem #-}
 runSystem :: SystemT w m a -> w -> m a
 runSystem sys = runReaderT (unSystem sys)
 
--- | Run a system with a game world
+-- | Run a system in a game world
 {-# INLINE runWith #-}
 runWith :: w -> SystemT w m a -> m a
 runWith = flip runSystem
 
+-- | Read a Component
 {-# INLINE get #-}
 get :: forall w m c. Get w m c => Entity -> SystemT w m c
 get (Entity ety) = do
   s :: Storage c <- getStore
   lift$ explGet s ety
 
--- | Writes a component to a given entity. Will overwrite existing components.
---   The type was originally 'Entity c -> c -> SystemT w m ()', but is relaxed to 'Entity e'
---   so you don't always have to write 'set . cast'
+-- | Writes a Component to a given Entity. Will overwrite existing Components.
 {-# INLINE set #-}
-set :: forall w m c. Set w m c => Entity -> c -> SystemT w m ()
+set, ($=) :: forall w m c. Set w m c => Entity -> c -> SystemT w m ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
   lift$ explSet s ety x
+
+-- | @set@ operator
+($=) = set
+infixr 2 $=
 
 -- | Returns whether the given entity has component @c@
 {-# INLINE exists #-}
@@ -44,6 +47,26 @@ exists :: forall w m c. Get w m c => Entity -> Proxy c -> SystemT w m Bool
 exists (Entity ety) _ = do
   s :: Storage c <- getStore
   lift$ explExists s ety
+
+-- | Destroys component @c@ for the given entity.
+{-# INLINE destroy #-}
+destroy :: forall w m c. Destroy w m c => Entity -> Proxy c -> SystemT w m ()
+destroy (Entity ety) ~_ = do
+  s :: Storage c <- getStore
+  lift$ explDestroy s ety
+
+-- | Applies a function, if possible.
+{-# INLINE modify #-}
+modify, ($~) :: forall w m c. (Get w m c, Set w m c) => Entity -> (c -> c) -> SystemT w m ()
+modify (Entity ety) f = do
+  s :: Storage c <- getStore
+  lift$ do
+    x <- explGet s ety
+    explSet s ety (f x)
+
+-- | @modify@ operator
+($~) = modify
+infixr 2 $~
 
 -- | Maps a function over all entities with a @cx@, and writes their @cy@.
 {-# INLINE cmap #-}
@@ -134,37 +157,3 @@ cfoldM_ sys a0 = do
   s :: Storage c <- getStore
   sl <- lift$ explMembers s
   U.foldM'_ (\a e -> lift (explGet s e) >>= sys a) a0 sl
-
--- | Get all components @c@.
---   Call as @[(c,Entity)]@ to also read the entity index.
-{-# INLINE getAll #-}
-getAll :: forall w m c. (Get w m c, Members w m c)
-      => SystemT w m [c]
-getAll = do
-  s :: Storage c <- getStore
-  sl <- lift$ explMembers s
-  forM (U.toList sl) $ lift . explGet s
-
--- | Destroys component @c@ for the given entity.
-{-# INLINE destroy #-}
-destroy :: forall w m c. Destroy w m c => Entity -> Proxy c -> SystemT w m ()
-destroy (Entity ety) ~_ = do
-  s :: Storage c <- getStore
-  lift$ explDestroy s ety
-
--- | Applies a function, if possible.
-{-# INLINE modify #-}
-modify :: forall w m c. (Get w m c, Set w m c) => Entity -> (c -> c) -> SystemT w m ()
-modify (Entity ety) f = do
-  s :: Storage c <- getStore
-  lift$ do
-    x <- explGet s ety
-    explSet s ety (f x)
-
--- | Counts the number of entities with a @c@
-{-# INLINE count #-}
-count :: forall w m c. Members w m c => Proxy c -> SystemT w m Int
-count ~_ = do
-  s :: Storage c <- getStore
-  sl <- lift$ explMembers s
-  return $ U.length sl

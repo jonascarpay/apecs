@@ -123,6 +123,7 @@ prop_lookupValid writes deletes = assertSys initReactiveWld $ do
   forM_ writes  $ uncurry set
   forM_ deletes $ flip destroy (Proxy @TestBool)
 
+  let getAll = cfold (flip (:)) []
   et <- fmap snd . filter ((== TestBool True ) . fst) <$> getAll
   ef <- fmap snd . filter ((== TestBool False) . fst) <$> getAll
 

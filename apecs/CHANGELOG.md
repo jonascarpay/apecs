@@ -1,4 +1,10 @@
-## [0.6.1]
+## [Unreleased]
+## Added
+- `$=` and `$~` operators as synonyms for `set` and `get` respectively
+## Removed
+- `getAll` and `count`, which were made redundant by `cfold`.
+
+## [0.7.0]
 ### Added
 - The `Reactive` store and module is a redesign of the `Register` store, and provides a more general solution for 'stores that perform additional actions when written to'.
 - The `Apecs.Stores.Extra` submodule, which contains the `Pushdown` and `ReadOnly` stores. `Pushdown` adds pushdown semantics to stores, and `ReadOnly` hides the `ExplSet` instances of whatever it wraps.
