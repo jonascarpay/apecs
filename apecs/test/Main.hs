@@ -111,6 +111,7 @@ makeWorld "Tuples" [''T1, ''T2, ''T3]
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
 
+-- Tests Reactive store properties
 newtype TestBool = TestBool Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
 instance Component TestBool where type Storage TestBool = Reactive (EnumMap TestBool) (Map TestBool)
 
@@ -123,7 +124,7 @@ prop_lookupValid writes deletes = assertSys initReactiveWld $ do
   forM_ writes  $ uncurry set
   forM_ deletes $ flip destroy (Proxy @TestBool)
 
-  let getAll = cfold (flip (:)) []
+  let getAll = cfold (flip (:)) [] :: SystemT ReactiveWld IO [(TestBool, Entity)]
   et <- fmap snd . filter ((== TestBool True ) . fst) <$> getAll
   ef <- fmap snd . filter ((== TestBool False) . fst) <$> getAll
 
