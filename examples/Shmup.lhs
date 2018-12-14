@@ -36,6 +36,7 @@ The `linear` library is the de facto library for small-dimensional vector types.
 Finally, we use `random` for our RNG, and import some base stuff.
 
 > import           System.Random
+> import           System.Exit
 > import           Control.Monad
 > import           Data.Monoid
 > import           Data.Semigroup (Semigroup)
@@ -64,9 +65,9 @@ Unit types are common in apecs, as they can be used to tag an entity.
 > data Bullet = Bullet deriving Show
 > instance Component Bullet where type Storage Bullet = Map Bullet
 
-`Particle` is also used to tag an entity, but unlike `Target` and `Bullet`, also includes a color and a remaining life span (in seconds).
+`Particle` is also used to tag an entity, but unlike `Target` and `Bullet`, also a remaining life span (in seconds).
 
-> data Particle = Particle Color Double deriving Show
+> data Particle = Particle Double deriving Show
 > instance Component Particle where type Storage Particle = Map Particle
 
 `Player` is a unit type, but instead of storing it in a `Map`, we use a `Unique`.
@@ -105,7 +106,7 @@ Defining separate components makes it easier to efficiently iterate over one typ
 Now that we have defined our components, we need to create a game world.
 This is generally done through Template Haskell, as follows:
 
-> makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle]
+> makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle, ''Camera]
 
 `makeWorld` defines a `World` data type, and the necessary instances for the type-level machinery.
 More information can be found in the apecs paper.
@@ -216,12 +217,12 @@ In the case of apecs, the component `(a,b)` represents the presence of both `a` 
 Combined, `Either a (Not b)` will either write `a`, or delete `b`.
 
 > stepParticles :: Double -> System' ()
-> stepParticles dT = cmap $ \(Particle col t) ->
+> stepParticles dT = cmap $ \(Particle t) ->
 >   if t < 0
 >      then Right $ Not @(Particle, Kinetic)
->      else Left  $ Particle col (t-dT)
+>      else Left  $ Particle (t-dT)
 
-If you've never seen it, `Not @c` is from the `TypeApplications` pragma, and is equivalent to `Not :: Not c`.
+If you've never seen it, the `Not @c` syntax is from the `TypeApplications` pragma, and is equivalent to `Not :: Not c`.
 
 We can take `cmap` even further.
 For bullets, we want to clear them when they leave the screen, and if so, decrement the score.
@@ -289,7 +290,7 @@ Anyway, collision handling:
 >       when (norm (posT - posB) < 10) $ do
 >         destroy etyT (Proxy @(Target, Kinetic))
 >         destroy etyB (Proxy @(Bullet, Kinetic))
->         spawnParticles 15 (Position posB) white (-500,500) (200,-50)
+>         spawnParticles 15 (Position posB) (-500,500) (200,-50)
 >         modify global $ \(Score x) -> Score (x + hitBonus)
 
 Again, every time we delete e.g. a `Bullet`, we have to remember to also delete its `Kinetic` (position and velocity).
@@ -314,12 +315,12 @@ It uses `get` to read the `Time`, again using `global`.
 `spawnParticles` does what it says on the tin.
 The random values are generated in the IO monad, so we use `liftIO`.
 
-> spawnParticles :: Int -> Position -> Color -> (Double,Double) -> (Double,Double) -> System' ()
-> spawnParticles n pos color dvx dvy = replicateM_ n $ do
+> spawnParticles :: Int -> Position -> (Double,Double) -> (Double,Double) -> System' ()
+> spawnParticles n pos dvx dvy = replicateM_ n $ do
 >   vx <- liftIO $ randomRIO dvx
 >   vy <- liftIO $ randomRIO dvy
 >   t  <- liftIO $ randomRIO (0.02,0.3)
->   newEntity (Particle color t, pos, Velocity (V2 vx vy))
+>   newEntity (Particle t, pos, Velocity (V2 vx vy))
 
 Finally, we assemble all our pieces into a single system.
 
@@ -335,8 +336,11 @@ Finally, we assemble all our pieces into a single system.
 >   triggerEvery dT 0.6 0   $ newEntity (Target, Position (V2 xmin 80), Velocity (V2 enemySpeed 0))
 >   triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 
-Next, handling player input.
-Gloss makes this really easy, we just need to map `Event` values to Systems:
+apecs-gloss provides a layer of convenience around the gloss `Graphics.Gloss.Interface.IO.Game` module.
+We'll use it to make a window, render the game, and handle player input.
+
+Let's start by looking at input handling.
+We define a function that maps each possible input to a System:
 
 > handleEvent :: Event -> System' ()
 > handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) =
@@ -354,72 +358,51 @@ Gloss makes this really easy, we just need to map `Event` values to Systems:
 > handleEvent (EventKey (SpecialKey KeySpace) Down _ _) =
 >   cmapM_ $ \(Player, pos) -> do
 >     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
->     spawnParticles 7 pos yellow (-80,80) (10,100)
+>     spawnParticles 7 pos (-80,80) (10,100)
+>
+> handleEvent (EventKey (SpecialKey KeyEsc) Down   _ _) = liftIO exitSuccess
 > 
 > handleEvent _ = return ()
 
-Rendering in gloss means producing a `Picture` value (and a lot of Double/Float conversion).
-Since pictures are composed monoidically, we can do this in `cfold`.
-We have not seen `cfold` before, but it is to `cmap` as `foldl` is to `map`.
-`drawComponents` takes a drawing function for a single component, and uses it to draw every such component:
+Next, we'll look at drawing.
+This is done by constructing gloss `Picture` values.
+I recommend looking at the gloss documentation to see what sort of things you can do with it.
 
-> drawComponents :: Get World IO c => (c -> Picture) -> System' Picture
-> drawComponents f = cfold
->   (\pic (Position p, c) -> pic <> translate' p (f c))
->   mempty
+Our drawing function will produce such a `Picture`.
+The easiest way to draw multiple enities is to use the `foldDraw` function from apecs-gloss.
+It performs a `cfold` of some drawing function, and combines all results into a larger `Picture`.
+
+> translate' :: Position -> Picture -> Picture
+> translate' (Position (V2 x y)) = translate (realToFrac x) (realToFrac y)
 > 
-> translate' :: V2 Double -> Picture -> Picture
-> translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
-
-We then define some primitives, and assemble them into a full picture.
-Most of the code here is gloss-related, so I won't go into a lot of detail.
-
 > triangle, diamond :: Picture
 > triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 > diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
-> 
+>
 > draw :: System' Picture
 > draw = do
->   player  <- drawComponents $ \Player -> color white  . scale 10 20 $ triangle
->   targets <- drawComponents $ \Target -> color red    . scale 10 10 $ diamond
->   bullets <- drawComponents $ \Bullet -> color yellow . scale 4  4  $ diamond
+>   player  <- foldDraw $ \(Player, pos) -> translate' pos . color white  . scale 10 20 $ triangle
+>   targets <- foldDraw $ \(Target, pos) -> translate' pos . color red    . scale 10 10 $ diamond
+>   bullets <- foldDraw $ \(Bullet, pos) -> translate' pos . color yellow . scale 4  4  $ diamond
 > 
->   particles <- drawComponents $
->     \(Particle col _, Velocity (V2 vx vy))
->     -> color col $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
+>   particles <- foldDraw $
+>     \(Particle _, Velocity (V2 vx vy), pos) ->
+>         translate' pos . color orange $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
 > 
 >   Score s <- get global
->   let score = color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
+>   let score = color white . translate' (Position scorePos) . scale 0.1 0.1 . Text $ "Score: " ++ show s
 > 
 >   return $ player <> targets <> bullets <> score <> particles
->   where
 
-You run a game in gloss using the `playIO` function.
-We need to do some marshalling between System and IO to line up the types.
-
-> playGloss :: w
->           -> System w Picture
->           -> (Event -> System w ())
->           -> (Double -> System w ())
->           -> IO ()
-> playGloss world drawSys eventSys stepSys =
->   playIO
->     window black fps ()
->     (\_    -> runSystem drawSys world)
->     (\e _  -> runSystem (eventSys e) world)
->     (\dt _ -> runSystem (stepSys $ realToFrac dt) world)
->   where
->     window = InWindow "game" (220,360) (10,10)
->     fps = 60
-
-Finally, we run the game!
+And with that, we can run our little game!
 
 > main :: IO ()
 > main = do
 >   w <- initWorld
->   runSystem initialize w
->   playGloss w draw handleEvent step
+>   runWith w $ do
+>     initialize
+>     play (InWindow "Shmup" (220, 360) (10, 10)) black 60 draw handleEvent step
 
 That concludes our tour.
 If you want more information, I recommend reading the paper and haddocks.
-If you have any questions, feel free to create an Issue, or ask me on twitter/reddit.
+If you have any questions, feel free to create an issue or drop by the gitter.
