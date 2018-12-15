@@ -1,18 +1,27 @@
 This document breaks down a small game written using apecs. We’re going
 to be making a little shoot ‘em up-style game, mirroring the Entitas
-example. We’ll cover most of apecs’ features, but not in great detail.
-If you are not familiar with the basics of ECS it might be worth reading
-the introductory sections of the paper.
+example. Consider this a vertical slice; we’ll cover most of apecs’
+features, but not in great detail. If you are not familiar with the
+basics of ECS it might be worth reading the introductory sections of the
+paper.
 
 If you want to run the game, clone this repository and run `stack exec
 shmup`. Since this document is a literate Haskell file (or a rendered
 markdown file, in which case the `.lhs` file is in the same folder), you
 can also compile it directly with GHC and run the game. The arrow keys
-move you, space shoots.
+move you, space shoots, escape quits.
 
-Let’s start at the top. Apecs tends to effect a large number of
-pragma’s, as you can see below. GHC will let you know if you missed
-any.
+If you have any questions while working through this tutorial, don’t
+hesitate to create an issue, or drop by the Gitter chat room. One of the
+biggest challenges working on apecs has been figuring out how to best
+communicate the core concepts to people. Once you understand something,
+it becomes very difficult to imagine how anyone could not understand it
+So, please help me in figuring out which parts of this text need to be
+explained better/differently/in more detail.
+
+Let’s start at the top. Apecs’ type-level machinery tends to effect a
+large number of pragma’s. Don’t worry, GHC will happily let you know if
+you missed any.
 
 ``` haskell
 {-# LANGUAGE DataKinds             #-}
@@ -29,7 +38,7 @@ The `Apecs` module forms the apecs prelude, it re-exports everything you
 typically need.
 
 ``` haskell
-import           Apecs
+import Apecs
 ```
 
 For graphics and input we use `apecs-gloss`, which is a (thin) layer
@@ -37,24 +46,29 @@ around the `gloss` graphics library. Gloss is very easy to use, and
 ideal for simple games such as this one.
 
 ``` haskell
-import           Apecs.Gloss
+import Apecs.Gloss
 ```
 
 The `linear` library is the de facto library for small-dimensional
 vector types.
 
 ``` haskell
-import           Linear
+import Linear
 ```
 
 Finally, we use `random` for our RNG, and import some base stuff.
 
 ``` haskell
-import           System.Random
-import           Control.Monad
-import           Data.Monoid
-import           Data.Semigroup (Semigroup)
+import System.Random
+import System.Exit
+import Control.Monad
+import Data.Monoid
+import Data.Semigroup (Semigroup)
 ```
+
+We need `Monoid` for `mempty`, but in recent GHC’s that requires also
+defining `Semigroup` instances. So, depending on your GHC version, you
+might not actually need the `Semigroup` import/instances.
 
 With the imports taken care of, we can start defining components. We do
 so by first defining a data type, and then give it an instance of
@@ -67,13 +81,16 @@ called `Map`.
 
 `Position` and `Velocity` are straightforward `Components`; they define
 an entity’s position and velocity as two-dimensional vectors of
-`Double`s.
+`Float`s. The reason we use `Float` over `Double` is that most
+OpenGL-based libraries, including gloss, use `Float`s. You can use
+`Double`, but if you don’t need the extra accuracy, using `Float` will
+save you a bunch of conversions.
 
 ``` haskell
-newtype Position = Position (V2 Double) deriving Show
+newtype Position = Position (V2 Float) deriving Show
 instance Component Position where type Storage Position = Map Position
 
-newtype Velocity = Velocity (V2 Double) deriving Show
+newtype Velocity = Velocity (V2 Float) deriving Show
 instance Component Velocity where type Storage Velocity = Map Velocity
 ```
 
@@ -90,10 +107,10 @@ instance Component Bullet where type Storage Bullet = Map Bullet
 ```
 
 `Particle` is also used to tag an entity, but unlike `Target` and
-`Bullet`, also includes a color and a remaining life span (in seconds).
+`Bullet`, also has a remaining life span (in seconds) field.
 
 ``` haskell
-data Particle = Particle Color Double deriving Show
+data Particle = Particle Float deriving Show
 instance Component Particle where type Storage Particle = Map Particle
 ```
 
@@ -101,8 +118,8 @@ instance Component Particle where type Storage Particle = Map Particle
 `Unique`. A `Unique` is a `Map` that will only hold a single component;
 if we assign `Player` to entity 3 and then to entity 4, only entity 4
 will have a `Player`. This enforces that there is only ever one player
-at the store level, and the first example of how a store can change the
-behavior of a component.
+at the store level, and it will be the first example of how a store can
+change the behavior of a component.
 
 ``` haskell
 data Player = Player deriving Show
@@ -123,12 +140,12 @@ The initial value of a `Global` will be drawn from that component’s
 
 ``` haskell
 newtype Score = Score Int deriving Show
-instance Semigroup Score -- Required in GHC 8.4
+instance Semigroup Score
 instance Monoid Score where mempty = Score 0
 instance Component Score where type Storage Score = Global Score
 
-newtype Time = Time Double deriving Show
-instance Semigroup Time -- Required in GHC 8.4
+newtype Time = Time Float deriving Show
+instance Semigroup Time
 instance Monoid Time where mempty = Time 0
 instance Component Time where type Storage Time = Global Time
 ```
@@ -139,7 +156,7 @@ the game state into components. For example, since `Player`, `Target`,
 that by defining a single component like this:
 
 ``` haskell
-data EtyType = Player | Target | Bullet | Particle Color Double
+data EtyType = Player | Target | Bullet | Particle Float
 ```
 
 Defining separate components makes it easier to efficiently iterate over
@@ -151,11 +168,11 @@ This is generally done through Template Haskell, as
 follows:
 
 ``` haskell
-makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle]
+makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle, ''Camera]
 ```
 
-`makeWorld` defines a `World` data type, and the necessary instances for
-the type-level machinery. More information can be found in the apecs
+`makeWorld` defines a `World` data type, and the necessary instances.
+More information on what exactly it generates can be found in the apecs
 paper.
 
 At this point I also like to define some type synonyms and constants:
@@ -164,7 +181,7 @@ At this point I also like to define some type synonyms and constants:
 type System' a = System World a
 type Kinetic = (Position, Velocity)
 
-playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Double
+playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 playerSpeed = 170
 bulletSpeed = 500
 enemySpeed  = 80
@@ -175,7 +192,7 @@ hitBonus, missPenalty :: Int
 hitBonus = 100
 missPenalty = 40
 
-playerPos, scorePos :: V2 Double
+playerPos, scorePos :: V2 Float
 playerPos = V2 0 (-120)
 scorePos  = V2 xmin (-170)
 ```
@@ -192,32 +209,31 @@ initialize = do
 `initialize` initializes our game state. In this case we only create a
 player, at the initial player position and with a velocity of 0.
 `playerEty` is a value of type `Entity`, which is actually just an
-integer value. In this case, it will be 0, since it is the first entity.
-In practice, we almost never use `Entity` values directly, and we won’t
-actually use the `playerEty` value.
+integer value. In this case it will be 0, since it is the first entity,
+and counting starts at 0. In practice, we almost never use `Entity`
+values directly, and we won’t actually use the `playerEty` value.
 
 ``` haskell
-stepPosition :: Double -> System' ()
+stepPosition :: Float -> System' ()
 stepPosition dT = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
 ```
 
 `stepPosition` is the canonical example of a system; it adds every
-entity’s velocity to its position. `cmap` is the most important
-operation in apecs, and you’ll use it to define most of your game logic.
-`cmap`’s behaviour is heavily dependent on the type of the function we
-map, so I will briefly discuss that type for every use of `cmap`, and
-how to interpret it. In this case, that’s `(Position, Velocity) ->
-Position`.
+entity’s velocity to its position. `cmap` is ubiquitous in apecs, and
+you’ll use it to define most of your game logic. `cmap`’s behaviour is
+heavily dependent on the type of the function we map, so I will briefly
+discuss that type for every use of `cmap`, and how to interpret it. In
+this case, that’s `(Position, Velocity) -> Position`.
 
 `cmap` will iterate over every entity that has the component on the
-left-hand side, and write the components on the right-hand side. In this
+left-hand side, and write the component on the right-hand side. In this
 case, the left-hand component is `(Position, Velocity)`. As you can see,
 a tuple of components is considered a component as well, and it is the
 first example of how components can be composed into bigger components.
 When we iterate over a tuple, what happens internally is that we iterate
-over the first component (`Position`), and then test whether the
-entities we iterate over also have the remaining components, in this
-case `Velocity`.
+over all entities that have the first component (`Position`), and then
+test whether the entity also has the remaining components, in this case
+`Velocity`.
 
 ``` haskell
 clampPlayer :: System' ()
@@ -226,41 +242,43 @@ clampPlayer = cmap $ \(Player, Position (V2 x y))
 ```
 
 `clampPlayer` constrains the player’s x position between `xmin` and
-`xmax`, and we can also express it using a simple `cmap`. The function
+`xmax`. We can express it using a simple `cmap` as well. The function
 has type `(Player, Position) -> Position`, which iterates over `Player`,
-reads `Player` and `Position`, and writes `Position`. Here we see an
-example of the usefulness of unit types. We never have to worry about
+reads `Player` and `Position`, and writes `Position`.
+
+Here we see the usefulness of unit types. We never have to worry about
 the actual `Entity` value of the player, but instead we just refer to it
-using the `Player` type. Since `Player` is a `Unique` value, we can be
-sure that this only ever affects at most one entity.
+using the `Player` component. Since `Player` is a `Unique` value, we can
+be sure that this only ever affects at most one entity.
 
 ``` haskell
-incrTime :: Double -> System' ()
+incrTime :: Float -> System' ()
 incrTime dT = modify global $ \(Time t) -> Time (t+dT)
 ```
 
 `incrTime` increments the total elapsed time by `dT`. In this case, we
 cannot use `cmap`, as we cannot iterate over a `Global`. If you try to
 do so, you will get a type error about how `Global Time` does not have
-an instance of `ExplMembers`; you cannot retrieve a list of members from
-a `Global`. Instead we have to use `modify`, which is like `cmap` for a
-single entity. As mentioned before, the exact entity argument does not
-matter for a global component. `global` is just an alias for -1.
+an instance of `ExplMembers`; which is to say you cannot retrieve a list
+of members from a `Global`. Instead we have to use `modify`, which is
+like `cmap` for a single entity. As mentioned before, the exact entity
+argument does not matter for a global component. `global` is just an
+alias for -1.
 
 Side note: In earlier versions of apecs, the members of a global were
 defined to be `[ -1 ]`, so that you could `cmap` over a global. This was
-removed, after the store laws were formulated. For example, there is no
-feasible global implementation that preserves the property that `cmap`
-over `(a, b)` is semantically equivalent to `(b, a)`. So, now it is
-simply a type error.
+removed, since it violated a number of common-sense properties such as
+`cmap` over `(a, b)` being semantically equivalent to `(b, a)`. So, now
+it is simply a type error.
 
 Let’s make things more interesting. `clearTargets` needs to destroy the
 targets that move out of bounds. We are going to try expressing this
 using `cmap`.
 
 An important thing to be aware of is that in apecs, there is no such
-thing as destroying an entity. Instead, you always have to destroy each
-individual component.
+thing as destroying/deleting/removing an /entity/. Instead, you can only
+destroy /components/, and if you want to get rid of an entity entirely,
+you often need to destroy each of its components individually.
 
 Our mapped function will have type `(Target, Position, Velocity) ->
 Maybe (Target, Position, Velocity)`. `Maybe` represent optionality, on
@@ -277,10 +295,10 @@ clearTargets = cmap $ \all@(Target, Position (V2 x _), Velocity _) ->
      else Just all
 ```
 
-Unfortunately, this definition is not ideal. We don’t really need to
-read `Velocity`, we are only interested in removing it. Furthermore, we
-don’t want to write all three components, we just want to be able to
-delete them.
+This works fine, but it’s not ideal. We don’t really need to read
+`Velocity`, we are only ever interested in removing it. Furthermore, we
+don’t want to have to write all three components, we just want to be
+able to delete them.
 
 The next System illustrates how we can make our `cmap`s more specific.
 `stepParticles` needs to decrement the life time of all `Particle`s, and
@@ -296,20 +314,22 @@ b` represents the presence of at least one of `a` or `b` (with `b`
 having precedence when reading).
 
 `Not :: Not c` can be used to delete something, just like `Nothing ::
-Maybe c`.
+Maybe c`. It can also occur on the left-hand side, where an entity has a
+component `(a, Not b)` if it has an `a`, but no `b`. We will see this
+behaviour later.
 
 Combined, `Either a (Not b)` will either write `a`, or delete `b`.
 
 ``` haskell
-stepParticles :: Double -> System' ()
-stepParticles dT = cmap $ \(Particle col t) ->
+stepParticles :: Float -> System' ()
+stepParticles dT = cmap $ \(Particle t) ->
   if t < 0
      then Right $ Not @(Particle, Kinetic)
-     else Left  $ Particle col (t-dT)
+     else Left  $ Particle (t-dT)
 ```
 
-If you’ve never seen it, `Not @c` is from the `TypeApplications` pragma,
-and is equivalent to `Not :: Not c`.
+If you’ve never seen it, the `Not @c` syntax is from the
+`TypeApplications` pragma, and is equivalent to `Not :: Not c`.
 
 We can take `cmap` even further. For bullets, we want to clear them when
 they leave the screen, and if so, decrement the score.
@@ -327,7 +347,8 @@ We will use a function of type `(Bullet, Position, Score) -> Either ()
 
   - Writing `Right (Not, Score s)` will both delete `(Bullet, Kinetic)`,
     and write `Score`. What happens when you change the type to `Either
-    () (Not (Bullet, Kinetic, Score))`? The answer might surprise you\~
+    () (Not (Bullet, Kinetic, Score))`? Try it out, the answer might
+    surprise you.
 
 Putting it together:
 
@@ -371,23 +392,23 @@ component, it will return whatever Entity it is queried at, i.e. for
 Destroying components for a specific Entity (rather than through `cmap`)
 is done with `destroy`.
 
-Side note: Every store, and by extension every component, has 5
-primitive operations: `exists`, `get`, `set`, `destroy`, and `members`.
-All other `System`s are implemented using these 5 operations. For
-example, we could write `cmap` as follows:
+Side note: There are 5 primitive operations on stores/components:
+`exists`, `get`, `set`, `destroy`, and `members`. All other `System`s
+are implemented using these 5 operations. For example, we could write
+`cmap` as follows:
 
 ``` haskell
-cmap :: (..) => (cx -> cy) -> System' ()
-cmap f = do
-  etys <- members (Proxy @cx) -- members needs a Proxy to infer its components
+myCmap :: (..) => (cx -> cy) -> System' ()
+myCmap f = do
+  etys <- members (Proxy @cx)
   forM_ etys $ \ety -> do
     cx <- get ety
     set ety (f cx)
 ```
 
-I won’t go into further detail here, but the message here is that `cmap`
-is pretty ordinary; the magic happens by choosing interesting
-implementations of the above 5 functions.
+I won’t go into further detail here, but the take-away here is that
+`cmap` is pretty ordinary; the actual magic happens by choosing
+interesting implementations of the above 5 functions.
 
 Anyway, collision handling:
 
@@ -398,7 +419,7 @@ handleCollisions =
       when (norm (posT - posB) < 10) $ do
         destroy etyT (Proxy @(Target, Kinetic))
         destroy etyB (Proxy @(Bullet, Kinetic))
-        spawnParticles 15 (Position posB) white (-500,500) (200,-50)
+        spawnParticles 15 (Position posB) (-500,500) (200,-50)
         modify global $ \(Score x) -> Score (x + hitBonus)
 ```
 
@@ -413,15 +434,22 @@ People have asked why there is no way to simply delete an Entity and all
 of its components. The reason apecs can’t do it for you is kind of
 technical, but comes down to that there is no obvious way of centrally
 tracking what entities have what components. Furthermore, adding such a
-system would be limiting in other ways. Instead, in this tutorial we use
-type synonyms like `Kinetic` to define hierarchies of components and
-easily delete many at once.
+system would be limiting in other ways, and additional complexity would
+make it harder to integrate apecs with other systems. Instead, in this
+tutorial we use type synonyms like `Kinetic` to define hierarchies of
+components and easily delete many at once. If this is an issue for you,
+you could write an `All` type synonym, a tuple containing all
+components. If you then `destroy ety (Proxy @All)`, you would be sure
+that all components get deleted.
 
-`triggerEvery` runs a `System` periodically. It uses `get` to read the
-`Time`, again using `global`.
+`triggerEvery` runs a `System` periodically. Nothing about this is
+apecs-specific, except for the `get global`, which we’ve seen before. If
+you hadn’t noticed by the way, `get` doesn’t need a `Proxy` because
+unlike e.g. `destroy` it can infer what component to act on from its
+return value.
 
 ``` haskell
-triggerEvery :: Double -> Double -> Double -> System' a -> System' ()
+triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 triggerEvery dT period phase sys = do
   Time t <- get global
   let t' = t + phase
@@ -434,18 +462,18 @@ generated in the IO monad, so we use
 `liftIO`.
 
 ``` haskell
-spawnParticles :: Int -> Position -> Color -> (Double,Double) -> (Double,Double) -> System' ()
-spawnParticles n pos color dvx dvy = replicateM_ n $ do
+spawnParticles :: Int -> Position -> (Float,Float) -> (Float,Float) -> System' ()
+spawnParticles n pos dvx dvy = replicateM_ n $ do
   vx <- liftIO $ randomRIO dvx
   vy <- liftIO $ randomRIO dvy
   t  <- liftIO $ randomRIO (0.02,0.3)
-  newEntity (Particle color t, pos, Velocity (V2 vx vy))
+  newEntity (Particle t, pos, Velocity (V2 vx vy))
 ```
 
 Finally, we assemble all our pieces into a single system.
 
 ``` haskell
-step :: Double -> System' ()
+step :: Float -> System' ()
 step dT = do
   incrTime dT
   stepPosition dT
@@ -458,8 +486,12 @@ step dT = do
   triggerEvery dT 0.6 0.3 $ newEntity (Target, Position (V2 xmax 120), Velocity (V2 (negate enemySpeed) 0))
 ```
 
-Next, handling player input. Gloss makes this really easy, we just need
-to map `Event` values to Systems:
+apecs-gloss provides a layer of convenience around the gloss
+`Graphics.Gloss.Interface.IO.Game` module. We’ll use it to make a
+window, render the game, and handle player input.
+
+Let’s start by looking at input handling. We define a function that maps
+each possible input to a System:
 
 ``` haskell
 handleEvent :: Event -> System' ()
@@ -478,83 +510,56 @@ handleEvent (EventKey (SpecialKey KeyRight) Up   _ _) =
 handleEvent (EventKey (SpecialKey KeySpace) Down _ _) =
   cmapM_ $ \(Player, pos) -> do
     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
-    spawnParticles 7 pos yellow (-80,80) (10,100)
+    spawnParticles 7 pos (-80,80) (10,100)
+
+handleEvent (EventKey (SpecialKey KeyEsc) Down   _ _) = liftIO exitSuccess
 
 handleEvent _ = return ()
 ```
 
-Rendering in gloss means producing a `Picture` value (and a lot of
-Double/Float conversion). Since pictures are composed monoidically, we
-can do this in `cfold`. We have not seen `cfold` before, but it is to
-`cmap` as `foldl` is to `map`. `drawComponents` takes a drawing function
-for a single component, and uses it to draw every such component:
+Next, we’ll look at drawing. This is done by constructing gloss
+`Picture` values. I recommend looking at the gloss documentation to see
+what sort of things you can do with it.
+
+Our drawing function will produce such a `Picture`. The easiest way to
+draw multiple entities is to use the `foldDraw` function from
+apecs-gloss. It performs a `cfold` of some drawing function, and
+combines all results into a larger `Picture`.
 
 ``` haskell
-drawComponents :: Get World IO c => (c -> Picture) -> System' Picture
-drawComponents f = cfold
-  (\pic (Position p, c) -> pic <> translate' p (f c))
-  mempty
+translate' :: Position -> Picture -> Picture
+translate' (Position (V2 x y)) = translate x y
 
-translate' :: V2 Double -> Picture -> Picture
-translate' (V2 x y) = translate (realToFrac x) (realToFrac y)
-```
-
-We then define some primitives, and assemble them into a full picture.
-Most of the code here is gloss-related, so I won’t go into a lot of
-detail.
-
-``` haskell
 triangle, diamond :: Picture
 triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
 
 draw :: System' Picture
 draw = do
-  player  <- drawComponents $ \Player -> color white  . scale 10 20 $ triangle
-  targets <- drawComponents $ \Target -> color red    . scale 10 10 $ diamond
-  bullets <- drawComponents $ \Bullet -> color yellow . scale 4  4  $ diamond
+  player  <- foldDraw $ \(Player, pos) -> translate' pos . color white  . scale 10 20 $ triangle
+  targets <- foldDraw $ \(Target, pos) -> translate' pos . color red    . scale 10 10 $ diamond
+  bullets <- foldDraw $ \(Bullet, pos) -> translate' pos . color yellow . scale 4  4  $ diamond
 
-  particles <- drawComponents $
-    \(Particle col _, Velocity (V2 vx vy))
-    -> color col $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
+  particles <- foldDraw $
+    \(Particle _, Velocity (V2 vx vy), pos) ->
+        translate' pos . color orange $ Line [(0,0),(vx/10, vy/10)]
 
   Score s <- get global
-  let score = color white . translate' scorePos . scale 0.1 0.1 . Text $ "Score: " ++ show s
+  let score = color white . translate' (Position scorePos) . scale 0.1 0.1 . Text $ "Score: " ++ show s
 
   return $ player <> targets <> bullets <> score <> particles
-  where
 ```
 
-You run a game in gloss using the `playIO` function. We need to do some
-marshalling between System and IO to line up the types.
-
-``` haskell
-playGloss :: w
-          -> System w Picture
-          -> (Event -> System w ())
-          -> (Double -> System w ())
-          -> IO ()
-playGloss world drawSys eventSys stepSys =
-  playIO
-    window black fps ()
-    (\_    -> runSystem drawSys world)
-    (\e _  -> runSystem (eventSys e) world)
-    (\dt _ -> runSystem (stepSys $ realToFrac dt) world)
-  where
-    window = InWindow "game" (220,360) (10,10)
-    fps = 60
-```
-
-Finally, we run the game\!
+And with that, we can run our little game\!
 
 ``` haskell
 main :: IO ()
 main = do
   w <- initWorld
-  runSystem initialize w
-  playGloss w draw handleEvent step
+  runWith w $ do
+    initialize
+    play (InWindow "Shmup" (220, 360) (10, 10)) black 60 draw handleEvent step
 ```
 
-That concludes our tour. If you want more information, I recommend
-reading the paper and haddocks. If you have any questions, feel free to
-create an Issue, or ask me on twitter/reddit.
+That concludes our tour. Again, please let me know if you have any
+questions or comments, through GitHub issues/gitter chat/twitter/reddit.

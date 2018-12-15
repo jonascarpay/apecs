@@ -1,15 +1,20 @@
 This document breaks down a small game written using apecs.
 We're going to be making a little shoot 'em up-style game, mirroring the Entitas example.
-We'll cover most of apecs' features, but not in great detail.
+Consider this a vertical slice; we'll cover most of apecs' features, but not in great detail.
 If you are not familiar with the basics of ECS it might be worth reading the introductory sections of the paper.
 
 If you want to run the game, clone this repository and run `stack exec shmup`.
 Since this document is a literate Haskell file (or a rendered markdown file, in which case the `.lhs` file is in the same folder), you can also compile it directly with GHC and run the game.
-The arrow keys move you, space shoots.
+The arrow keys move you, space shoots, escape quits.
+
+If you have any questions while working through this tutorial, don't hesitate to create an issue, or drop by the Gitter chat room.
+One of the biggest challenges working on apecs has been figuring out how to best communicate the core concepts to people.
+Once you understand something, it becomes very difficult to imagine how anyone could not understand it
+So, please help me in figuring out which parts of this text need to be explained better/differently/in more detail.
 
 Let's start at the top.
-Apecs tends to effect a large number of pragma's, as you can see below.
-GHC will let you know if you missed any.
+Apecs' type-level machinery tends to effect a large number of pragma's.
+Don't worry, GHC will happily let you know if you missed any.
 
 > {-# LANGUAGE DataKinds             #-}
 > {-# LANGUAGE FlexibleContexts      #-}
@@ -22,24 +27,27 @@ GHC will let you know if you missed any.
 
 The `Apecs` module forms the apecs prelude, it re-exports everything you typically need.
 
-> import           Apecs
+> import Apecs
 
 For graphics and input we use `apecs-gloss`, which is a (thin) layer around the `gloss` graphics library.
 Gloss is very easy to use, and ideal for simple games such as this one.
 
-> import           Apecs.Gloss
+> import Apecs.Gloss
 
 The `linear` library is the de facto library for small-dimensional vector types.
 
-> import           Linear
+> import Linear
 
 Finally, we use `random` for our RNG, and import some base stuff.
 
-> import           System.Random
-> import           System.Exit
-> import           Control.Monad
-> import           Data.Monoid
-> import           Data.Semigroup (Semigroup)
+> import System.Random
+> import System.Exit
+> import Control.Monad
+> import Data.Monoid
+> import Data.Semigroup (Semigroup)
+
+We need `Monoid` for `mempty`, but in recent GHC's that requires also defining `Semigroup` instances.
+So, depending on your GHC version, you might not actually need the `Semigroup` import/instances.
 
 With the imports taken care of, we can start defining components.
 We do so by first defining a data type, and then give it an instance of `Component`.
@@ -48,12 +56,14 @@ Each `Component` is stored in a separate data structure, called its storage or s
 The instance declaration specifies which store a component uses.
 In our case, we'll mostly be using the most basic store, called `Map`.
 
-`Position` and `Velocity` are straightforward `Components`; they define an entity's position and velocity as two-dimensional vectors of `Double`s.
+`Position` and `Velocity` are straightforward `Components`; they define an entity's position and velocity as two-dimensional vectors of `Float`s.
+The reason we use `Float` over `Double` is that most OpenGL-based libraries, including gloss, use `Float`s.
+You can use `Double`, but if you don't need the extra accuracy, using `Float` will save you a bunch of conversions.
 
-> newtype Position = Position (V2 Double) deriving Show
+> newtype Position = Position (V2 Float) deriving Show
 > instance Component Position where type Storage Position = Map Position
 > 
-> newtype Velocity = Velocity (V2 Double) deriving Show
+> newtype Velocity = Velocity (V2 Float) deriving Show
 > instance Component Velocity where type Storage Velocity = Map Velocity
 
 The following two components are unit types, i.e. they only have a single inhabitant.
@@ -65,14 +75,14 @@ Unit types are common in apecs, as they can be used to tag an entity.
 > data Bullet = Bullet deriving Show
 > instance Component Bullet where type Storage Bullet = Map Bullet
 
-`Particle` is also used to tag an entity, but unlike `Target` and `Bullet`, also a remaining life span (in seconds).
+`Particle` is also used to tag an entity, but unlike `Target` and `Bullet`, also has a remaining life span (in seconds) field.
 
-> data Particle = Particle Double deriving Show
+> data Particle = Particle Float deriving Show
 > instance Component Particle where type Storage Particle = Map Particle
 
 `Player` is a unit type, but instead of storing it in a `Map`, we use a `Unique`.
 A `Unique` is a `Map` that will only hold a single component; if we assign `Player` to entity 3 and then to entity 4, only entity 4 will have a `Player`.
-This enforces that there is only ever one player at the store level, and the first example of how a store can change the behavior of a component.
+This enforces that there is only ever one player at the store level, and it will be the first example of how a store can change the behavior of a component.
 
 > data Player = Player deriving Show
 > instance Component Player where type Storage Player = Unique Player
@@ -87,19 +97,19 @@ The initial value of a `Global` will be drawn from that component's `Monoid` ins
 `Score` keeps the score, and `Time` the total elapsed time.
 
 > newtype Score = Score Int deriving Show
-> instance Semigroup Score -- Required in GHC 8.4
+> instance Semigroup Score
 > instance Monoid Score where mempty = Score 0
 > instance Component Score where type Storage Score = Global Score
 > 
-> newtype Time = Time Double deriving Show
-> instance Semigroup Time -- Required in GHC 8.4
+> newtype Time = Time Float deriving Show
+> instance Semigroup Time
 > instance Monoid Time where mempty = Time 0
 > instance Component Time where type Storage Time = Global Time
 
 You might already have noticed that there is more than one way to divide the game state into components.
 For example, since `Player`, `Target`, `Bullet`, and `Particle` are mutually exclusive, we could have enforced that by defining a single component like this:
 
-< data EtyType = Player | Target | Bullet | Particle Color Double
+< data EtyType = Player | Target | Bullet | Particle Float
 
 Defining separate components makes it easier to efficiently iterate over one type of entity, so that's the approach we will use in this tutorial, but both ways are equally valid and can be equally fast.
 
@@ -108,15 +118,15 @@ This is generally done through Template Haskell, as follows:
 
 > makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle, ''Camera]
 
-`makeWorld` defines a `World` data type, and the necessary instances for the type-level machinery.
-More information can be found in the apecs paper.
+`makeWorld` defines a `World` data type, and the necessary instances.
+More information on what exactly it generates can be found in the apecs paper.
 
 At this point I also like to define some type synonyms and constants:
 
 > type System' a = System World a
 > type Kinetic = (Position, Velocity)
 > 
-> playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Double
+> playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 > playerSpeed = 170
 > bulletSpeed = 500
 > enemySpeed  = 80
@@ -127,7 +137,7 @@ At this point I also like to define some type synonyms and constants:
 > hitBonus = 100
 > missPenalty = 40
 > 
-> playerPos, scorePos :: V2 Double
+> playerPos, scorePos :: V2 Float
 > playerPos = V2 0 (-120)
 > scorePos  = V2 xmin (-170)
 
@@ -141,54 +151,55 @@ With that, we are ready to start writing our first Systems.
 `initialize` initializes our game state.
 In this case we only create a player, at the initial player position and with a velocity of 0.
 `playerEty` is a value of type `Entity`, which is actually just an integer value.
-In this case, it will be 0, since it is the first entity.
+In this case it will be 0, since it is the first entity, and counting starts at 0.
 In practice, we almost never use `Entity` values directly, and we won't actually use the `playerEty` value.
 
-> stepPosition :: Double -> System' ()
+> stepPosition :: Float -> System' ()
 > stepPosition dT = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
 
 `stepPosition` is the canonical example of a system; it adds every entity's velocity to its position.
-`cmap` is the most important operation in apecs, and you'll use it to define most of your game logic.
+`cmap` is ubiquitous in apecs, and you'll use it to define most of your game logic.
 `cmap`'s behaviour is heavily dependent on the type of the function we map, so I will briefly discuss that type for every use of `cmap`, and how to interpret it.
 In this case, that's `(Position, Velocity) -> Position`.
 
-`cmap` will iterate over every entity that has the component on the left-hand side, and write the components on the right-hand side.
+`cmap` will iterate over every entity that has the component on the left-hand side, and write the component on the right-hand side.
 In this case, the left-hand component is `(Position, Velocity)`.
 As you can see, a tuple of components is considered a component as well, and it is the first example of how components can be composed into bigger components.
-When we iterate over a tuple, what happens internally is that we iterate over the first component (`Position`), and then test whether the entities we iterate over also have the remaining components, in this case `Velocity`.
+When we iterate over a tuple, what happens internally is that we iterate over all entities that have the first component (`Position`), and then test whether the entity also has the remaining components, in this case `Velocity`.
 
 > clampPlayer :: System' ()
 > clampPlayer = cmap $ \(Player, Position (V2 x y))
 >                    -> Position (V2 (min xmax . max xmin $ x) y)
 
-`clampPlayer` constrains the player's x position between `xmin` and `xmax`, and we can also express it using a simple `cmap`.
+`clampPlayer` constrains the player's x position between `xmin` and `xmax`.
+We can express it using a simple `cmap` as well.
 The function has type `(Player, Position) -> Position`, which iterates over `Player`, reads `Player` and `Position`, and writes `Position`.
-Here we see an example of the usefulness of unit types.
-We never have to worry about the actual `Entity` value of the player, but instead we just refer to it using the `Player` type.
+
+Here we see the usefulness of unit types.
+We never have to worry about the actual `Entity` value of the player, but instead we just refer to it using the `Player` component.
 Since `Player` is a `Unique` value, we can be sure that this only ever affects at most one entity.
 
-> incrTime :: Double -> System' ()
+> incrTime :: Float -> System' ()
 > incrTime dT = modify global $ \(Time t) -> Time (t+dT)
 
 `incrTime` increments the total elapsed time by `dT`.
 In this case, we cannot use `cmap`, as we cannot iterate over a `Global`.
-If you try to do so, you will get a type error about how `Global Time` does not have an instance of `ExplMembers`; you cannot retrieve a list of members from a `Global`.
+If you try to do so, you will get a type error about how `Global Time` does not have an instance of `ExplMembers`; which is to say you cannot retrieve a list of members from a `Global`.
 Instead we have to use `modify`, which is like `cmap` for a single entity.
 As mentioned before, the exact entity argument does not matter for a global component.
 `global` is just an alias for -1.
 
 Side note:
 In earlier versions of apecs, the members of a global were defined to be `[ -1 ]`, so that you could `cmap` over a global.
-This was removed, after the store laws were formulated.
-For example, there is no feasible global implementation that preserves the property that `cmap` over `(a, b)` is semantically equivalent to `(b, a)`.
+This was removed, since it violated a number of common-sense properties such as `cmap` over `(a, b)` being semantically equivalent to `(b, a)`.
 So, now it is simply a type error.
 
 Let's make things more interesting.
 `clearTargets` needs to destroy the targets that move out of bounds.
 We are going to try expressing this using `cmap`.
 
-An important thing to be aware of is that in apecs, there is no such thing as destroying an entity.
-Instead, you always have to destroy each individual component.
+An important thing to be aware of is that in apecs, there is no such thing as destroying/deleting/removing an /entity/.
+Instead, you can only destroy /components/, and if you want to get rid of an entity entirely, you often need to destroy each of its components individually.
 
 Our mapped function will have type `(Target, Position, Velocity) -> Maybe (Target, Position, Velocity)`.
 `Maybe` represent optionality, on the left-hand side it represents a read that might fail, on the right-hand side it is a write that can also delete a component.
@@ -200,9 +211,9 @@ If we return a `Just c`, `c` gets written as normal, but when we return `Nothing
 >      then Nothing
 >      else Just all
 
-Unfortunately, this definition is not ideal.
-We don't really need to read `Velocity`, we are only interested in removing it.
-Furthermore, we don't want to write all three components, we just want to be able to delete them.
+This works fine, but it's not ideal.
+We don't really need to read `Velocity`, we are only ever interested in removing it.
+Furthermore, we don't want to have to write all three components, we just want to be able to delete them.
 
 The next System illustrates how we can make our `cmap`s more specific.
 `stepParticles` needs to decrement the life time of all `Particle`s, and remove them if their timer reaches 0.
@@ -213,10 +224,12 @@ As in most Haskell libraries, where tuples represent conjunction, `Either` repre
 In the case of apecs, the component `(a,b)` represents the presence of both `a` and `b`, whereas `Either a b` represents the presence of at least one of `a` or `b` (with `b` having precedence when reading).
 
 `Not :: Not c` can be used to delete something, just like `Nothing :: Maybe c`.
+It can also occur on the left-hand side, where an entity has a component `(a, Not b)` if it has an `a`, but no `b`.
+We will see this behaviour later.
 
 Combined, `Either a (Not b)` will either write `a`, or delete `b`.
 
-> stepParticles :: Double -> System' ()
+> stepParticles :: Float -> System' ()
 > stepParticles dT = cmap $ \(Particle t) ->
 >   if t < 0
 >      then Right $ Not @(Particle, Kinetic)
@@ -238,7 +251,7 @@ Let's break this down.
 
 * Writing `Right (Not, Score s)` will both delete `(Bullet, Kinetic)`, and write `Score`.
   What happens when you change the type to `Either () (Not (Bullet, Kinetic, Score))`?
-  The answer might surprise you~
+  Try it out, the answer might surprise you.
 
 Putting it together:
 
@@ -269,18 +282,18 @@ When read as a component, it will return whatever Entity it is queried at, i.e. 
 Destroying components for a specific Entity (rather than through `cmap`) is done with `destroy`.
 
 Side note:
-Every store, and by extension every component, has 5 primitive operations: `exists`, `get`, `set`, `destroy`, and `members`.
+There are 5 primitive operations on stores/components: `exists`, `get`, `set`, `destroy`, and `members`.
 All other `System`s are implemented using these 5 operations.
 For example, we could write `cmap` as follows:
 
-< cmap :: (..) => (cx -> cy) -> System' ()
-< cmap f = do
-<   etys <- members (Proxy @cx) -- members needs a Proxy to infer its components
+< myCmap :: (..) => (cx -> cy) -> System' ()
+< myCmap f = do
+<   etys <- members (Proxy @cx)
 <   forM_ etys $ \ety -> do
 <     cx <- get ety
 <     set ety (f cx)
 
-I won't go into further detail here, but the message here is that `cmap` is pretty ordinary; the magic happens by choosing interesting implementations of the above 5 functions.
+I won't go into further detail here, but the take-away here is that `cmap` is pretty ordinary; the actual magic happens by choosing interesting implementations of the above 5 functions.
 
 Anyway, collision handling:
 
@@ -299,13 +312,16 @@ It won't really interact with anything, but it will still take up memory and hav
 
 People have asked why there is no way to simply delete an Entity and all of its components.
 The reason apecs can't do it for you is kind of technical, but comes down to that there is no obvious way of centrally tracking what entities have what components.
-Furthermore, adding such a system would be limiting in other ways.
+Furthermore, adding such a system would be limiting in other ways, and additional complexity would make it harder to integrate apecs with other systems.
 Instead, in this tutorial we use type synonyms like `Kinetic` to define hierarchies of components and easily delete many at once.
+If this is an issue for you, you could write an `All` type synonym, a tuple containing all components.
+If you then `destroy ety (Proxy @All)`, you would be sure that all components get deleted.
 
 `triggerEvery` runs a `System` periodically.
-It uses `get` to read the `Time`, again using `global`.
+Nothing about this is apecs-specific, except for the `get global`, which we've seen before.
+If you hadn't noticed by the way, `get` doesn't need a `Proxy` because unlike e.g. `destroy` it can infer what component to act on from its return value.
 
-> triggerEvery :: Double -> Double -> Double -> System' a -> System' ()
+> triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 > triggerEvery dT period phase sys = do
 >   Time t <- get global
 >   let t' = t + phase
@@ -315,7 +331,7 @@ It uses `get` to read the `Time`, again using `global`.
 `spawnParticles` does what it says on the tin.
 The random values are generated in the IO monad, so we use `liftIO`.
 
-> spawnParticles :: Int -> Position -> (Double,Double) -> (Double,Double) -> System' ()
+> spawnParticles :: Int -> Position -> (Float,Float) -> (Float,Float) -> System' ()
 > spawnParticles n pos dvx dvy = replicateM_ n $ do
 >   vx <- liftIO $ randomRIO dvx
 >   vy <- liftIO $ randomRIO dvy
@@ -324,7 +340,7 @@ The random values are generated in the IO monad, so we use `liftIO`.
 
 Finally, we assemble all our pieces into a single system.
 
-> step :: Double -> System' ()
+> step :: Float -> System' ()
 > step dT = do
 >   incrTime dT
 >   stepPosition dT
@@ -369,11 +385,11 @@ This is done by constructing gloss `Picture` values.
 I recommend looking at the gloss documentation to see what sort of things you can do with it.
 
 Our drawing function will produce such a `Picture`.
-The easiest way to draw multiple enities is to use the `foldDraw` function from apecs-gloss.
+The easiest way to draw multiple entities is to use the `foldDraw` function from apecs-gloss.
 It performs a `cfold` of some drawing function, and combines all results into a larger `Picture`.
 
 > translate' :: Position -> Picture -> Picture
-> translate' (Position (V2 x y)) = translate (realToFrac x) (realToFrac y)
+> translate' (Position (V2 x y)) = translate x y
 > 
 > triangle, diamond :: Picture
 > triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
@@ -387,7 +403,7 @@ It performs a `cfold` of some drawing function, and combines all results into a 
 > 
 >   particles <- foldDraw $
 >     \(Particle _, Velocity (V2 vx vy), pos) ->
->         translate' pos . color orange $ Line [(0,0),(realToFrac vx/10, realToFrac vy/10)]
+>         translate' pos . color orange $ Line [(0,0),(vx/10, vy/10)]
 > 
 >   Score s <- get global
 >   let score = color white . translate' (Position scorePos) . scale 0.1 0.1 . Text $ "Score: " ++ show s
@@ -404,5 +420,4 @@ And with that, we can run our little game!
 >     play (InWindow "Shmup" (220, 360) (10, 10)) black 60 draw handleEvent step
 
 That concludes our tour.
-If you want more information, I recommend reading the paper and haddocks.
-If you have any questions, feel free to create an issue or drop by the gitter.
+Again, please let me know if you have any questions or comments, through GitHub issues/gitter chat/twitter/reddit.
