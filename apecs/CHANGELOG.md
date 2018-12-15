@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.7.1]
 ## Added
 - `$=` and `$~` operators as synonyms for `set` and `get` respectively
 ## Removed

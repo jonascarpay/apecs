@@ -1,3 +1,7 @@
+## [Unreleased]
+### Added
+- The cabal file now also contains the changelog
+
 ## [0.3.1]
 ### Changed
 - added `apecs` version bound
