@@ -82,25 +82,30 @@ initialize = do
 
   cmap $ \(_ :: Shape) -> material
 
+mousePos :: (Float, Float) -> System World (V2 Double)
+mousePos mouseWin = do
+  cam <- get global
+  return . fmap realToFrac $ windowToWorld cam mouseWin
+
 handle :: Event -> System World ()
 handle (EventMotion mouseWin) = do
-  mouseWld <- flip windowToWorld mouseWin <$> get global
-  cmap $ \MouseBody -> Position mouseWld
+  mpos <- mousePos mouseWin
+  cmap $ \MouseBody -> Position mpos
 
 handle (EventKey (MouseButton LeftButton) Down _ mouseWin) = do
-  mouseWld <- flip windowToWorld mouseWin <$> get global
-  pq <- pointQuery mouseWld 0 collisionFilter
+  mpos <- mousePos mouseWin
+  pq <- pointQuery mpos 0 collisionFilter
   forM_ pq $ \(PointQueryResult shape _ _ _) -> do
     Shape otherEty _ <- get shape
-    mouse <- newEntity (MouseBody, StaticBody, Position mouseWld)
-    newEntity (Constraint mouse otherEty (PivotJoint mouseWld), MaxForce 2)
+    mouse <- newEntity (MouseBody, StaticBody, Position mpos)
+    newEntity (Constraint mouse otherEty (PivotJoint mpos), MaxForce 2)
 
 handle (EventKey (MouseButton LeftButton) Up _ _) =
   cmap $ \MouseBody -> Not :: Not (MouseBody, Body)
 
 handle (EventKey (MouseButton RightButton) Down _ mouseWin) = do
-  mouseWld <- flip windowToWorld mouseWin <$> get global
-  box <- newEntity (DynamicBody, Position mouseWld)
+  mpos <- mousePos mouseWin
+  box <- newEntity (DynamicBody, Position mpos)
   newEntity (Shape box (cRectangle 0.3), material)
   return ()
 

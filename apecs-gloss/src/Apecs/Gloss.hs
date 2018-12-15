@@ -14,8 +14,8 @@ import           Linear.Vector
 import           Apecs
 
 data Camera = Camera
-  { camOffset :: V2 Double
-  , camScale  :: Double
+  { camOffset :: V2 Float
+  , camScale  :: Float
   } deriving (Eq, Show, Read)
 
 instance Semigroup Camera where
@@ -30,7 +30,7 @@ cameraTransform (Camera (V2 cx cy) cs) =
     Scale (f cs) (f cs) .  Translate (f . negate $ cx) (f . negate $ cy)
   where f = realToFrac
 
-windowToWorld :: Camera -> (Float,Float) -> V2 Double
+windowToWorld :: Camera -> (Float,Float) -> V2 Float
 windowToWorld (Camera cx cs) (x,y) = v ^/ cs - cx
   where v = V2 (realToFrac x) (realToFrac y)
 
@@ -44,7 +44,7 @@ play
   -> Int                  -- ^ Desired FPS
   -> System w Picture -- ^ Drawing function
   -> (Event -> System w ()) -- ^ Event handling function
-  -> (Double  -> System w ()) -- ^ Stepping function, with a time delta argument.
+  -> (Float  -> System w ()) -- ^ Stepping function, with a time delta argument.
   -> System w ()
 play disp col fps draw handle step = do
   w <- ask
