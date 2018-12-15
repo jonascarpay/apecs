@@ -27,12 +27,10 @@ instance Monoid Camera where
 -- | Apply a camera transformation to a picture
 cameraTransform :: Camera -> Picture -> Picture
 cameraTransform (Camera (V2 cx cy) cs) =
-    Scale (f cs) (f cs) .  Translate (f . negate $ cx) (f . negate $ cy)
-  where f = realToFrac
+    Scale cs cs .  Translate (-cx) (-cy)
 
 windowToWorld :: Camera -> (Float,Float) -> V2 Float
-windowToWorld (Camera cx cs) (x,y) = v ^/ cs - cx
-  where v = V2 (realToFrac x) (realToFrac y)
+windowToWorld (Camera cx cs) (x,y) = V2 x y ^/ cs - cx
 
 instance Component Camera where
   type Storage Camera = Global Camera
@@ -51,7 +49,7 @@ play disp col fps draw handle step = do
   liftIO$ playIO disp col fps w draw' handle' step'
     where
       handle' event = runSystem $ handle event >> ask
-      step'   dT    = runSystem $ step (realToFrac dT) >> ask
+      step'   dT    = runSystem $ step dT >> ask
       draw'         = runSystem $ do
         cam <- get global
         cameraTransform cam <$> draw
