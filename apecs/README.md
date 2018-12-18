@@ -9,7 +9,7 @@ apecs aims to be
 * **Extensible** - apecs can be used with anything that implements the low-level API. See [apecs-physics](apecs-physics/) or [apecs-stm](apecs-stm/) for examples.
 
 #### Links
-- [manual](https://github.com/jonascarpay/apecs/blob/master/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
+- [manual](https://github.com/jonascarpay/apecs/blob/master/apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
 - [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md)
 - [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
 - [apecs-physics](https://github.com/jonascarpay/apecs-physics)
