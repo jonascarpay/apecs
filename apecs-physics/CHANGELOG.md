@@ -1,6 +1,6 @@
-## [Unreleased]
-### Added
-- The cabal file now also contains the changelog
+## [0.3.2]
+### Changed
+- Fixed links and added changelog to cabal file
 
 ## [0.3.1]
 ### Changed

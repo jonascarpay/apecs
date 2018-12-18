@@ -1,7 +1,7 @@
 name:                apecs-gloss
-version:             0.2.0
+version:             0.2.1
 synopsis:            Simple gloss renderer for apecs
-homepage:            https://github.com/jonascarpay/apecs-physics#readme
+homepage:            https://github.com/jonascarpay/apecs/apecs-gloss
 license:             BSD3
 license-file:        LICENSE
 author:              Jonas Carpay
@@ -34,4 +34,4 @@ library
 
 source-repository head
   type: git
-  location: https://github.com/jonascarpay/apecs/apecs-gloss
+  location: https://github.com/jonascarpay/apecs

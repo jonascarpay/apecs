@@ -1,8 +1,8 @@
 name:                apecs-physics
-version:             0.3.1
+version:             0.3.2
 synopsis:            2D physics for apecs
 description:         2D physics for apecs. Uses Chipmunk physics library under the hood.
-homepage:            https://github.com/jonascarpay/apecs-physics#readme
+homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Jonas Carpay
