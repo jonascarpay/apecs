@@ -6,11 +6,7 @@ If you are not familiar with the basics of ECS it might be worth reading the int
 If you want to run the game, clone this repository and run `stack exec shmup`.
 Since this document is a literate Haskell file (or a rendered markdown file, in which case the `.lhs` file is in the same folder), you can also compile it directly with GHC and run the game.
 The arrow keys move you, space shoots, escape quits.
-
-If you have any questions while working through this tutorial, don't hesitate to create an issue, or drop by the Gitter chat room.
-One of the biggest challenges working on apecs has been figuring out how to best communicate the core concepts to people.
-Once you understand something, it becomes very difficult to imagine how anyone could not understand it
-So, please help me in figuring out which parts of this text need to be explained better/differently/in more detail.
+If you have any questions or suggestions while working through this tutorial, don't hesitate to create an issue, or drop by the Gitter chat room.
 
 Let's start at the top.
 Apecs' type-level machinery tends to effect a large number of pragma's.
@@ -49,14 +45,14 @@ Finally, we use `random` for our RNG, and import some base stuff.
 We need `Monoid` for `mempty`, but in recent GHC's that requires also defining `Semigroup` instances.
 So, depending on your GHC version, you might not actually need the `Semigroup` import/instances.
 
-With the imports taken care of, we can start defining components.
+With the imports taken care of, we can start defining Components.
 We do so by first defining a data type, and then give it an instance of `Component`.
 
-Each `Component` is stored in a separate data structure, called its storage or store.
-The instance declaration specifies which store a component uses.
-In our case, we'll mostly be using the most basic store, called `Map`.
+Each Component is stored in a separate data structure, called its storage or store.
+The `Component` instance declaration specifies which store a Component uses.
+We'll mostly be using the most basic store here, called `Map`.
 
-`Position` and `Velocity` are straightforward `Components`; they define an entity's position and velocity as two-dimensional vectors of `Float`s.
+`Position` and `Velocity` are straightforward Components; they define an Entity's position and velocity as two-dimensional vectors of `Float`s.
 The reason we use `Float` over `Double` is that most OpenGL-based libraries, including gloss, use `Float`s.
 You can use `Double`, but if you don't need the extra accuracy, using `Float` will save you a bunch of conversions.
 
@@ -66,8 +62,8 @@ You can use `Double`, but if you don't need the extra accuracy, using `Float` wi
 > newtype Velocity = Velocity (V2 Float) deriving Show
 > instance Component Velocity where type Storage Velocity = Map Velocity
 
-The following two components are unit types, i.e. they only have a single inhabitant.
-Unit types are common in apecs, as they can be used to tag an entity.
+The following two Components are unit types, i.e. they only have a single inhabitant.
+Unit types are common in apecs, as they can be used to tag an Entity.
 
 > data Target = Target deriving Show
 > instance Component Target where type Storage Target = Map Target
@@ -75,24 +71,24 @@ Unit types are common in apecs, as they can be used to tag an entity.
 > data Bullet = Bullet deriving Show
 > instance Component Bullet where type Storage Bullet = Map Bullet
 
-`Particle` is also used to tag an entity, but unlike `Target` and `Bullet`, also has a remaining life span (in seconds) field.
+`Particle` is also used to tag an Entity, but unlike `Target` and `Bullet`, also has a remaining life span (in seconds) field.
 
 > data Particle = Particle Float deriving Show
 > instance Component Particle where type Storage Particle = Map Particle
 
 `Player` is a unit type, but instead of storing it in a `Map`, we use a `Unique`.
-A `Unique` is a `Map` that will only hold a single component; if we assign `Player` to entity 3 and then to entity 4, only entity 4 will have a `Player`.
-This enforces that there is only ever one player at the store level, and it will be the first example of how a store can change the behavior of a component.
+A `Unique` is a `Map` that will only hold a single Component; if we assign `Player` to Entity 3 and then to Entity 4, only Entity 4 will have a `Player`.
+This enforces that there is only ever one player at the store level, and it will be the first example of how a store can change the behavior of a Component.
 
 > data Player = Player deriving Show
 > instance Component Player where type Storage Player = Unique Player
 
 The third store we will use is `Global`, used to model global variables.
-`Global` stores also hold a single component, but unlike `Unique`, that component does not belong to any particular entity.
-Instead, a `Global` store will always yield its one component, regardless of the entity it is queried for.
-So more accurately, a global component belongs to /every/ entity.
+`Global` stores also hold a single Component, but unlike `Unique`, that Component does not belong to any particular Entity.
+Instead, a `Global` store will always yield its one Component, regardless of the Entity it is queried for.
+So more accurately, a global Component belongs to /every/ Entity.
 
-The initial value of a `Global` will be drawn from that component's `Monoid` instance.
+The initial value of a `Global` will be drawn from that Component's `Monoid` instance.
 
 `Score` keeps the score, and `Time` the total elapsed time.
 
@@ -106,14 +102,14 @@ The initial value of a `Global` will be drawn from that component's `Monoid` ins
 > instance Monoid Time where mempty = Time 0
 > instance Component Time where type Storage Time = Global Time
 
-You might already have noticed that there is more than one way to divide the game state into components.
-For example, since `Player`, `Target`, `Bullet`, and `Particle` are mutually exclusive, we could have enforced that by defining a single component like this:
+You might already have noticed that there is more than one way to divide the game state into Components.
+For example, since `Player`, `Target`, `Bullet`, and `Particle` are mutually exclusive, we could have enforced that by defining a single Component like this:
 
 < data EtyType = Player | Target | Bullet | Particle Float
 
-Defining separate components makes it easier to efficiently iterate over one type of entity, so that's the approach we will use in this tutorial, but both ways are equally valid and can be equally fast.
+Defining separate Components makes it easier to efficiently iterate over one type of Entity, so that's the approach we will use in this tutorial, but both ways are equally valid and can be equally fast.
 
-Now that we have defined our components, we need to create a game world.
+Now that we have defined our Components, we need to create a game world.
 This is generally done through Template Haskell, as follows:
 
 > makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score, ''Time, ''Particle, ''Camera]
@@ -151,21 +147,21 @@ With that, we are ready to start writing our first Systems.
 `initialize` initializes our game state.
 In this case we only create a player, at the initial player position and with a velocity of 0.
 `playerEty` is a value of type `Entity`, which is actually just an integer value.
-In this case it will be 0, since it is the first entity, and counting starts at 0.
+In this case it will be 0, since it is the first Entity, and counting starts at 0.
 In practice, we almost never use `Entity` values directly, and we won't actually use the `playerEty` value.
 
 > stepPosition :: Float -> System' ()
 > stepPosition dT = cmap $ \(Position p, Velocity v) -> Position (p + dT *^ v)
 
-`stepPosition` is the canonical example of a system; it adds every entity's velocity to its position.
+`stepPosition` is the canonical example of a System; it adds every Entity's velocity to its position.
 `cmap` is ubiquitous in apecs, and you'll use it to define most of your game logic.
 `cmap`'s behaviour is heavily dependent on the type of the function we map, so I will briefly discuss that type for every use of `cmap`, and how to interpret it.
 In this case, that's `(Position, Velocity) -> Position`.
 
-`cmap` will iterate over every entity that has the component on the left-hand side, and write the component on the right-hand side.
-In this case, the left-hand component is `(Position, Velocity)`.
-As you can see, a tuple of components is considered a component as well, and it is the first example of how components can be composed into bigger components.
-When we iterate over a tuple, what happens internally is that we iterate over all entities that have the first component (`Position`), and then test whether the entity also has the remaining components, in this case `Velocity`.
+`cmap` will iterate over every Entity that has the Component on the left-hand side, and write the Component on the right-hand side.
+In this case, the left-hand Component is `(Position, Velocity)`.
+As you can see, a tuple of Components is considered a Component as well, and it is the first example of how Components can be Composed into bigger Components.
+When we iterate over a tuple, what happens internally is that we iterate over all Entities that have the first Component (`Position`), and then test whether the Entity also has the remaining Components, in this case `Velocity`.
 
 > clampPlayer :: System' ()
 > clampPlayer = cmap $ \(Player, Position (V2 x y))
@@ -176,8 +172,8 @@ We can express it using a simple `cmap` as well.
 The function has type `(Player, Position) -> Position`, which iterates over `Player`, reads `Player` and `Position`, and writes `Position`.
 
 Here we see the usefulness of unit types.
-We never have to worry about the actual `Entity` value of the player, but instead we just refer to it using the `Player` component.
-Since `Player` is a `Unique` value, we can be sure that this only ever affects at most one entity.
+We never have to worry about the actual `Entity` value of the player, but instead we just refer to it using the `Player` Component.
+Since `Player` is a `Unique` value, we can be sure that this only ever affects at most one Entity.
 
 > incrTime :: Float -> System' ()
 > incrTime dT = modify global $ \(Time t) -> Time (t+dT)
@@ -185,8 +181,8 @@ Since `Player` is a `Unique` value, we can be sure that this only ever affects a
 `incrTime` increments the total elapsed time by `dT`.
 In this case, we cannot use `cmap`, as we cannot iterate over a `Global`.
 If you try to do so, you will get a type error about how `Global Time` does not have an instance of `ExplMembers`; which is to say you cannot retrieve a list of members from a `Global`.
-Instead we have to use `modify`, which is like `cmap` for a single entity.
-As mentioned before, the exact entity argument does not matter for a global component.
+Instead we have to use `modify`, which is like `cmap` for a single Entity.
+As mentioned before, the exact Entity argument does not matter for a global Component.
 `global` is just an alias for -1.
 
 Side note:
@@ -198,12 +194,12 @@ Let's make things more interesting.
 `clearTargets` needs to destroy the targets that move out of bounds.
 We are going to try expressing this using `cmap`.
 
-An important thing to be aware of is that in apecs, there is no such thing as destroying/deleting/removing an /entity/.
-Instead, you can only destroy /components/, and if you want to get rid of an entity entirely, you often need to destroy each of its components individually.
+An important thing to be aware of is that in apecs, there is no such thing as destroying/deleting/removing an /Entity/.
+Instead, you can only destroy /Components/, and if you want to get rid of an Entity entirely, you often need to destroy each of its Components individually.
 
 Our mapped function will have type `(Target, Position, Velocity) -> Maybe (Target, Position, Velocity)`.
-`Maybe` represent optionality, on the left-hand side it represents a read that might fail, on the right-hand side it is a write that can also delete a component.
-If we return a `Just c`, `c` gets written as normal, but when we return `Nothing`, those same components will be deleted instead.
+`Maybe` represent optionality, on the left-hand side it represents a read that might fail, on the right-hand side it is a write that can also delete a Component.
+If we return a `Just c`, `c` gets written as normal, but when we return `Nothing`, those same Components will be deleted instead.
 
 > clearTargets :: System' ()
 > clearTargets = cmap $ \all@(Target, Position (V2 x _), Velocity _) ->
@@ -213,7 +209,7 @@ If we return a `Just c`, `c` gets written as normal, but when we return `Nothing
 
 This works fine, but it's not ideal.
 We don't really need to read `Velocity`, we are only ever interested in removing it.
-Furthermore, we don't want to have to write all three components, we just want to be able to delete them.
+Furthermore, we don't want to have to write all three Components, we just want to be able to delete them.
 
 The next System illustrates how we can make our `cmap`s more specific.
 `stepParticles` needs to decrement the life time of all `Particle`s, and remove them if their timer reaches 0.
@@ -221,10 +217,10 @@ So we need to iterate over and read `Particle`, and either delete `Particle`, `P
 This is done with a function of type `Particle -> Either Particle (Not (Particle, Kinetic))`.
 
 As in most Haskell libraries, where tuples represent conjunction, `Either` represents a disjunction.
-In the case of apecs, the component `(a,b)` represents the presence of both `a` and `b`, whereas `Either a b` represents the presence of at least one of `a` or `b` (with `b` having precedence when reading).
+In the case of apecs, the Component `(a,b)` represents the presence of both `a` and `b`, whereas `Either a b` represents the presence of at least one of `a` or `b` (with `b` having precedence when reading).
 
 `Not :: Not c` can be used to delete something, just like `Nothing :: Maybe c`.
-It can also occur on the left-hand side, where an entity has a component `(a, Not b)` if it has an `a`, but no `b`.
+It can also occur on the left-hand side, where an Entity has a Component `(a, Not b)` if it has an `a`, but no `b`.
 We will see this behaviour later.
 
 Combined, `Either a (Not b)` will either write `a`, or delete `b`.
@@ -243,8 +239,8 @@ For bullets, we want to clear them when they leave the screen, and if so, decrem
 We will use a function of type `(Bullet, Position, Score) -> Either () (Not (Bullet, Kinetic), Score)`.
 Let's break this down.
 
-* `(Bullet, Position, Score)` means we iterate over entities that have all three of those components.
-  Score is a global component, and as explained previously, can be said to belong to every entity.
+* `(Bullet, Position, Score)` means we iterate over Entities that have all three of those Components.
+  Score is a global Component, and as explained previously, can be said to belong to every Entity.
   Remember though, we cannot iterate over globals, so you get a type error if `Score` is in the first position on the left-hand side.
 
 * Writing a `Left ()` value does nothing.
@@ -274,15 +270,15 @@ These pretty much work as you would expect, they take a function of type `cx -> 
 
 We'll use `cmapM_` to do some collision handling.
 We first iterate over all `(Target, Position, Entity)`s, and for each, iterate over all `(Bullet, Position, Entity)` Entities.
-Then, when the distance between two positions is below the threshold, we destroy both entities, create a bunch of particles, and update the score.
+Then, when the distance between two positions is below the threshold, we destroy both Entities, create a bunch of particles, and update the score.
 
-The `Entity` component is the same `Entity` returned by e.g. `newEntity`, it is just an integer value in a newtype.
-When read as a component, it will return whatever Entity it is queried at, i.e. for `Entity ety' <- get ety`, `ety' == ety` will be true by definition.
+The `Entity` Component is the same `Entity` returned by e.g. `newEntity`, it is just an integer value in a newtype.
+When read as a Component, it will return whatever Entity it is queried at, i.e. for `Entity ety' <- get ety`, `ety' == ety` will be true by definition.
 
-Destroying components for a specific Entity (rather than through `cmap`) is done with `destroy`.
+Destroying Components for a specific Entity (rather than through `cmap`) is done with `destroy`.
 
 Side note:
-There are 5 primitive operations on stores/components: `exists`, `get`, `set`, `destroy`, and `members`.
+There are 5 primitive operations on stores/Components: `exists`, `get`, `set`, `destroy`, and `members`.
 All other `System`s are implemented using these 5 operations.
 For example, we could write `cmap` as follows:
 
@@ -307,19 +303,19 @@ Anyway, collision handling:
 >         modify global $ \(Score x) -> Score (x + hitBonus)
 
 Again, every time we delete e.g. a `Bullet`, we have to remember to also delete its `Kinetic` (position and velocity).
-If you forget to do so, you will have a component with just a `Position` and a `Velocity` floating around.
+If you forget to do so, you will have a Component with just a `Position` and a `Velocity` floating around.
 It won't really interact with anything, but it will still take up memory and have its position updated in every `stepPosition`.
 
-People have asked why there is no way to simply delete an Entity and all of its components.
-The reason apecs can't do it for you is kind of technical, but comes down to that there is no obvious way of centrally tracking what entities have what components.
-Furthermore, adding such a system would be limiting in other ways, and additional complexity would make it harder to integrate apecs with other systems.
-Instead, in this tutorial we use type synonyms like `Kinetic` to define hierarchies of components and easily delete many at once.
-If this is an issue for you, you could write an `All` type synonym, a tuple containing all components.
-If you then `destroy ety (Proxy @All)`, you would be sure that all components get deleted.
+People have asked why there is no way to simply delete an Entity and all of its Components.
+The reason apecs can't do it for you is kind of technical, but comes down to that there is no obvious way of centrally tracking what Entities have what Components.
+Furthermore, adding such a System would be limiting in other ways, and additional complexity would make it harder to integrate apecs with other Systems.
+Instead, in this tutorial we use type synonyms like `Kinetic` to define hierarchies of Components and easily delete many at once.
+If this is an issue for you, you could write an `All` type synonym, a tuple containing all Components.
+If you then `destroy ety (Proxy @All)`, you would be sure that all Components get deleted.
 
 `triggerEvery` runs a `System` periodically.
 Nothing about this is apecs-specific, except for the `get global`, which we've seen before.
-If you hadn't noticed by the way, `get` doesn't need a `Proxy` because unlike e.g. `destroy` it can infer what component to act on from its return value.
+If you hadn't noticed by the way, `get` doesn't need a `Proxy` because unlike e.g. `destroy` it can infer what Component to act on from its return value.
 
 > triggerEvery :: Float -> Float -> Float -> System' a -> System' ()
 > triggerEvery dT period phase sys = do
@@ -338,7 +334,7 @@ The random values are generated in the IO monad, so we use `liftIO`.
 >   t  <- liftIO $ randomRIO (0.02,0.3)
 >   newEntity (Particle t, pos, Velocity (V2 vx vy))
 
-Finally, we assemble all our pieces into a single system.
+Finally, we assemble all our pieces into a single System.
 
 > step :: Float -> System' ()
 > step dT = do
@@ -385,7 +381,7 @@ This is done by constructing gloss `Picture` values.
 I recommend looking at the gloss documentation to see what sort of things you can do with it.
 
 Our drawing function will produce such a `Picture`.
-The easiest way to draw multiple entities is to use the `foldDraw` function from apecs-gloss.
+The easiest way to draw multiple Entities is to use the `foldDraw` function from apecs-gloss.
 It performs a `cfold` of some drawing function, and combines all results into a larger `Picture`.
 
 > translate' :: Position -> Picture -> Picture
