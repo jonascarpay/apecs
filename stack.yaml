@@ -1,10 +1,20 @@
-resolver: lts-12.19
+resolver: lts-13.05
 
 packages:
   - apecs
   - apecs-physics
   - apecs-gloss
+  - apecs-stm
   - examples
+
+extra-deps:
+  - stm-containers-1.1.0.2
+  - stm-hamt-1.2.0.2
+  - primitive-extras-0.7.1
+  - deferred-folds-0.9.10
+  - focus-1.0.1.2
+  - primitive-0.6.4.0
+
 
 nix:
   pure: false

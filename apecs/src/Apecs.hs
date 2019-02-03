@@ -3,7 +3,6 @@ This module forms the apecs Prelude.
 It selectively re-exports the user-facing functions from the submodules.
 -}
 module Apecs (
-  module Data.Proxy,
   -- * Core types
     SystemT(..), System, Component(..), Entity(..), Has(..), Not(..),
     Get, Set, Destroy, Members,
@@ -25,7 +24,7 @@ module Apecs (
     makeWorld, makeWorldAndComponents,
 
   -- * Re-exports
-    asks, ask, liftIO, lift,
+    asks, ask, liftIO, lift, Proxy (..)
 ) where
 
 import           Control.Monad.Reader (ask, asks, lift, liftIO)

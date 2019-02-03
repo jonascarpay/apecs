@@ -21,7 +21,7 @@ apecs aims to be
 | [apecs](apecs/) | [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs) | [![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=lts)](https://www.stackage.org/package/apecs) | [![Stackage](https://www.stackage.org/package/apecs/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs)
 | [apecs-physics](apecs-physics/) |  [![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics) | [![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics) | [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics) |
 | [apecs-gloss](apecs-gloss/) | [![Hackage](https://img.shields.io/hackage/v/apecs-gloss.svg)](https://hackage.haskell.org/package/apecs-gloss) | [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-gloss) | [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-gloss) |
-| [apecs-stm](apecs-stm/) | - | - | - |
+| [apecs-stm](apecs-stm/) | [![Hackage](https://img.shields.io/hackage/v/apecs-stm.svg)](https://hackage.haskell.org/package/apecs-stm) | - | - |
 | [examples](examples/) | - | - | - |
 
 #### Example

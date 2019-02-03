@@ -10,11 +10,6 @@ cache:
 matrix:
   include:
 
-### GHC ###
-  # - env: BUILD=cabal GHCVER=8.0.2 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
-  #   compiler: ": #GHC 8.0.2"
-  #   addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-
   - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0 HAPPYVER=1.19.5 ALEXVER=3.1.7
     compiler: ": #GHC 8.2.2"
     addons: {apt: {packages: [cabal-install-2.0,ghc-8.2.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
@@ -23,9 +18,9 @@ matrix:
     compiler: ": #GHC 8.4.3"
     addons: {apt: {packages: [cabal-install-2.2,ghc-8.4.3,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
 
-  - env: BUILD=cabal GHCVER=8.6.2 CABALVER=2.4 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 8.6.2"
-    addons: {apt: {packages: [cabal-install-2.4,ghc-8.6.2,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
+  - env: BUILD=cabal GHCVER=8.6.3 CABALVER=2.4 HAPPYVER=1.19.5 ALEXVER=3.1.7
+    compiler: ": #GHC 8.6.3"
+    addons: {apt: {packages: [cabal-install-2.4,ghc-8.6.3,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
 
   # Allowed failure
   - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
@@ -37,16 +32,16 @@ matrix:
     compiler: ": #stack default"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-9"
-    compiler: ": #stack 8.0.2"
-    addons: {apt: {packages: [libgmp-dev]}}
-
   - env: BUILD=stack ARGS="--resolver lts-11"
     compiler: ": #stack 8.2.2"
     addons: {apt: {packages: [libgmp-dev]}}
 
   - env: BUILD=stack ARGS="--resolver lts-12"
     compiler: ": #stack 8.4.3"
+    addons: {apt: {packages: [libgmp-dev]}}
+
+  - env: BUILD=stack ARGS="--resolver lts-13"
+    compiler: ": #stack 8.6.3"
     addons: {apt: {packages: [libgmp-dev]}}
 
   # Allowed failure
@@ -58,16 +53,16 @@ matrix:
     compiler: ": #stack default osx"
     os: osx
 
-  - env: BUILD=stack ARGS="--resolver lts-9"
-    compiler: ": #stack 8.0.2 osx"
-    os: osx
-
   - env: BUILD=stack ARGS="--resolver lts-11"
     compiler: ": #stack 8.2.2 osx"
     os: osx
 
   - env: BUILD=stack ARGS="--resolver lts-12"
     compiler: ": #stack 8.4.3 osx"
+    os: osx
+
+  - env: BUILD=stack ARGS="--resolver lts-13"
+    compiler: ": #stack 8.6.3 osx"
     os: osx
 
   # Allowed failure

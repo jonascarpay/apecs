@@ -1,5 +1,5 @@
 name:                apecs-stm
-version:             0.1.0
+version:             0.1.1
 homepage:            https://github.com/jonascarpay/apecs-stm#readme
 license:             BSD3
 license-file:        LICENSE
@@ -8,9 +8,9 @@ maintainer:          jonascarpay@gmail.com
 category:            Game, Control, Data
 build-type:          Simple
 cabal-version:       >=1.10
-synopsis:            STM Stores for apecs
+synopsis:            STM stores for apecs
 description:
-  Apecs stores that live in the STM monad. These support easy concurrency without race conditions.
+  Apecs stores that live in the STM monad, and other tools.
 
 extra-source-files:
   README.md,
@@ -24,16 +24,17 @@ library
   hs-source-dirs:
     src
   exposed-modules:
-    Apecs.STM
+    Apecs.STM, Apecs.STM.Prelude
   default-language:
     Haskell2010
   build-depends:
     base >= 4.7 && < 5,
-    containers >= 0.5.11,
+    containers,
     stm,
     list-t,
     vector,
-    stm-containers >= 1.1,
+    template-haskell,
+    stm-containers,
     apecs >= 0.7
   ghc-options:
     -Wall
