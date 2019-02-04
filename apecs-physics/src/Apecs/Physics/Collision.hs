@@ -11,6 +11,7 @@
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE ViewPatterns               #-}
 
 module Apecs.Physics.Collision where
@@ -25,6 +26,7 @@ import           Foreign.ForeignPtr  (withForeignPtr)
 import           Foreign.Ptr
 import qualified Language.C.Inline   as C
 import           Linear.V2
+import           Data.Functor (($>))
 
 import           Apecs.Physics.Body  ()
 import           Apecs.Physics.Space ()
@@ -36,6 +38,92 @@ C.include "<chipmunk_structs.h>"
 
 defaultHandler :: CollisionHandler
 defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
+
+
+whenOrFalse :: (Applicative f) => Bool -> f Bool -> f Bool 
+whenOrFalse a c
+    | a = c
+    | otherwise = pure False
+
+
+-- | A 'CollideHandler' is a callback function that can possibly handle collisions.
+-- If running the 'CollideHandler' returns 'True', it was able to handle this collision.
+-- If it returns 'False', it could not, probably because one of the entities involved
+-- didn't have the proper components.
+--
+-- 'CollideHandlers' are almost always created with 'mapMCollideHandler' or 'mapCollideHandler'
+-- and are generally combined with 'collideHandlerOr' or 'collideHandlerAnd'.
+-- However, it is also possible to create 'CollideHandlers' that simply do some other checking.
+type CollideHandler w m = (Collision -> SystemT w m Bool)
+
+-- | Make a CollideHandler that behaves like a two-argument 'mapM'.
+-- If the callback can be applied to the enties in 'collisionA' and 'collisionB', then
+-- this will run the callback, map the results to those same entities, and then return 'True'.
+-- If either entity did not have the component(s) needed to run the callback function,
+-- it will instead return 'False' and not run the callback.
+--
+-- This function is useful to obtain 'CollideHandler's that can be chained with 'mapColliderOr'
+-- and 'mapColliderAnd' to perform actions in response to detected collisions.
+mapMCollideHandler :: forall lhs rhs lhsr rhsr w m.
+                    ( Get w m lhs
+                    , Get w m rhs
+                    , Set w m lhsr
+                    , Set w m rhsr)
+                 => (Vec -> lhs -> rhs -> SystemT w m (lhsr, rhsr))
+                 -> CollideHandler w m 
+mapMCollideHandler cb c = do
+    let lhs' = collisionA c
+    let rhs' = collisionB c
+    lhse <- exists lhs' (Proxy @lhs)
+    whenOrFalse lhse $ do
+        rhse <- exists rhs' (Proxy @rhs)
+        whenOrFalse rhse $ do
+          lhsc <- get lhs'
+          rhsc <- get rhs'
+          (lhsr, rhsr) <- cb (collisionNormal c) lhsc rhsc
+          set lhs' lhsr
+          set rhs' rhsr
+          pure True
+
+-- | 'makeMapM' collider, but with a pure callback instead of an effectful one.
+mapCollideHandler :: forall lhs rhs lhsr rhsr w m.
+                   ( Get w m lhs
+                   , Get w m rhs
+                   , Set w m lhsr
+                   , Set w m rhsr)
+                => (Vec -> lhs -> rhs -> (lhsr, rhsr))
+                -> CollideHandler w m
+mapCollideHandler = mapMCollideHandler . pure3
+  where
+    pure3 f a b c = pure $ f a b c
+
+-- | Given two 'CollideHandlers', first try to run the first.
+-- If that is unsuccessful, try the second instead.
+collideHandlerOr :: (Monad m)
+              => CollideHandler w m
+              -> CollideHandler w m 
+              -> CollideHandler w m
+collideHandlerOr a b col = do
+    e <- a col
+    if e then
+      pure True
+    else
+      b col
+
+-- | Given two 'CollideHandlers', return a new 'CollideHandler' that runs both,
+-- and is successful if either is successful.
+collideHandlerAnd :: (Applicative m)
+               => CollideHandler w m
+               -> CollideHandler w m 
+               -> CollideHandler w m
+collideHandlerAnd a b col =
+    (||) <$> a col <*> b col
+
+
+postSolveCollideHandler :: CollideHandler w IO -> System w PostSolveCB
+postSolveCollideHandler c = mkPostSolveCB inner
+  where
+    inner col = c col $> ()
 
 mkBeginCB :: (Collision -> System w Bool) -> System w BeginCB
 mkBeginCB sys = do

@@ -25,6 +25,8 @@ module Apecs.Physics (
   -- * Collision
   Collision (..), CollisionHandler (..), defaultHandler,
   CollisionSource(..), BeginCB, SeparateCB, PreSolveCB, PostSolveCB,
+  mapMCollideHandler, mapCollideHandler, collideHandlerOr,
+  collideHandlerAnd, postSolveCollideHandler, 
   mkBeginCB, mkSeparateCB, mkPreSolveCB, mkPostSolveCB,
 
   -- * Query
