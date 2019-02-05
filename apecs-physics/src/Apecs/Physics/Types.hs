@@ -65,14 +65,29 @@ type WVec = Vec
 --   These components cannot be added or removed from an entity, but rather are present as long as the entity has a @Body@.
 data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 
+-- | A subcomponent of @Body@ representing where it is in world coordinates.
 newtype Position        = Position WVec
+-- | A subcomponent of @Body@ representing where it is going in world coordinates
 newtype Velocity        = Velocity WVec
+-- | A component used to apply a force to a @Body@.
+-- The force is applied to the body's center of gravity.
+-- This component is reset to @ Vec 0 0 @ after every stimulation step, 
+-- so it is mainly used to apply a force as opposed to being read.
 newtype Force           = Force Vec
+-- | A component used to apply a torque to a @Body@.
+-- The torque is applied to the entire body at once.
+-- This component is reset to @ 0 @ after every simulation step, so it
+-- is mainly used to apply a torque as opposed to being read.
 newtype Torque          = Torque Double
+-- | A component representing the mass of the @Body@ overall.
 newtype BodyMass        = BodyMass Double deriving (Eq, Show)
+-- | The moment of inertia of the @Body@.
+-- This is basically the body's tendency to resist angular acceleration.
 newtype Moment          = Moment Double deriving (Eq, Show)
 newtype Angle           = Angle Double deriving (Eq, Show)
 newtype AngularVelocity = AngularVelocity Double
+-- | Where the @Body@'s center of gravity is, in body-local coordinates.
+-- Can be read and written to.
 newtype CenterOfGravity = CenterOfGravity BVec
 
 -- | The @Shape@s belonging to a body. Read-only.
@@ -88,10 +103,34 @@ data Shape = Shape Entity Convex
 --   Consists of a list of vertices, and a radius.
 data Convex = Convex [BVec] Double deriving (Eq, Show)
 
+-- | If a body is a 'Sensor', it exists only to trigger collision responses.
+-- It won't phyiscally interact with other bodies in any way, but it __will__
+-- cause collision handlers to run. 
 newtype Sensor          = Sensor          Bool       deriving (Eq, Show)
+-- | The elasticity of a shape. Higher elasticities will create more
+-- elastic collisions, IE, will be bouncier.
+--
+-- See <https://en.wikipedia.org/wiki/Elasticity_(physics)> for more information.
 newtype Elasticity      = Elasticity      Double     deriving (Eq, Show)
+-- | The mass of a shape is technically a measure of how much resistance it has to
+-- being accelerated, but it's generally easier to understand it as being how "heavy" something is.
+--
+-- The physics engine lets you set this, and it will calculate the 'Density' and other components
+-- for you. 
+--
+-- See <https://en.wikipedia.org/wiki/Mass> for more information.
 newtype Mass            = Mass            Double     deriving (Eq, Show)
+-- | The density of a shape is a measure of how much mass an object has in a given volume.
+-- 
+-- The physics engine lets you set this, and it will calculate the 'Mass' and other components for you.
+-- 
+-- See <https://en.wikipedia.org/wiki/Density> for more information.
 newtype Density         = Density         Double     deriving (Eq, Show)
+-- | The friction of an object is a measure of how much it resists movement.
+-- Shapes with high friction will naturally slow down more quickly over time than objects
+-- with low friction.
+--
+-- See <https://en.wikipedia.org/wiki/Friction> for more information.
 newtype Friction        = Friction        Double     deriving (Eq, Show)
 newtype SurfaceVelocity = SurfaceVelocity Vec        deriving (Eq, Show)
 newtype CollisionType   = CollisionType   C.CUIntPtr deriving (Eq, Show)
@@ -144,7 +183,10 @@ newtype Iterations = Iterations Int deriving (Eq, Show)
 newtype Gravity = Gravity Vec deriving (Eq, Show)
 -- | Daming factor, global value
 newtype Damping = Damping Double deriving (Eq, Show)
--- | Speed threshold to be considered idle, and a candidate for being put to sleep. Global value
+-- | Speed threshold to be considered idle, and a candidate for being put to sleep. Global value.
+-- Bodies with a speed less than this will not be simulated until a force acts upon them,
+-- which can potentially lead to large gains in performance, especially if there's a lot of
+-- inactive bodies in the simulation.
 newtype IdleSpeedThreshold = IdleSpeedThreshold Double deriving (Eq, Show)
 -- | Sleep idle time threshold, global value
 newtype SleepIdleTime = SleepIdleTime Double deriving (Eq, Show)
@@ -198,9 +240,20 @@ type PostSolveFunc = Ptr Collision -> Ptr FrnSpace -> C.CUInt -> IO ()
 data CollisionHandler = CollisionHandler
   { source      :: CollisionSource
   , beginCB     :: Maybe BeginCB
+  -- ^ A callback called when two bodies start touching for the first time.
+  -- If it returns 'True', the physics engine will process the collision normally.
+  -- If it returns 'False', the physics engine will __ignore the collision entirely__.
   , separateCB  :: Maybe SeparateCB
+  -- ^ A callback called when two bodies have just stopped touching. This will
+  -- __always__ be called if 'beginCB' is, regardless of the return value of 'beginCB'.
   , preSolveCB  :: Maybe PreSolveCB
+  -- ^ A callback called when two bodies are touching during a physics step. If this function
+  -- returns 'True', the collision will be processed normally. If it returns 'False, then
+    -- the physics engine will stop processing the collision for this step.
   , postSolveCB :: Maybe PostSolveCB
+  -- ^ A callback called when two bodies are touching __after__ the response to the collision
+  -- has been processed. This means that you can determine the collision impulse or kinetic energy
+  -- in this callback, if you need that for processing.
   }
 
 data CollisionSource
@@ -222,14 +275,25 @@ data CollisionProperties = CollisionProperties
 
 data SegmentQueryResult = SegmentQueryResult
   { sqShape        :: Entity
+  -- ^ What entity did this query connect with?
   , sqImpactPoint  :: Vec
+  -- ^ The point that the segment impacted with the shape
   , sqImpactNormal :: Vec
+  -- ^ The normal of the surface that the segment hit
   , sqImpactAlpha  :: Double
+  -- ^ The normalized distance along the query segment in the range `[0, 1]`.
+  -- Multiply it by the length of the segment to get the distance away the shape is.
   } deriving (Eq, Show)
 
 data PointQueryResult = PointQueryResult
   { pqShape    :: Entity
+  -- ^ What entity did this query connect with?
   , pqPoint    :: WVec
+  -- ^ The closest point on the shape's surface (in world space)
   , pqDistance :: Double
+  -- ^ The distance to the queried point
   , pqGradient :: Double
+  -- ^ The gradient of the distance function.
+  -- This is equal to 'pqPoint'/'pqDistance' but accurate for even
+  -- very small distances. 
   } deriving (Eq, Show)

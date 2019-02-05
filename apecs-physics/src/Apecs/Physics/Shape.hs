@@ -42,6 +42,7 @@ maskList = foldr (flip setBit) maskNone
 defaultFilter :: CollisionFilter
 defaultFilter = CollisionFilter 0 maskAll maskAll
 
+-- | A box with the given height, width, and center point
 boxShape :: Double -> Double -> Vec -> Convex
 boxShape w h offset = Convex ((+offset) <$> verts) 0
   where
