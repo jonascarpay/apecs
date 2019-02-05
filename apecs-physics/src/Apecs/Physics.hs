@@ -11,6 +11,7 @@ module Apecs.Physics (
   earthGravity,
 
   -- * Body
+  -- $BODY
   Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
   BodyMass (..), Moment (..), CenterOfGravity (..), Torque (..), ShapeList (..), ConstraintList (..),
 
@@ -50,3 +51,12 @@ import           Apecs.Physics.Query
 import           Apecs.Physics.Shape
 import           Apecs.Physics.Space
 import           Apecs.Physics.Types
+
+
+-- $BODY
+-- When you give an entity a @'Body'@ component in 'apecs-physics', the physics engine will
+-- also give this entity a number of __sub-components__.
+-- These sub-components may be read and written separately from the actualy @'Body'@ itself,
+-- which makes the library both more expressive (as you can only write about the parts of a
+-- physics body you actually want to view or change) and more performant 
+-- (as only the changed parts of a body actually need to be updated when you write to them).
