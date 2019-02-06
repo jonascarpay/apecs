@@ -142,10 +142,10 @@ instance Monoid Score where mempty = 0
 
 instance Component Score where type Storage Score = Global Score
 
-newtype Time = Time Float deriving Show
+newtype Time = Time Float deriving (Show, Num)
 instance Semigroup Time where
-    (Time t) <> (Time t') = Time $ t + t'
-instance Monoid Time where mempty = Time 0
+    (<>) = (+)
+instance Monoid Time where mempty = 0
 instance Component Time where type Storage Time = Global Time
 ```
 
