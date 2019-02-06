@@ -18,14 +18,15 @@ large number of pragma’s. Don’t worry, GHC will happily let you know if
 you missed any.
 
 ``` haskell
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 ```
 
 The `Apecs` module forms the apecs prelude, it re-exports everything you
@@ -133,11 +134,11 @@ The initial value of a `Global` will be drawn from that Component’s
 `Score` keeps the score, and `Time` the total elapsed time.
 
 ``` haskell
-newtype Score = Score Int deriving Show
+newtype Score = Score Int deriving (Show, Num)
 instance Semigroup Score where
-    (Score a) <> (Score b) = Score $ a + b
+    (<>) = (+)
 
-instance Monoid Score where mempty = Score 0
+instance Monoid Score where mempty = 0
 
 instance Component Score where type Storage Score = Global Score
 
