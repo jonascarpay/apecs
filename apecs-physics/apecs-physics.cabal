@@ -52,7 +52,7 @@ source-repository HEAD
 
 custom-setup
   setup-depends:
-    base  >= 4.5 && < 4.13,
+    base  >= 4.9 && < 5,
     Cabal >= 1.14
 
 flag release
@@ -77,16 +77,16 @@ library
     Apecs.Physics.Types
     Apecs.Physics.Query
   build-depends:
-    base >= 4.7 && < 4.13,
-    apecs >= 0.7,
-    containers,
-    inline-c,
-    linear,
-    template-haskell,
-    vector
+    apecs            >= 0.7  && < 0.8,
+    base             >= 4.9  && < 5,
+    containers       >= 0.5  && < 0.8,
+    inline-c         >= 0.6  && < 1,
+    linear           >= 1.20 && < 2,
+    template-haskell >= 2.12 && < 3,
+    vector           >= 0.10 && < 0.13
   ghc-options:
     -Wall
-    -- -O2
+    -O2
     -Wno-orphans
     -Wno-unused-do-bind
     -Wno-name-shadowing
