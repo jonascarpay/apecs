@@ -15,7 +15,7 @@ executable simple
   main-is:
     Simple.hs
   build-depends:
-    base >= 4.7 && < 5,
+    base >= 4.9 && < 5,
     apecs,
     linear
   default-language:
@@ -25,7 +25,7 @@ executable shmup
   main-is:
     Shmup.lhs
   build-depends:
-    base >= 4.7 && < 5,
+    base >= 4.9 && < 5,
     apecs,
     apecs-gloss,
     linear,
@@ -39,7 +39,7 @@ executable helloworld
   hs-source-dirs:      .
   main-is:             HelloWorld.hs
   build-depends:
-    base >= 4.7 && < 5,
+    base >= 4.9 && < 5,
     apecs,
     apecs-physics,
     apecs-gloss,
@@ -50,7 +50,7 @@ executable tumbler
   hs-source-dirs:      .
   main-is:             Tumbler.hs
   build-depends:
-    base >= 4.7 && < 5,
+    base >= 4.9 && < 5,
     apecs,
     apecs-physics,
     apecs-gloss,
@@ -62,7 +62,7 @@ executable constraints
   hs-source-dirs:      .
   main-is:             Constraints.hs
   build-depends:
-    base >= 4.7 && < 5,
+    base >= 4.9 && < 5,
     apecs,
     apecs-physics,
     apecs-gloss,
