@@ -1,4 +1,4 @@
-# apecs [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs) [![Gitter chat](https://badges.gitter.im/apecs_hs/Lobby.png)](https://gitter.im/apecs_hs/Lobby)
+# apecs [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
 apecs is an _Entity Component System_ (ECS) framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 ECS presents a data-driven approach to game development, that elegantly tackles many of the unique issues of game programming.
 apecs aims to be

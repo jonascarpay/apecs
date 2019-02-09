@@ -11,7 +11,7 @@ markdown file, in which case the `.lhs` file is in the same folder), you
 can also compile it directly with GHC and run the game. The arrow keys
 move you, space shoots, escape quits. If you have any questions or
 suggestions while working through this tutorial, don’t hesitate to
-create an issue, or drop by the Gitter chat room.
+create an issue or send a message.
 
 Let’s start at the top. Apecs’ type-level machinery tends to effect a
 large number of pragma’s. Don’t worry, GHC will happily let you know if
@@ -557,4 +557,4 @@ main = do
 ```
 
 That concludes our tour. Again, please let me know if you have any
-questions or comments, through GitHub issues/gitter chat/twitter/reddit.
+questions or comments, through GitHub issues/twitter/reddit.
