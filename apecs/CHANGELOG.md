@@ -1,7 +1,12 @@
+## [Unreleased]
+### Changed
+- Fixed bug in the `Pushdown` store
+- `Apecs` module no longer re-exports the entire `Data.Proxy` module, but instead just `Proxy (..)`.
+
 ## [0.7.1]
-## Added
+### Added
 - `$=` and `$~` operators as synonyms for `set` and `get` respectively
-## Removed
+### Removed
 - `getAll` and `count`, which were made redundant by `cfold`.
 
 ## [0.7.0]

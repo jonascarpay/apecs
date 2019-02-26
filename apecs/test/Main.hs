@@ -1,28 +1,30 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 {-# OPTIONS_GHC -w #-}
 
-import Test.QuickCheck
-import Test.QuickCheck.Monadic
-import qualified Data.IntSet as S
-import qualified Data.Vector.Unboxed as U
-import Data.IORef
-import Data.List (sort)
-import Control.Monad
+import           Control.Monad
+import qualified Data.IntSet             as S
+import           Data.IORef
+import           Data.List               (sort)
+import qualified Data.Vector.Unboxed     as U
+import           Test.QuickCheck
+import           Test.QuickCheck.Monadic
 
-import Apecs
-import Apecs.Reactive
-import Apecs.Core
-import Apecs.Stores
-import Apecs.Util
+import           Apecs
+import           Apecs.Core
+import           Apecs.Reactive
+import           Apecs.Stores
+import           Apecs.Stores.Extra
+import           Apecs.Util
 
 type Vec = (Double, Double)
 
@@ -136,6 +138,14 @@ prop_lookupValid writes deletes = assertSys initReactiveWld $ do
          && sort rf == sort ef
          && all (`notElem` ef) et
          )
+
+-- Tests Pushdown
+newtype StackInt = StackInt Int deriving (Eq, Show, Arbitrary)
+instance Component StackInt where type Storage StackInt = Pushdown Map StackInt
+
+makeWorld "StackWld" [''StackInt]
+
+prop_setGetStack = genericSetSet initStackWld (undefined :: StackInt)
 
 return []
 main = $quickCheckAll

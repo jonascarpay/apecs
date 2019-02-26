@@ -4,12 +4,16 @@ Stability: experimtal
 Containment module for stores that are experimental/too weird for @Apecs.Stores@.
 -}
 
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE PatternSynonyms            #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Apecs.Stores.Extra
   ( Pushdown(..), Stack(..)
@@ -19,27 +23,34 @@ module Apecs.Stores.Extra
 import           Control.Monad.Reader
 import           Data.Proxy
 
+import           Apecs.Components     (MaybeStore (..))
 import           Apecs.Core
 
 -- | Overrides a store to have history/pushdown semantics.
 --   Setting this store adds a new value on top of the stack.
 --   Destroying pops the stack.
---   You can view the entire stack using the @Stack c@ component.
+--   You can view the entire stack using the 'Stack' wrapper.
 newtype Pushdown s c = Pushdown (s (Stack c))
-newtype Stack c = Stack {getStack :: [c]}
+newtype Stack c = Stack {getStack :: [c]} deriving (Eq, Show, Functor, Applicative, Monad, Foldable, Monoid, Semigroup)
 
 type instance Elem (Pushdown s c) = c
 
 instance (Functor m, ExplInit m (s (Stack c))) => ExplInit m (Pushdown s c) where
   explInit = Pushdown <$> explInit
 
+pattern StackList :: c -> [c] -> Maybe (Stack c)
+pattern StackList x xs = Just (Stack (x:xs))
+
 instance
   ( Monad m
   , ExplGet m (s (Stack c))
   , Elem (s (Stack c)) ~ Stack c
   ) => ExplGet m (Pushdown s c) where
-    explExists (Pushdown s) = explExists s
-    explGet    (Pushdown s) ety = head . getStack <$> explGet s ety
+    explExists (Pushdown s) ety = f <$> explGet (MaybeStore s) ety
+      where
+        f (StackList _ _) = True
+        f _               = False
+    explGet (Pushdown s) ety = head . getStack <$> explGet s ety
 
 instance
   ( Monad m
@@ -48,8 +59,10 @@ instance
   , Elem (s (Stack c)) ~ Stack c
   ) => ExplSet m (Pushdown s c) where
     explSet (Pushdown s) ety c = do
-      Stack cs <- explGet s ety
-      explSet s ety (Stack (c:cs))
+      ms <- explGet (MaybeStore s) ety
+      let tail (StackList _ cs) = cs
+          tail _                = []
+      explSet s ety (Stack (c:tail ms))
 
 instance
   ( Monad m
@@ -59,10 +72,10 @@ instance
   , Elem (s (Stack c)) ~ Stack c
   ) => ExplDestroy m (Pushdown s c) where
     explDestroy (Pushdown s) ety = do
-      Stack cs <- explGet s ety
-      case cs of
-        _:cs' -> explSet s ety (Stack cs')
-        []    -> explDestroy s ety
+      mscs <- explGet (MaybeStore s) ety
+      case mscs of
+        StackList _ cs' -> explSet s ety (Stack cs')
+        _               -> explDestroy s ety
 
 instance
   ( Monad m
