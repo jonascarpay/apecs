@@ -1,19 +1,26 @@
 # apecs [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
-apecs is an _Entity Component System_ (ECS) framework inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
+apecs is an _Entity Component System_ (ECS) library inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
 ECS presents a data-driven approach to game development, that elegantly tackles many of the unique issues of game programming.
+
 apecs aims to be
-* **Fast** - apecs is designed for high-performance applications. Its performance is competitive with Rust ECS libraries (see benchmark results below).
-* **Simple** - Game logic is expressed using a small number of combinators, and minimal boilerplate.
+* **Fast** - Performance is competitive with Rust ECS libraries (see benchmark results below).
+* **Concise** - Game logic is expressed using a small number of powerful combinators.
 * **Safe** - The `cmap`/`cfold`-DSL completely hides the dangers of the low-level API.
-* **Extensible** - apecs can be used with anything that implements the low-level API. See [apecs-physics](apecs-physics/) or [apecs-stm](apecs-stm/) for examples.
+* **Extensible** - At its heart apecs is just a data manipulation DSL that can be implemented with any number of backends. as a monad transformer it easily integrates into larger applications.
+* **Cool**
 
 ![Benchmarks](apecs/bench/chart.png)
 
 #### Links
-- [paper (prepublication)](apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
+- [documentation on hackage](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
 - [tutorial](examples/Shmup.md) and other [examples](examples/)
-- [apecs-physics](apecs-physics/)
-- [documentation](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
+- [paper (prepublication)](apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
+- [apecs-physics](apecs-physics/) - 2D physics using the [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) engine
+- [apecs-gloss](apecs-gloss/) - Simple frontend for [gloss](http://hackage.haskell.org/package/gloss)-based rendering
+- [apecs-stm](apecs-stm/) - STM-based stores for easy concurrency
+
+##### By other authors
+- [An Introduction to Developing Games in Haskell with Apecs](https://blog.aas.sh/posts/2018-09-10-Making-A-Game-With-Haskell-And-Apecs/) by Ashley Smith
 
 #### Status
 | Package | Hackage | Stack LTS | Stack Nightly |
