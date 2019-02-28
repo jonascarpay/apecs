@@ -22,6 +22,7 @@ module Apecs.Stores.Extra
 
 import Control.Monad.Reader
 import Data.Proxy
+import Data.Semigroup
 
 import Apecs.Components (MaybeStore (..))
 import Apecs.Core

@@ -1,4 +1,8 @@
-## [Unreleased]
+## [0.7.3]
+### Changed
+- Added Data.Semigroup to Stores.Extra to build with GHC 8.2.2 in hackage matrix
+
+## [0.7.2]
 ### Changed
 - Fixed bug in the `Pushdown` store
 - `Apecs` module no longer re-exports the entire `Data.Proxy` module, but instead just `Proxy (..)`.
