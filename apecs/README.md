@@ -6,7 +6,7 @@ apecs aims to be
 * **Fast** - Performance is competitive with Rust ECS libraries (see benchmark results below).
 * **Concise** - Game logic is expressed using a small number of powerful combinators.
 * **Safe** - The `cmap`/`cfold`-DSL completely hides the dangers of the low-level API.
-* **Extensible** - At its heart apecs is just a data manipulation DSL that can be implemented with any number of backends. as a monad transformer it easily integrates into larger applications.
+* **Extensible** - At its heart apecs is just a data manipulation DSL that can be implemented with any number of backends. As a monad transformer it easily integrates into larger applications.
 * **Cool**
 
 ![Benchmarks](apecs/bench/chart.png)
