@@ -13,10 +13,10 @@
 
 module Apecs.Components where
 
-import           Data.Functor.Identity
+import Data.Functor.Identity
 
 import           Apecs.Core
-import qualified Apecs.THTuples        as T
+import qualified Apecs.THTuples as T
 
 -- | Identity component. @Identity c@ is equivalent to @c@, so mostly useless.
 instance Component c => Component (Identity c) where

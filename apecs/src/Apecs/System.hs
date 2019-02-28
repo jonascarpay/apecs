@@ -10,8 +10,8 @@ import           Control.Monad.Reader
 import           Data.Proxy
 import qualified Data.Vector.Unboxed  as U
 
-import           Apecs.Core
-import           Apecs.Components ()
+import Apecs.Components ()
+import Apecs.Core
 
 -- | Run a system in a game world
 {-# INLINE runSystem #-}
@@ -100,7 +100,7 @@ cmapIf cond f = do
     sl <- explMembers (sx,sp)
     U.forM_ sl $ \ e -> do
       p <- explGet sp e
-      when (cond p) $ do 
+      when (cond p) $ do
         x <- explGet sx e
         explSet sy e (f x)
 

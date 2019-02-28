@@ -2,6 +2,7 @@
 ### Changed
 - Fixed bug in the `Pushdown` store
 - `Apecs` module no longer re-exports the entire `Data.Proxy` module, but instead just `Proxy (..)`.
+- Added (approximate?) lower and upper version bounds to dependencies
 
 ## [0.7.1]
 ### Added

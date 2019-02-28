@@ -20,11 +20,11 @@ module Apecs.Stores.Extra
   , ReadOnly(..), setReadOnly, destroyReadOnly
   ) where
 
-import           Control.Monad.Reader
-import           Data.Proxy
+import Control.Monad.Reader
+import Data.Proxy
 
-import           Apecs.Components     (MaybeStore (..))
-import           Apecs.Core
+import Apecs.Components (MaybeStore (..))
+import Apecs.Core
 
 -- | Overrides a store to have history/pushdown semantics.
 --   Setting this store adds a new value on top of the stack.

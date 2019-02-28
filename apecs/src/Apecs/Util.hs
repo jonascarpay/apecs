@@ -19,16 +19,16 @@ module Apecs.Util (
   quantize, flatten, inbounds, region, flatten',
 ) where
 
-import           Control.Applicative  (liftA2)
-import           Control.Monad.Reader
-import           Data.Monoid
-import           Data.Semigroup
-import           System.Mem           (performMajorGC)
+import Control.Applicative  (liftA2)
+import Control.Monad.Reader
+import Data.Monoid
+import Data.Semigroup
+import System.Mem           (performMajorGC)
 
-import           Apecs.Core
-import           Apecs.Stores
-import           Apecs.Stores.Extra
-import           Apecs.System
+import Apecs.Core
+import Apecs.Stores
+import Apecs.Stores.Extra
+import Apecs.System
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
 global :: Entity

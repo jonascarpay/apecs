@@ -12,7 +12,7 @@
 module Apecs.Core where
 
 import           Control.Monad.Reader
-import qualified Data.Vector.Unboxed   as U
+import qualified Data.Vector.Unboxed  as U
 
 -- | An Entity is just an integer, used to index into a component store.
 --   In general, use @newEntity@, @cmap@, and component tags instead of manipulating these directly.
@@ -76,4 +76,3 @@ type Get     w m c = (Has w m c, ExplGet     m (Storage c))
 type Set     w m c = (Has w m c, ExplSet     m (Storage c))
 type Members w m c = (Has w m c, ExplMembers m (Storage c))
 type Destroy w m c = (Has w m c, ExplDestroy m (Storage c))
-

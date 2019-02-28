@@ -1,15 +1,16 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies    #-}
 
 module Apecs.TH
   ( makeWorld, makeWorldNoEC, makeWorldAndComponents
   ) where
 
-import           Language.Haskell.TH
-import           Control.Monad
+import Control.Monad
+import Language.Haskell.TH
 
-import           Apecs.Core
-import           Apecs.Stores
-import           Apecs.Util          (EntityCounter)
+import Apecs.Core
+import Apecs.Stores
+import Apecs.Util   (EntityCounter)
 
 genName :: String -> Q Name
 genName s = mkName . show <$> newName s
@@ -52,14 +53,14 @@ makeComponent :: Name -> Q Dec
 makeComponent comp = do
   let ct = return$ ConT comp
   head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
-  
+
 -- | Same as makeWorld, but also defines @Component@ instances with a @Map@ store.
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
   cdecls <- mapM makeComponent cTypes
   return $ wdecls ++ cdecls
-  
+
 {-|
 
 > makeWorld "WorldName" [''Component1, ''Component2, ...]

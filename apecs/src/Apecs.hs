@@ -14,7 +14,7 @@ module Apecs (
   -- * Systems
     get, set, ($=),
     destroy, exists,
-    modify, ($~), 
+    modify, ($~),
     cmap,  cmapM,  cmapM_,
     cfold, cfoldM, cfoldM_,
 
@@ -27,13 +27,12 @@ module Apecs (
     asks, ask, liftIO, lift, Proxy (..)
 ) where
 
-import           Control.Monad.Reader (ask, asks, lift, liftIO)
-import           Data.Proxy
+import Control.Monad.Reader (ask, asks, lift, liftIO)
+import Data.Proxy
 
-import           Apecs.Stores
-import           Apecs.Components
-import           Apecs.System
-import           Apecs.TH
-import           Apecs.Core
-import           Apecs.Util
-
+import Apecs.Components
+import Apecs.Core
+import Apecs.Stores
+import Apecs.System
+import Apecs.TH
+import Apecs.Util
