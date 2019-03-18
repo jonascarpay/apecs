@@ -157,3 +157,58 @@ cfoldM_ sys a0 = do
   s :: Storage c <- getStore
   sl <- lift$ explMembers s
   U.foldM'_ (\a e -> lift (explGet s e) >>= sys a) a0 sl
+
+
+-- I was missing getAll from previouse versions of apecs.
+-- I noticed you may be able to use a cfoldM for that
+-- getAll = cfoldM (\a b -> return (b:a)) []
+
+-- Here are some functions I thought of after deciding I want
+-- to apply a function to only one entity
+-- I wasn't able to write these functions in terms of cfoldM
+
+{-# INLINE conceIf #-} 
+conceIf :: forall w m cx cp cy.
+  (Get w m cx
+  , Get w m cp
+  , Members w m cx
+  , Set w m cy
+  , Monad m)
+  => (cp -> Bool)
+  -> (cx -> cy)
+  -> SystemT w m ()
+conceIf cond f =  do
+  sx :: Storage cx <- getStore
+  sp :: Storage cp <- getStore
+  sy :: Storage cy <- getStore
+  lift $ do
+    sl <- explMembers (sx,sp)
+    es <- U.filterM (\n -> (explGet sp n) >>= return . cond) sl
+    when (not $ U.null es) $ do
+      e <- return $ U.head es
+      explGet sx e >>=  explSet sy e . f
+
+{-# INLINE conceIfM_ #-} 
+conceIfM_ :: forall w m cx cp.
+  (Get w m cx
+  , Get w m cp
+  , Members w m cx
+  , Monad m)
+  => (cp -> Bool)
+  -> (cx -> SystemT w m ())
+  -> SystemT w m ()
+conceIfM_ cond f =  do
+  sx :: Storage cx <- getStore
+  sp :: Storage cp <- getStore
+  sl <- lift $ explMembers (sx,sp)
+  U.foldM' (\b e -> do
+               if b then do
+                 p <- lift (explGet sp e)
+                 if cond p then do
+                   lift (explGet sx e) >>= f
+                   return False
+                   else return True
+                 else return False
+           )
+    True sl
+  return ()
