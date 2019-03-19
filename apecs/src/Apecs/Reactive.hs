@@ -123,7 +123,6 @@ instance (MonadIO m, Enum c) => Reacts m (EnumMap c) where
     modifyIORef' ref (M.adjust (S.delete ety) (fromEnum old))
     modifyIORef' ref (M.insertWith mappend (fromEnum new) (S.singleton ety))
 
-
 {-# INLINE mapLookup #-}
 mapLookup :: Enum c => EnumMap c -> c -> System w [Entity]
 mapLookup (EnumMap ref) c = do

@@ -13,6 +13,7 @@ module Apecs.Stores
   ( Map, Cache, Unique,
     Global,
     Cachable,
+    ReadOnly, setReadOnly, destroyReadOnly
     -- Register, regLookup
   ) where
 
@@ -184,3 +185,41 @@ instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
     cached <- liftIO$ U.filter (/= (-2)) <$> U.freeze tags
     stored <- explMembers s
     return $! cached U.++ stored
+
+-- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy'. Use 'setReadOnly' and 'destroyReadOnly' to override.
+-- This is used to protect the 'EntityCounter'.
+newtype ReadOnly s = ReadOnly s
+type instance Elem (ReadOnly s) = Elem s
+
+instance (Functor m, ExplInit m s) => ExplInit m (ReadOnly s) where
+  explInit = ReadOnly <$> explInit
+
+instance ExplGet m s => ExplGet m (ReadOnly s) where
+  explExists (ReadOnly s) = explExists s
+  explGet    (ReadOnly s) = explGet s
+  {-# INLINE explExists #-}
+  {-# INLINE explGet #-}
+
+instance ExplMembers m s => ExplMembers m (ReadOnly s) where
+  {-# INLINE explMembers #-}
+  explMembers (ReadOnly s) = explMembers s
+
+setReadOnly :: forall w m s c.
+  ( Has w m c
+  , Storage c ~ ReadOnly s
+  , Elem s ~ c
+  , ExplSet m s
+  ) => Entity -> c -> SystemT w m ()
+setReadOnly (Entity ety) c = do
+  ReadOnly s <- getStore
+  lift $ explSet s ety c
+
+destroyReadOnly :: forall w m s c.
+  ( Has w m c
+  , Storage c ~ ReadOnly s
+  , Elem s ~ c
+  , ExplDestroy m s
+  ) => Entity -> Proxy c -> SystemT w m ()
+destroyReadOnly (Entity ety) _ = do
+  ReadOnly s :: Storage c <- getStore
+  lift $ explDestroy s ety

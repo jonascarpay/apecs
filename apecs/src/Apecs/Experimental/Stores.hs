@@ -15,9 +15,9 @@ Containment module for stores that are experimental/too weird for @Apecs.Stores@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Apecs.Stores.Extra
-  ( Pushdown(..), Stack(..)
-  , ReadOnly(..), setReadOnly, destroyReadOnly
+module Apecs.Experimental.Stores
+  ( Pushdown(..), Stack(..),
+  , Redirect(..)
   ) where
 
 import Control.Monad.Reader
@@ -120,40 +120,3 @@ instance
   , ExplMembers m (s (Stack c))
   ) => ExplMembers m (StackStore (Pushdown s c)) where
   explMembers (StackStore (Pushdown s)) = explMembers s
-
--- | Wrapper that makes a store read-only. Use @setReadOnly@ and @destroyReadOnly@ to override.
-newtype ReadOnly s = ReadOnly s
-type instance Elem (ReadOnly s) = Elem s
-
-instance (Functor m, ExplInit m s) => ExplInit m (ReadOnly s) where
-  explInit = ReadOnly <$> explInit
-
-instance ExplGet m s => ExplGet m (ReadOnly s) where
-  explExists (ReadOnly s) = explExists s
-  explGet    (ReadOnly s) = explGet s
-  {-# INLINE explExists #-}
-  {-# INLINE explGet #-}
-
-instance ExplMembers m s => ExplMembers m (ReadOnly s) where
-  {-# INLINE explMembers #-}
-  explMembers (ReadOnly s) = explMembers s
-
-setReadOnly :: forall w m s c.
-  ( Has w m c
-  , Storage c ~ ReadOnly s
-  , Elem s ~ c
-  , ExplSet m s
-  ) => Entity -> c -> SystemT w m ()
-setReadOnly (Entity ety) c = do
-  ReadOnly s <- getStore
-  lift $ explSet s ety c
-
-destroyReadOnly :: forall w m s c.
-  ( Has w m c
-  , Storage c ~ ReadOnly s
-  , Elem s ~ c
-  , ExplDestroy m s
-  ) => Entity -> Proxy c -> SystemT w m ()
-destroyReadOnly (Entity ety) _ = do
-  ReadOnly s :: Storage c <- getStore
-  lift $ explDestroy s ety

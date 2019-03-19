@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-} -- For Data.Semigroup compatibility
+
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -27,7 +28,6 @@ import System.Mem           (performMajorGC)
 
 import Apecs.Core
 import Apecs.Stores
-import Apecs.Stores.Extra
 import Apecs.System
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.

@@ -29,11 +29,16 @@ library
     Apecs.Core,
     Apecs.Components,
     Apecs.Stores,
-    Apecs.Stores.Extra,
-    Apecs.Reactive,
     Apecs.System,
     Apecs.TH,
-    Apecs.Util
+    Apecs.Util,
+
+    Apecs.Experimental,
+    Apecs.Experimental.Stores,
+    Apecs.Experimental.Reactive,
+    Apecs.Experimental.Components,
+    Apecs.Experimental.System,
+    Apecs.Experimental.SpatialHashing
   other-modules:
     Apecs.THTuples
   default-language:
