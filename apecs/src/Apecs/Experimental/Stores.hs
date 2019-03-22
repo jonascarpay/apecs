@@ -16,8 +16,7 @@ Containment module for stores that are experimental/too weird for @Apecs.Stores@
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Apecs.Experimental.Stores
-  ( Pushdown(..), Stack(..),
-  , Redirect(..)
+  ( Pushdown(..), Stack(..)
   ) where
 
 import Control.Monad.Reader
