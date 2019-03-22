@@ -1,5 +1,5 @@
 name:                apecs
-version:             0.7.3
+version:             0.8.0
 homepage:            https://github.com/jonascarpay/apecs#readme
 license:             BSD3
 license-file:        LICENSE
@@ -10,8 +10,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 synopsis:            Fast Entity-Component-System library for game programming
 description:
-  The Entity-Component-System architecture provides an imperative game programming paradigm that tackles many of the shortcomings of more OO-oriented approaches.
-  apecs is a type-driven ECS library, that leverages strong typing for an expressive DSL that compiles into fast game code.
+  apecs is a fast, type-driven Entity-Component-System library for game programming.
 
 extra-source-files:
   README.md,

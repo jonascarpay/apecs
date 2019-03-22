@@ -23,7 +23,7 @@ library
     Apecs.Gloss
     Apecs.Physics.Gloss
   build-depends:
-    apecs         >= 0.7  && < 0.8,
+    apecs         >= 0.7  && < 0.9,
     apecs-physics >= 0.3  && < 0.4,
     base          >= 4.9  && < 5,
     containers    >= 0.5  && < 0.8,

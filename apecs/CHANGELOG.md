@@ -4,7 +4,7 @@ Most notably, it needs a good way to do streaming and reactivity, or find a way 
 I'm hesitant to accept some of the feature requests I've gotten because they would be obsoleted when we figure this out, and I don't want to pollute the API with unstable features.
 
 However, I don't think we should let perfect get in the way of good.
-So, apecs 0.8 have new `Apecs.Experimental.*` modules, that I want to use for features that might or might not get removed or changed, or that I'm not happy with yet.
+So, apecs 0.8 have new `Apecs.Experimental.*` modules, that I want to use for features that might or might not get removed or changed.
 They should provide some conveniences, but the catch is that their API might undergo significant changes between point releases (and therefore within LTS'es).
 Some of the existing modules were already marked experimental, and those have been moved.
 

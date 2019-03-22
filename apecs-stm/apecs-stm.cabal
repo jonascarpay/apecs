@@ -1,5 +1,5 @@
 name:                apecs-stm
-version:             0.1.1
+version:             0.1.2
 homepage:            https://github.com/jonascarpay/apecs-stm#readme
 license:             BSD3
 license-file:        LICENSE
@@ -28,7 +28,7 @@ library
   default-language:
     Haskell2010
   build-depends:
-    apecs            >= 0.7  && < 0.8,
+    apecs            >= 0.7  && < 0.9,
     base             >= 4.9  && < 5,
     containers       >= 0.5  && < 0.8,
     list-t           >= 1    && < 1.2,
