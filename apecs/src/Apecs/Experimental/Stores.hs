@@ -1,7 +1,7 @@
 {-|
 Stability: experimtal
 
-Containment module for stores that are experimental/too weird for @Apecs.Stores@.
+This module is experimental, and its API might change between point releases. Use at your own risk.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}

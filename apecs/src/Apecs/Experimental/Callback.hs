@@ -1,4 +1,9 @@
-module Apecs.Callback where
+{-|
+Stability : experimental
+
+This module is experimental, and its API might change between point releases. Use at your own risk.
+--}
+module Apecs.Experimental.Callback where
 
 import           Apecs.Core
 import           Apecs.System (runSystem)

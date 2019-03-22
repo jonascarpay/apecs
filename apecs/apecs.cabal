@@ -33,12 +33,11 @@ library
     Apecs.TH,
     Apecs.Util,
 
-    Apecs.Experimental,
-    Apecs.Experimental.Stores,
-    Apecs.Experimental.Reactive,
+    Apecs.Experimental.Callback,
     Apecs.Experimental.Components,
-    Apecs.Experimental.System,
-    Apecs.Experimental.SpatialHashing
+    Apecs.Experimental.Reactive,
+    Apecs.Experimental.Stores,
+    Apecs.Experimental.Util
   other-modules:
     Apecs.THTuples
   default-language:

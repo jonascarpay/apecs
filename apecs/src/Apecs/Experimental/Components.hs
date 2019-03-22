@@ -3,6 +3,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 
+{-|
+Stability : experimental
+
+This module is experimental, and its API might change between point releases. Use at your own risk.
+--}
 module Apecs.Experimental.Components
   ( Redirect (..)
   , Head (..)
@@ -29,7 +34,7 @@ instance (ExplSet m s) => ExplSet m (RedirectStore s) where
 
 
 -- | Pseudocomponent that can be read like any other component, but will only
---   yields a single member when iterated over. Intended to be used as
+--   yield a single member when iterated over. Intended to be used as
 --   @cmap $ Head (...) -> ...@
 newtype Head c = Head c deriving (Eq, Show)
 instance Component c => Component (Head c) where

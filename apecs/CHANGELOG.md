@@ -1,3 +1,23 @@
+## [0.8.0]
+There are a number of unsolved problems in apecs' design space.
+Most notably, it needs a good way to do streaming and reactivity, or find a way to integrate with existing solutions.
+I'm hesitant to accept some of the feature requests I've gotten because they would be obsoleted when we figure this out, and I don't want to pollute the API with unstable features.
+
+However, I don't think we should let perfect get in the way of good.
+So, apecs 0.8 have new `Apecs.Experimental.*` modules, that I want to use for features that might or might not get removed or changed, or that I'm not happy with yet.
+They should provide some conveniences, but the catch is that their API might undergo significant changes between point releases (and therefore within LTS'es).
+Some of the existing modules were already marked experimental, and those have been moved.
+
+### Added
+- Experimental `Head` component
+- `Experimental.Callback` module
+
+### Changed
+- Moved `ReadOnly` to `Apecs.Stores` since `EntityCounter` now depends on it
+- Moved spatial hashing to `Experimental.Util`
+- Moved `Redirect` and `Stores.Extra` to `Experimental.Stores`
+- Moved `Reactive` to `Experimental.Reactive`
+
 ## [0.7.3]
 ### Changed
 - Added Data.Semigroup to Stores.Extra to build with GHC 8.2.2 in hackage matrix

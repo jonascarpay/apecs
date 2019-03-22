@@ -1,7 +1,8 @@
 {-|
 Stability : experimental
 
-Reactive stores module, still experimental.
+This module is experimental, and its API might change between point releases. Use at your own risk.
+
 Adds the @Reactive r s@ store, which when wrapped around store @s@, will call the @react@ on its @r@.
 
 @Show c => Reactive (Printer c) (Map c)@ will print a message every time a @c@ value is set.
@@ -17,7 +18,7 @@ Use e.g. @rget >>= mapLookup True@ to retrieve a list of entities that have a @T
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Apecs.Reactive where
+module Apecs.Experimental.Reactive where
 
 import           Control.Monad.Reader
 import qualified Data.IntMap.Strict   as M
