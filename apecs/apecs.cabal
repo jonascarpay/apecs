@@ -43,6 +43,7 @@ library
     Haskell2010
   build-depends:
     base             >= 4.9  && < 5,
+    array            >= 0.4  && < 0.6,
     containers       >= 0.5  && < 0.8,
     mtl              >= 2.2  && < 2.3,
     template-haskell >= 2.12 && < 3,

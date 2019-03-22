@@ -11,12 +11,14 @@ Some of the existing modules were already marked experimental, and those have be
 ### Added
 - Experimental `Head` component
 - `Experimental.Callback` module
+- `OrdMap` and `IxMap` reactive maps
 
 ### Changed
 - Moved `ReadOnly` to `Apecs.Stores` since `EntityCounter` now depends on it
 - Moved spatial hashing to `Experimental.Util`
 - Moved `Redirect` and `Stores.Extra` to `Experimental.Stores`
 - Moved `Reactive` to `Experimental.Reactive`
+- `rget` has been replaced by `withReactive`
 
 ## [0.7.3]
 ### Changed
