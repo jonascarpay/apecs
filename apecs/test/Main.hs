@@ -12,18 +12,18 @@
 {-# OPTIONS_GHC -w #-}
 
 import           Control.Monad
-import qualified Data.IntSet             as S
+import qualified Data.IntSet                 as S
 import           Data.IORef
-import           Data.List               (sort)
-import qualified Data.Vector.Unboxed     as U
+import           Data.List                   (sort)
+import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
 import           Apecs
 import           Apecs.Core
-import           Apecs.Reactive
+import           Apecs.Experimental.Reactive
+import           Apecs.Experimental.Stores
 import           Apecs.Stores
-import           Apecs.Stores.Extra
 import           Apecs.Util
 
 type Vec = (Double, Double)
@@ -114,25 +114,24 @@ prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
 
 -- Tests Reactive store properties
-newtype TestBool = TestBool Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
-instance Component TestBool where type Storage TestBool = Reactive (EnumMap TestBool) (Map TestBool)
+newtype TestEnum = TestEnum Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
+instance Component TestEnum where type Storage TestEnum = Reactive (EnumMap TestEnum) (Map TestEnum)
 
-makeWorld "ReactiveWld" [''TestBool]
+makeWorld "ReactiveWld" [''TestEnum]
 
-prop_setGetReactive = genericSetGet initReactiveWld (undefined :: TestBool)
-prop_setSetReactive = genericSetSet initReactiveWld (undefined :: TestBool)
-prop_lookupValid :: [(Entity, TestBool)] -> [Entity] -> Property
+prop_setGetReactive = genericSetGet initReactiveWld (undefined :: TestEnum)
+prop_setSetReactive = genericSetSet initReactiveWld (undefined :: TestEnum)
+prop_lookupValid :: [(Entity, TestEnum)] -> [Entity] -> Property
 prop_lookupValid writes deletes = assertSys initReactiveWld $ do
   forM_ writes  $ uncurry set
-  forM_ deletes $ flip destroy (Proxy @TestBool)
+  forM_ deletes $ flip destroy (Proxy @TestEnum)
 
-  let getAll = cfold (flip (:)) [] :: SystemT ReactiveWld IO [(TestBool, Entity)]
-  et <- fmap snd . filter ((== TestBool True ) . fst) <$> getAll
-  ef <- fmap snd . filter ((== TestBool False) . fst) <$> getAll
+  let getAll = cfold (flip (:)) [] :: SystemT ReactiveWld IO [(TestEnum, Entity)]
+  et <- fmap snd . filter ((== TestEnum True ) . fst) <$> getAll
+  ef <- fmap snd . filter ((== TestEnum False) . fst) <$> getAll
 
-  let lookup enum = rget >>= flip mapLookup enum
-  rt <- lookup (TestBool True)
-  rf <- lookup (TestBool False)
+  rt <- withReactive $ enumLookup (TestEnum True)
+  rf <- withReactive $ enumLookup (TestEnum False)
 
   return (  sort rt == sort et
          && sort rf == sort ef

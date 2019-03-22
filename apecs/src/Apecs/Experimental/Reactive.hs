@@ -123,7 +123,7 @@ instance (MonadIO m, Enum c) => Reacts m (EnumMap c) where
     modifyIORef' ref (IM.insertWith mappend (fromEnum new) (S.singleton ety))
 
 {-# INLINE enumLookup #-}
-enumLookup :: Enum c => c -> EnumMap c -> System w [Entity]
+enumLookup :: (MonadIO m, Enum c) => c -> EnumMap c -> m [Entity]
 enumLookup c = \(EnumMap ref) -> do
   emap <- liftIO $ readIORef ref
   return $ maybe [] (fmap Entity . S.toList) (IM.lookup (fromEnum c) emap)
@@ -147,7 +147,7 @@ instance (MonadIO m, Ord c) => Reacts m (OrdMap c) where
     modifyIORef' ref (M.insertWith mappend new (S.singleton ety))
 
 {-# INLINE ordLookup #-}
-ordLookup :: Ord c => c -> OrdMap c -> System w [Entity]
+ordLookup :: (MonadIO m, Ord c) => c -> OrdMap c -> m [Entity]
 ordLookup c = \(OrdMap ref) -> do
   emap <- liftIO $ readIORef ref
   return $ maybe [] (fmap Entity . S.toList) (M.lookup c emap)
@@ -175,6 +175,6 @@ instance (MonadIO m, Ix c, Bounded c) => Reacts m (IxMap c) where
     modifyArray ref new (S.insert ety)
 
 {-# INLINE ixLookup #-}
-ixLookup :: Ix c => c -> IxMap c -> System w [Entity]
+ixLookup :: (MonadIO m, Ix c) => c -> IxMap c -> m [Entity]
 ixLookup c = \(IxMap ref) -> do
   liftIO $ fmap Entity . S.toList <$> A.readArray ref c
