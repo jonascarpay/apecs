@@ -32,7 +32,6 @@ library
     Apecs.TH,
     Apecs.Util,
 
-    Apecs.Experimental.Callback,
     Apecs.Experimental.Components,
     Apecs.Experimental.Reactive,
     Apecs.Experimental.Stores,

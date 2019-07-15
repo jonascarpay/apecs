@@ -10,7 +10,6 @@ Some of the existing modules were already marked experimental, and those have be
 
 ### Added
 - Experimental `Head` component
-- `Experimental.Callback` module
 - `OrdMap` and `IxMap` reactive maps
 
 ### Changed
