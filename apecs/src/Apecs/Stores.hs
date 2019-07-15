@@ -20,7 +20,6 @@ module Apecs.Stores
 import           Control.Monad.Reader
 import qualified Data.IntMap.Strict          as M
 import           Data.IORef
-import           Data.Maybe                  (fromJust)
 import           Data.Proxy
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
@@ -38,8 +37,9 @@ instance MonadIO m => ExplInit m (Map c) where
 
 instance MonadIO m => ExplGet m (Map c) where
   explExists (Map ref) ety = liftIO$ M.member ety <$> readIORef ref
-  explGet    (Map ref) ety = liftIO$
-    fromJust . M.lookup ety <$> readIORef ref
+  explGet    (Map ref) ety = liftIO$ flip fmap (M.lookup ety <$> readIORef ref) $ \case
+    Just c -> c
+    Nothing -> error $ "Reading non-existant Map component for entity " <> show ety
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
@@ -68,8 +68,8 @@ instance MonadIO m => ExplInit m (Unique c) where
 instance MonadIO m => ExplGet m (Unique c) where
   {-# INLINE explGet #-}
   explGet (Unique ref) _ = liftIO$ flip fmap (readIORef ref) $ \case
-    Nothing -> error "Reading empty Unique"
     Just (_, c)  -> c
+    Nothing -> error $ "Reading non-existant Unique component"
   {-# INLINE explExists #-}
   explExists (Unique ref) ety = liftIO$ maybe False ((==ety) . fst) <$> readIORef ref
 
@@ -130,7 +130,7 @@ data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
 cacheMiss :: t
-cacheMiss = error "Cache miss!"
+cacheMiss = error "Cache miss! If you are seeing this during normal operation, please open a bug report at https://github.com/jonascarpay/apecs"
 
 type instance Elem (Cache n s) = Elem s
 

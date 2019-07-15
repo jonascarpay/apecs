@@ -48,9 +48,11 @@ instance ExplInit STM (Map c) where
   explInit = Map <$> M.new
 instance ExplGet STM (Map c) where
   {-# INLINE explExists #-}
-  explExists (Map m) ety = isJust   <$> M.lookup ety m
   {-# INLINE explGet #-}
-  explGet    (Map m) ety = fromJust <$> M.lookup ety m
+  explExists (Map m) ety = isJust   <$> M.lookup ety m
+  explGet    (Map m) ety = flip fmap (M.lookup ety m) $ \case
+    Just c -> c
+    Nothing -> error $ "Reading non-existant STM Map component for entity " <> show ety
 instance ExplSet STM (Map c) where
   {-# INLINE explSet #-}
   explSet (Map m) ety x = M.insert x ety m
@@ -66,8 +68,8 @@ instance ExplInit IO (Map c) where
   explInit = S.atomically explInit
 instance ExplGet IO (Map c) where
   {-# INLINE explExists #-}
-  explExists m e = S.atomically $ explExists m e
   {-# INLINE explGet #-}
+  explExists m e = S.atomically $ explExists m e
   explGet m e = S.atomically $ explGet m e
 instance ExplSet IO (Map c) where
   {-# INLINE explSet #-}
@@ -87,8 +89,8 @@ instance ExplInit STM (Unique c) where
 instance ExplGet STM (Unique c) where
   {-# INLINE explGet #-}
   explGet (Unique ref) _ = flip fmap (readTVar ref) $ \case
-    Nothing -> error "Reading empty Unique"
     Just (_, c)  -> c
+    Nothing -> error $ "Reading non-existant Unique component"
   {-# INLINE explExists #-}
   explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readTVar ref
 

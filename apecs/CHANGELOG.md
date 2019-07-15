@@ -19,6 +19,7 @@ Some of the existing modules were already marked experimental, and those have be
 - Moved `Redirect` and `Stores.Extra` to `Experimental.Stores`
 - Moved `Reactive` to `Experimental.Reactive`
 - `rget` has been replaced by `withReactive`
+- Improved error messages for unsafe operations
 
 ## [0.7.3]
 ### Changed
