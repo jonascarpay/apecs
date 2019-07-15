@@ -13,7 +13,9 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-module Apecs.Physics.Constraint where
+module Apecs.Physics.Constraint
+  (
+  ) where
 
 import           Apecs
 import           Apecs.Core

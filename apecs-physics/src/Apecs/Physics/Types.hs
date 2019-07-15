@@ -263,8 +263,10 @@ data CollisionSource
 -- Corresponds to an 'arbiter' in Chipmunk
 data Collision = Collision
   { collisionNormal :: Vec
-  , collisionA      :: Entity
-  , collisionB      :: Entity
+  , collisionBodyA  :: Entity
+  , collisionBodyB  :: Entity
+  , collisionShapeA :: Entity
+  , collisionShapeB :: Entity
   } deriving (Eq, Show)
 
 data CollisionProperties = CollisionProperties

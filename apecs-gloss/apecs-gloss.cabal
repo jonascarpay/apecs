@@ -24,7 +24,7 @@ library
     Apecs.Physics.Gloss
   build-depends:
     apecs         >= 0.7  && < 0.9,
-    apecs-physics >= 0.3  && < 0.4,
+    apecs-physics >= 0.3  && < 0.5,
     base          >= 4.9  && < 5,
     containers    >= 0.5  && < 0.8,
     gloss         >= 1.11 && < 2,

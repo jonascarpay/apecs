@@ -13,7 +13,10 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 
-module Apecs.Physics.Collision where
+module Apecs.Physics.Collision
+  ( defaultHandler
+  , mkBeginCB, mkSeparateCB, mkPreSolveCB, mkPostSolveCB
+  ) where
 
 import           Apecs
 import           Apecs.Core
@@ -37,16 +40,23 @@ C.include "<chipmunk_structs.h>"
 defaultHandler :: CollisionHandler
 defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
 
+mkCollision :: Ptr Collision -> IO Collision
+mkCollision arb = do
+  nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
+  ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
+  ba <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
+  bb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
+  sa <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_SHAPES($(cpArbiter* arb), sa, sb); return (intptr_t) (sa->userData); } |]
+  sb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_SHAPES($(cpArbiter* arb), sa, sb); return (intptr_t) (sb->userData); } |]
+  return $ Collision (V2 nx ny) (Entity ba) (Entity bb) (Entity sa) (Entity sb)
+
 mkBeginCB :: (Collision -> System w Bool) -> System w BeginCB
 mkBeginCB sys = do
     w <- ask
 
     let cb arb _ _ = do
-          nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
-          ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
-          ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
-          eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
-          r <- liftIO$ runSystem (sys (Collision (V2 nx ny) (Entity ea) (Entity eb))) w
+          col <- mkCollision arb
+          r <- liftIO$ runSystem (sys col) w
           return . fromIntegral . fromEnum $ r
 
     return (BeginCB cb)
@@ -56,11 +66,8 @@ mkSeparateCB sys = do
     w <- ask
 
     let cb arb _ _ = do
-          nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
-          ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
-          ea <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
-          eb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (bb->userData); } |]
-          liftIO$ runSystem (sys (Collision (V2 nx ny) (Entity ea) (Entity eb))) w
+          col <- mkCollision arb
+          liftIO$ runSystem (sys col) w
 
     return (SeparateCB cb)
 

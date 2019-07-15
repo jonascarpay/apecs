@@ -1,3 +1,7 @@
+## [0.4.0]
+### Added
+- You now have access to colliding shapes in a `Collision`
+
 ## [0.3.2]
 ### Changed
 - Fixed links and added changelog to cabal file
