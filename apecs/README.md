@@ -13,11 +13,11 @@ apecs aims to be
 
 #### Links
 - [documentation on hackage](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
-- [tutorial](examples/Shmup.md) and other [examples](examples/)
-- [paper (prepublication)](apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
-- [apecs-physics](apecs-physics/) - 2D physics using the [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) engine
-- [apecs-gloss](apecs-gloss/) - Simple frontend for [gloss](http://hackage.haskell.org/package/gloss)-based rendering
-- [apecs-stm](apecs-stm/) - STM-based stores for easy concurrency
+- [tutorial](../examples/Shmup.md) and other [examples](../examples/)
+- [paper (prepublication)](../apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
+- [apecs-physics](../apecs-physics/) - 2D physics using the [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) engine
+- [apecs-gloss](../apecs-gloss/) - Simple frontend for [gloss](http://hackage.haskell.org/package/gloss)-based rendering
+- [apecs-stm](../apecs-stm/) - STM-based stores for easy concurrency
 
 ##### By other authors
 - [An Introduction to Developing Games in Haskell with Apecs](https://blog.aas.sh/posts/2018-09-10-Making-A-Game-With-Haskell-And-Apecs/) by Ashley Smith
