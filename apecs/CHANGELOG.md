@@ -1,3 +1,7 @@
+## [0.8.1]
+### Changed
+- Fixed bug in `Cache` where the same entity appeared in member list of both the cache and the underlying store
+
 ## [0.8.0]
 There are a number of unsolved problems in apecs' design space.
 Most notably, it needs a good way to do streaming and reactivity, or find a way to integrate with existing solutions.
