@@ -18,6 +18,7 @@ import           Data.List                   (sort)
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
+import           Data.List (nub)
 
 import           Apecs
 import           Apecs.Core
@@ -44,18 +45,18 @@ genericSetGet :: forall w c.
   , Arbitrary c )
   => IO w
   -> c
-  -> [(Entity, c)]
-  -> [Entity]
-  -> [(Entity, c)]
+  -> [(Entity, c)] -> [Entity]
   -> Entity -> c
+  -> [(Entity, c)] -> [Entity]
   -> Property
-genericSetGet initSys _ sets1 dels sets2 ety c = do
+genericSetGet initSys _ sets1 dels1 ety c sets2 dels2 = do
   assertSys initSys $ do
     -- insert and delete random data
     forM_ sets1 $ uncurry set
-    forM_ dels $ flip destroy (Proxy @c)
-    forM_ sets2 $ uncurry set
+    forM_ dels1 $ flip destroy (Proxy @c)
     set ety c
+    forM_ (filter ((/= ety) . fst) sets2) $ uncurry set
+    forM_ (filter (/= ety)         dels2) $ flip destroy (Proxy @c)
     c' <- get ety
     return (c == c')
 
@@ -68,19 +69,23 @@ genericSetSet :: forall w c.
   , Arbitrary c )
   => IO w
   -> c
-  -> [(Entity, c)]
-  -> [Entity]
-  -> [(Entity, c)]
-  -> Entity -> c -> c
+  -> [(Entity, c)] -> [Entity]
+  -> Entity -> c
+  -> [(Entity, c)] -> [Entity]
+  -> c
+  -> [(Entity, c)] -> [Entity]
   -> Property
-genericSetSet initSys _ sets1 dels sets2 ety c1 c2 = do
+genericSetSet initSys _ sets1 dels1 ety c1 sets2 dels2 c2 sets3 dels3 = do
   assertSys initSys $ do
     -- insert and delete random data
     forM_ sets1 $ uncurry set
-    forM_ dels $ flip destroy (Proxy @c)
-    forM_ sets2 $ uncurry set
+    forM_ dels1 $ flip destroy (Proxy @c)
     set ety c1
+    forM_ (filter ((/= ety) . fst) sets2) $ uncurry set
+    forM_ (filter (/= ety)         dels2) $ flip destroy (Proxy @c)
     set ety c2
+    forM_ (filter ((/= ety) . fst) sets3) $ uncurry set
+    forM_ (filter (/= ety)         dels3) $ flip destroy (Proxy @c)
     c' <- get ety
     return (c2 == c')
 
@@ -99,6 +104,14 @@ makeWorld "Cached" [''CacheInt]
 
 prop_setGetCache = genericSetGet initCached (undefined :: CacheInt)
 prop_setSetCache = genericSetSet initCached (undefined :: CacheInt)
+
+prop_cacheUnique :: [CacheInt] -> [Entity] -> [(Entity, CacheInt)] -> Property
+prop_cacheUnique eInit eDel eSet = assertSys initCached $ do
+  mapM newEntity eInit
+  mapM (flip set (Not @CacheInt)) eDel
+  mapM (uncurry set) eSet
+  es <- cfold (\a (_ :: CacheInt, Entity e) -> e : a) []
+  pure $ es == nub es
 
 -- Tests basic tuple functionality
 newtype T1 = T1 Int deriving (Eq, Show, Arbitrary)

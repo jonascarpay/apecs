@@ -181,9 +181,10 @@ instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
 
 instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
   {-# INLINE explMembers #-}
-  explMembers (Cache _ tags _ s) = do
+  explMembers (Cache n tags _ s) = do
     cached <- liftIO$ U.filter (/= (-2)) <$> U.freeze tags
-    stored <- explMembers s
+    let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety `rem` n)
+    stored <- explMembers s >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
 
 -- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy'. Use 'setReadOnly' and 'destroyReadOnly' to override.
