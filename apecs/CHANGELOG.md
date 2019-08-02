@@ -1,5 +1,6 @@
 ## [0.8.1]
 ### Changed
+- Changed `Cache`s to use bitmasks instead of the remainder operation. This makes caches up to three times faster.
 - Fixed bug in `Cache` where the same entity appeared in member list of both the cache and the underlying store
 
 ## [0.8.0]
