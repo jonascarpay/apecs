@@ -30,7 +30,7 @@ cameraTransform (Camera (V2 cx cy) cs) =
     Scale cs cs .  Translate (-cx) (-cy)
 
 windowToWorld :: Camera -> (Float,Float) -> V2 Float
-windowToWorld (Camera cx cs) (x,y) = V2 x y ^/ cs - cx
+windowToWorld (Camera cx cs) (x,y) = V2 x y ^/ cs + cx
 
 instance Component Camera where
   type Storage Camera = Global Camera
