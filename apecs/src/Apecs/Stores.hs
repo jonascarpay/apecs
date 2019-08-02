@@ -21,6 +21,7 @@ import           Control.Monad.Reader
 import qualified Data.IntMap.Strict          as M
 import           Data.IORef
 import           Data.Proxy
+import           Data.Bits (shiftL, (.&.))
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -137,30 +138,32 @@ type instance Elem (Cache n s) = Elem s
 instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (Cache n s) where
   {-# INLINE explInit #-}
   explInit = do
-    let n = fromIntegral$ natVal (Proxy @n)
-    tags <- liftIO$ UM.replicate n (-2)
-    cache <- liftIO$ VM.replicate n cacheMiss
+    let n = fromIntegral$ natVal (Proxy @n) :: Int
+        size = head . dropWhile (<n) $ iterate (`shiftL` 1) 1
+        mask = size - 1
+    tags <- liftIO$ UM.replicate size (-2)
+    cache <- liftIO$ VM.replicate size cacheMiss
     child <- explInit
-    return (Cache n tags cache child)
+    return (Cache mask tags cache child)
 
 instance (MonadIO m, ExplGet m s) => ExplGet m (Cache n s) where
   {-# INLINE explGet #-}
-  explGet (Cache n tags cache s) ety = do
-    let index = ety `rem` n
+  explGet (Cache mask tags cache s) ety = do
+    let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
     if tag == ety
        then liftIO$ VM.unsafeRead cache index
        else explGet s ety
 
   {-# INLINE explExists #-}
-  explExists (Cache n tags _ s) ety = do
-    tag <- liftIO$ UM.unsafeRead tags (ety `rem` n)
+  explExists (Cache mask tags _ s) ety = do
+    tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
     if tag == ety then return True else explExists s ety
 
 instance (MonadIO m, ExplSet m s) => ExplSet m (Cache n s) where
   {-# INLINE explSet #-}
-  explSet (Cache n tags cache s) ety x = do
-    let index = ety `rem` n
+  explSet (Cache mask tags cache s) ety x = do
+    let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
     when (tag /= (-2) && tag /= ety) $ do
       cached <- liftIO$ VM.unsafeRead cache index
@@ -170,9 +173,9 @@ instance (MonadIO m, ExplSet m s) => ExplSet m (Cache n s) where
 
 instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
   {-# INLINE explDestroy #-}
-  explDestroy (Cache n tags cache s) ety = do
-    let index = ety `rem` n
-    tag <- liftIO$ UM.unsafeRead tags (ety `rem` n)
+  explDestroy (Cache mask tags cache s) ety = do
+    let index = ety .&. mask
+    tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
     if tag == ety
        then do
          liftIO$ UM.unsafeWrite tags  index (-2)
@@ -181,9 +184,9 @@ instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
 
 instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
   {-# INLINE explMembers #-}
-  explMembers (Cache n tags _ s) = do
+  explMembers (Cache mask tags _ s) = do
     cached <- liftIO$ U.filter (/= (-2)) <$> U.freeze tags
-    let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety `rem` n)
+    let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety .&. mask)
     stored <- explMembers s >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
 
