@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "apecs-gloss";
-  version = "0.1.0";
+  version = "0.2.1";
   src = ./.;
   libraryHaskellDepends = [
     apecs apecs-physics base containers gloss linear
