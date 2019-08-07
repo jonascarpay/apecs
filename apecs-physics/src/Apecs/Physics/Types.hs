@@ -294,8 +294,8 @@ data PointQueryResult = PointQueryResult
   -- ^ The closest point on the shape's surface (in world space)
   , pqDistance :: Double
   -- ^ The distance to the queried point
-  , pqGradient :: Double
+  , pqGradient :: Vec
   -- ^ The gradient of the distance function.
-  -- This is equal to 'pqPoint'/'pqDistance' but accurate for even
-  -- very small distances. 
+  -- This should be similar to 'pqPoint'/'pqDistance' but accurate even for
+  -- very small distances.
   } deriving (Eq, Show)

@@ -37,16 +37,15 @@ C.include "<chipmunk.h>"
 pointQuery :: Has w IO Physics => WVec -> Double -> CollisionFilter -> System w (Maybe PointQueryResult)
 pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionFilter gr (Bitmask cs) (Bitmask mk)) = do
   Space _ _ _ _ spcPtr :: Space Physics <- getStore
-  liftIO$ do
+  liftIO $ do
     pq <- malloc
     withForeignPtr spcPtr $ \space -> [C.block| void {
-      cpPointQueryInfo *pq = $(cpPointQueryInfo *pq);
       cpSpacePointQueryNearest
         ( $(cpSpace *space)
         , cpv($(double px), $(double py))
         , $(double maxDistance)
         , cpShapeFilterNew($(unsigned int gr), $(unsigned int cs), $(unsigned int mk))
-        , pq);
+        , $(cpPointQueryInfo *pq));
       }|]
     res <- peek pq
     free pq
@@ -55,7 +54,7 @@ pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionF
        else return (Just res)
 
 instance Storable PointQueryResult where
-  sizeOf ~_ = 40 -- sizeOf (undefined :: Ptr Shape) + 2*sizeOf (undefined :: CDouble) + sizeOf (undefined :: V2 CDouble)
+  sizeOf ~_ = sizeOf (undefined :: Ptr Shape) + sizeOf (undefined :: CDouble) + 2*sizeOf (undefined :: V2 CDouble)
   alignment ~_ = 8
   peek ptr = do
     sPtr :: Ptr Shape <- peekByteOff ptr 0
@@ -68,6 +67,6 @@ instance Storable PointQueryResult where
             } }|]
     p :: V2 CDouble <- peekByteOff ptr 8
     d :: CDouble <- peekByteOff ptr 24
-    g :: CDouble <- peekByteOff ptr 32
-    return $ PointQueryResult (Entity . fromIntegral $ s) (realToFrac <$> p) (realToFrac d) (realToFrac g)
+    g :: V2 CDouble <- peekByteOff ptr 32
+    return $ PointQueryResult (Entity . fromIntegral $ s) (realToFrac <$> p) (realToFrac d) (realToFrac <$> g)
   poke = undefined
