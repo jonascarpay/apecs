@@ -1,3 +1,7 @@
+## [0.4.1]
+### Changed
+- Fix Point Query bug, should no longer give memory issues
+
 ## [0.4.0]
 ### Added
 - You now have access to colliding shapes in a `Collision`

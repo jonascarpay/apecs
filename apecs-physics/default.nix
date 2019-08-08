@@ -3,7 +3,7 @@
 }:
 mkDerivation {
   pname = "apecs-physics";
-  version = "0.4.0";
+  version = "0.4.1";
   src = ./.;
   setupHaskellDepends = [ base Cabal ];
   libraryHaskellDepends = [
