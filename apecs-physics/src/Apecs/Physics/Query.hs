@@ -37,8 +37,7 @@ C.include "<chipmunk.h>"
 pointQuery :: Has w IO Physics => WVec -> Double -> CollisionFilter -> System w (Maybe PointQueryResult)
 pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionFilter gr (Bitmask cs) (Bitmask mk)) = do
   Space _ _ _ _ spcPtr :: Space Physics <- getStore
-  liftIO $ do
-    pq <- malloc
+  liftIO $ alloca $ \pq -> do
     withForeignPtr spcPtr $ \space -> [C.block| void {
       cpSpacePointQueryNearest
         ( $(cpSpace *space)
@@ -48,13 +47,12 @@ pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionF
         , $(cpPointQueryInfo *pq));
       }|]
     res <- peek pq
-    free pq
     if unEntity (pqShape res) == -1
        then return Nothing
        else return (Just res)
 
 instance Storable PointQueryResult where
-  sizeOf ~_ = sizeOf (undefined :: Ptr Shape) + sizeOf (undefined :: CDouble) + 2*sizeOf (undefined :: V2 CDouble)
+  sizeOf ~_ = 48 -- sizeOf (undefined :: Ptr Shape) + sizeOf (undefined :: CDouble) + 2*sizeOf (undefined :: V2 CDouble)
   alignment ~_ = 8
   peek ptr = do
     sPtr :: Ptr Shape <- peekByteOff ptr 0
