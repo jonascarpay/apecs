@@ -1,6 +1,10 @@
+## [0.2.2]
+### Changed
+- Fixed the `windowToWorld` direction
+
 ## [0.2.1]
 ### Changed
-Fixed links in cabal file
+- Fixed links in cabal file
 
 ## [0.2.0]
 ### Changed
