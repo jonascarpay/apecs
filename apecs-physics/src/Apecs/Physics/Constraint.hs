@@ -275,6 +275,25 @@ instance ExplGet IO (Space ErrorBias) where
     Just (Record c _) <- M.lookup ety <$> readIORef cMap
     ErrorBias <$> getErrorBias c
 
+-- Impulse
+getImpulse :: Ptr Constraint -> IO Double
+getImpulse c = realToFrac <$> [C.exp| double { cpConstraintGetImpulse ($(cpConstraint* c)) } |]
+
+instance Component Impulse where
+  type Storage Impulse = Space Impulse
+
+instance Has w IO Physics => Has w IO Impulse where
+  getStore = (cast :: Space Physics -> Space Impulse) <$> getStore
+
+instance ExplMembers IO (Space Impulse) where
+  explMembers s = explMembers (cast s :: Space Constraint)
+
+instance ExplGet IO (Space Impulse) where
+  explExists s ety = explExists (cast s :: Space Constraint) ety
+  explGet (Space _ _ cMap _ _) ety = do
+    Just (Record c _) <- M.lookup ety <$> readIORef cMap
+    Impulse <$> getImpulse c
+
 -- CollideBodies
 getCollideBodies :: Ptr Constraint -> IO Bool
 getCollideBodies c = do
