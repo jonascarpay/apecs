@@ -1,3 +1,7 @@
+## [Unreleased]
+### Added
+- Query `Impulse` for `Constraints`
+
 ## [0.4.1]
 ### Changed
 - Fix Point Query bug, should no longer give memory issues
