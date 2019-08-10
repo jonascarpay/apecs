@@ -203,6 +203,7 @@ newtype MaxForce      = MaxForce      Double deriving (Eq, Show)
 newtype MaxBias       = MaxBias       Double deriving (Eq, Show)
 newtype ErrorBias     = ErrorBias     Double deriving (Eq, Show)
 newtype CollideBodies = CollideBodies Bool   deriving (Eq, Show)
+newtype Impulse       = Impulse       Double deriving (Eq, Show)
 
 data Constraint = Constraint Entity Entity ConstraintType deriving (Eq, Show)
 

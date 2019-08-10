@@ -21,7 +21,7 @@ module Apecs.Physics (
   Bitmask (..), maskAll, maskNone, maskList, defaultFilter, boxShape,
 
   -- * Constraint
-  Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), CollideBodies (..),
+  Constraint (..), ConstraintType (..), MaxForce (..), MaxBias (..), ErrorBias (..), Impulse (..), CollideBodies (..),
 
   -- * Collision
   Collision (..), CollisionHandler (..), defaultHandler,
