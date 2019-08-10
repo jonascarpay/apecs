@@ -40,6 +40,10 @@ matrix:
     compiler: ": #stack 8.6.5"
     addons: {apt: {packages: [libgmp-dev,freeglut3-dev]}}
 
+  - env: BUILD=stack ARGS="--resolver lts-14"
+    compiler: ": #stack 8.6.5"
+    addons: {apt: {packages: [libgmp-dev,freeglut3-dev]}}
+
   # Allowed failure
   - env: BUILD=stack ARGS="--resolver nightly"
     compiler: ": #stack nightly"
@@ -54,6 +58,10 @@ matrix:
     os: osx
 
   - env: BUILD=stack ARGS="--resolver lts-13"
+    compiler: ": #stack 8.6.5 osx"
+    os: osx
+
+  - env: BUILD=stack ARGS="--resolver lts-14"
     compiler: ": #stack 8.6.5 osx"
     os: osx
 
