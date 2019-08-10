@@ -3,6 +3,7 @@
 - (#59) Expose `makeMapComponents`, which creates `Component` instances with `Map` stores
 ### Changed
 - (#60) Report `Component` type names to non-existent component errors
+- Relaxed the type of `modify` to allow a different return type
 
 ## [0.8.3]
 ### Changed

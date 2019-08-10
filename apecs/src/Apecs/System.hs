@@ -57,12 +57,13 @@ destroy (Entity ety) ~_ = do
 
 -- | Applies a function, if possible.
 {-# INLINE modify #-}
-modify, ($~) :: forall w m c. (Get w m c, Set w m c) => Entity -> (c -> c) -> SystemT w m ()
+modify, ($~) :: forall w m cx cy. (Get w m cx, Set w m cy) => Entity -> (cx -> cy) -> SystemT w m ()
 modify (Entity ety) f = do
-  s :: Storage c <- getStore
+  sx :: Storage cx <- getStore
+  sy :: Storage cy <- getStore
   lift$ do
-    x <- explGet s ety
-    explSet s ety (f x)
+    x <- explGet sx ety
+    explSet sy ety (f x)
 
 -- | @modify@ operator
 ($~) = modify
