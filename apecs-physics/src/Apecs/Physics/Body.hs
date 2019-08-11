@@ -432,5 +432,5 @@ instance ExplMembers IO (Space ConstraintList) where
 instance ExplGet IO (Space ConstraintList) where
   explExists s ety = explExists (cast s :: Space Body) ety
   explGet (Space bMap _ _ _ _) ety = do
-    Just (BodyRecord _ _ sPtr _) <- M.lookup ety <$> readIORef bMap
-    ConstraintList . fmap Entity . S.toList <$> readIORef sPtr
+    Just (BodyRecord _ _ _ cPtr) <- M.lookup ety <$> readIORef bMap
+    ConstraintList . fmap Entity . S.toList <$> readIORef cPtr
