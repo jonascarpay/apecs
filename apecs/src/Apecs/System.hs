@@ -120,8 +120,8 @@ cmapM sys = do
 
 -- | Monadically iterates over all entites with a @cx@
 {-# INLINE cmapM_ #-}
-cmapM_ :: forall w m c a. (Get w m c, Members w m c)
-       => (c -> SystemT w m a) -> SystemT w m ()
+cmapM_ :: forall w m c. (Get w m c, Members w m c)
+       => (c -> SystemT w m ()) -> SystemT w m ()
 cmapM_ sys = do
   s :: Storage c <- getStore
   sl <- lift$ explMembers s
