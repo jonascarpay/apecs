@@ -82,8 +82,10 @@ newCollisionHandler :: SpacePtr -> CollisionHandler -> Int -> IO (Ptr CollisionH
 newCollisionHandler spcPtr (CollisionHandler source begin separate presolve postsolve) (fromIntegral -> ety) =
   withForeignPtr spcPtr $ \space -> do
     handler <- case source of
-                 Between cta ctb -> [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(unsigned int cta), $(unsigned int ctb))}|]
-                 Wildcard ct     -> [C.exp| cpCollisionHandler* {cpSpaceAddWildcardHandler($(cpSpace* space), $(unsigned int ct))}|]
+      Between (CollisionType cta) (CollisionType ctb)
+        -> [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(uintptr_t cta), $(uintptr_t ctb))}|]
+      Wildcard (CollisionType ct)
+        -> [C.exp| cpCollisionHandler* {cpSpaceAddWildcardHandler($(cpSpace* space), $(uintptr_t ct))}|]
 
     [C.exp| void { $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety) }|]
 

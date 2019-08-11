@@ -133,10 +133,16 @@ newtype Density         = Density         Double     deriving (Eq, Show)
 -- See <https://en.wikipedia.org/wiki/Friction> for more information.
 newtype Friction        = Friction        Double     deriving (Eq, Show)
 newtype SurfaceVelocity = SurfaceVelocity Vec        deriving (Eq, Show)
-newtype CollisionType   = CollisionType   C.CUIntPtr deriving (Eq, Show)
 
 type CollisionGroup = CUInt
 
+-- | Collision Filters determine what shapes this shape collides with.
+--   Shapes in the same 'filterGroup' will never collide with one another.
+--   This is used to ignore collisions between parts on a complex object.
+--
+--   'filterCategories' is a bitmask that determines what categories a shape belongs to.
+--   'filterMask' is a bitmask that determines what categories it collides with.
+--   See <https://chipmunk-physics.net/release/ChipmunkLatest-Docs/#cpShape-Filtering> for more information.
 data CollisionFilter = CollisionFilter
   { filterGroup      :: CollisionGroup
   , filterCategories :: Bitmask
@@ -222,7 +228,6 @@ data ConstraintType
   deriving (Eq, Show)
 
 -- TODO
--- getConstraintImpulse
 -- getPinJointDistance
 -- getSlideJointDistance?
 
@@ -257,9 +262,20 @@ data CollisionHandler = CollisionHandler
   -- in this callback, if you need that for processing.
   }
 
+-- | A 'Shape' can have a 'CollisionType'.
+--   'CollisionType's are used by callbacks for filtering, also see 'CollisionSource'.
+--   The difference between 'CollisionType' and 'CollisionFilter' is that a 'CollisionFilter' determines whether
+--   two shapes in the physics engine collide, or pass through one another, whereas a 'CollisionType' determines
+--   what callback is called.
+--   In general, if you don't want any special checks to happen, use 'CollisionFilter'.
+newtype CollisionType = CollisionType C.CUIntPtr
+  deriving (Num, Eq, Show)
+
+-- | A 'CollisionSource' determines what types of collisions a callback handles.
+--   Also see 'CollisionType'
 data CollisionSource
-  = Wildcard CollisionGroup
-  | Between CollisionGroup CollisionGroup
+  = Wildcard CollisionType
+  | Between CollisionType CollisionType
 
 -- Corresponds to an 'arbiter' in Chipmunk
 data Collision = Collision

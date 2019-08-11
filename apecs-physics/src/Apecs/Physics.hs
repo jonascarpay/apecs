@@ -17,7 +17,8 @@ module Apecs.Physics (
 
   -- * Shape
   Convex (..), Shape (..),
-  Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..), CollisionFilter (..),
+  Mass (..), Density (..), Sensor (..), Friction (..), Elasticity (..), SurfaceVelocity (..),
+  CollisionFilter (..), CollisionType(..),
   Bitmask (..), maskAll, maskNone, maskList, defaultFilter, boxShape,
 
   -- * Constraint

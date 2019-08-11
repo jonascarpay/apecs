@@ -1,6 +1,7 @@
 ## [0.4.2]
 ### Added
 - Query `Impulse` for `Constraints`
+- Exposed the `CollisionType` Component
 
 ### Changed
 - Fixed `ConstraintList` to actually yield constraints instead of shapes
