@@ -1,6 +1,9 @@
-## [Unreleased]
+## [0.4.2]
 ### Added
 - Query `Impulse` for `Constraints`
+
+### Changed
+- Fixed `ConstraintList` to actually yield constraints instead of shapes
 
 ## [0.4.1]
 ### Changed
