@@ -14,6 +14,7 @@ module Apecs.Physics.Shape where
 
 import           Apecs.Core
 import           Control.Monad
+import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Data.Bits
 import qualified Data.IntMap          as M
 import qualified Data.IntSet          as S
@@ -56,14 +57,14 @@ boxShape w h offset = Convex ((+offset) <$> verts) 0
 instance Component Shape where
   type Storage Shape = Space Shape
 
-instance Has w IO Physics => Has w IO Shape where
+instance (MonadIO m, Has w m Physics) => Has w m Shape where
   getStore = (cast :: Space Physics -> Space Shape) <$> getStore
 
-instance ExplMembers IO (Space Shape) where
-  explMembers (Space _ sMap _ _ _) = U.fromList . M.keys <$> readIORef sMap
+instance MonadIO m => ExplMembers m (Space Shape) where
+  explMembers (Space _ sMap _ _ _) = liftIO $ U.fromList . M.keys <$> readIORef sMap
 
-instance ExplDestroy IO (Space Shape) where
-  explDestroy (Space bMap sMap _ _ spc) sEty = do
+instance MonadIO m => ExplDestroy m (Space Shape) where
+  explDestroy (Space bMap sMap _ _ spc) sEty = liftIO $ do
     rd <- M.lookup sEty <$> readIORef sMap
     forM_ rd $ \(Record sPtr (Shape (Entity bEty) _)) -> do
       rd <- M.lookup bEty <$> readIORef bMap
@@ -71,8 +72,8 @@ instance ExplDestroy IO (Space Shape) where
       modifyIORef' sMap (M.delete sEty)
       destroyShape spc sPtr
 
-instance ExplSet IO (Space Shape) where
-  explSet sp@(Space bMap sMap _ _ spcPtr) sEty shape@(Shape (Entity bEty) sh) = do
+instance MonadIO m => ExplSet m (Space Shape) where
+  explSet sp@(Space bMap sMap _ _ spcPtr) sEty shape@(Shape (Entity bEty) sh) = liftIO $ do
     explDestroy sp sEty
     rd <- M.lookup bEty <$> readIORef bMap
     forM_ rd $ \bRec -> do
@@ -80,11 +81,11 @@ instance ExplSet IO (Space Shape) where
       modifyIORef' (brShapes bRec) (S.insert sEty)
       modifyIORef' sMap (M.insert sEty (Record shPtr shape))
 
-instance ExplGet IO (Space Shape) where
-  explGet    (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Shape) where
+  explGet    (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record _ s) <- M.lookup ety <$> readIORef sMap
     return s
-  explExists (Space _ sMap _ _ _) ety = M.member ety <$> readIORef sMap
+  explExists (Space _ sMap _ _ _) ety = liftIO $ M.member ety <$> readIORef sMap
 
 newShape :: SpacePtr -> Ptr Body -> Convex -> Int -> IO (Ptr Shape)
 newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr' (go shape)
@@ -108,7 +109,7 @@ newShape spacePtr' bodyPtr shape (fromIntegral -> ety) = withForeignPtr spacePtr
 
     go (Convex ((fmap.fmap) realToFrac -> verts)
                (realToFrac -> radius)
-       ) spacePtr = do
+       ) spacePtr = liftIO $ do
          vec <- V.thaw (V.fromList verts)
          [C.block| cpShape* {
            cpTransform trans = cpTransformIdentity;
@@ -133,20 +134,20 @@ setSensor shape (fromIntegral . fromEnum -> isSensor) = [C.exp| void {
 
 instance Component Sensor where
   type Storage Sensor = Space Sensor
-instance Has w IO Physics => Has w IO Sensor where
+instance (MonadIO m, Has w m Physics) => Has w m Sensor where
   getStore = (cast :: Space Physics -> Space Sensor) <$> getStore
 
-instance ExplMembers IO (Space Sensor) where
+instance MonadIO m => ExplMembers m (Space Sensor) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space Sensor) where
-  explSet (Space _ sMap _ _ _) ety (Sensor isSensor) = do
+instance MonadIO m => ExplSet m (Space Sensor) where
+  explSet (Space _ sMap _ _ _) ety (Sensor isSensor) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setSensor s isSensor
 
-instance ExplGet IO (Space Sensor) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Sensor) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Sensor <$> getSensor s
 
@@ -161,20 +162,20 @@ setElasticity shape (realToFrac -> elasticity) = [C.exp| void {
 
 instance Component Elasticity where
   type Storage Elasticity = Space Elasticity
-instance Has w IO Physics => Has w IO Elasticity where
+instance (MonadIO m, Has w m Physics) => Has w m Elasticity where
   getStore = (cast :: Space Physics -> Space Elasticity) <$> getStore
 
-instance ExplMembers IO (Space Elasticity) where
+instance MonadIO m => ExplMembers m (Space Elasticity) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space Elasticity) where
-  explSet (Space _ sMap _ _ _) ety (Elasticity elasticity) = do
+instance MonadIO m => ExplSet m (Space Elasticity) where
+  explSet (Space _ sMap _ _ _) ety (Elasticity elasticity) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setElasticity s elasticity
 
-instance ExplGet IO (Space Elasticity) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Elasticity) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Elasticity <$> getElasticity s
 
@@ -189,20 +190,20 @@ setMass shape (realToFrac -> mass) = [C.exp| void {
 
 instance Component Mass where
   type Storage Mass = Space Mass
-instance Has w IO Physics => Has w IO Mass where
+instance (MonadIO m, Has w m Physics) => Has w m Mass where
   getStore = (cast :: Space Physics -> Space Mass) <$> getStore
 
-instance ExplMembers IO (Space Mass) where
+instance MonadIO m => ExplMembers m (Space Mass) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space Mass) where
-  explSet (Space _ sMap _ _ _) ety (Mass mass) = do
+instance MonadIO m => ExplSet m (Space Mass) where
+  explSet (Space _ sMap _ _ _) ety (Mass mass) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setMass s mass
 
-instance ExplGet IO (Space Mass) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Mass) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Mass <$> getMass s
 
@@ -217,20 +218,20 @@ setDensity shape (realToFrac -> density) = [C.exp| void {
 
 instance Component Density where
   type Storage Density = Space Density
-instance Has w IO Physics => Has w IO Density where
+instance (MonadIO m, Has w m Physics) => Has w m Density where
   getStore = (cast :: Space Physics -> Space Density) <$> getStore
 
-instance ExplMembers IO (Space Density) where
+instance MonadIO m => ExplMembers m (Space Density) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space Density) where
-  explSet (Space _ sMap _ _ _) ety (Density density) = do
+instance MonadIO m => ExplSet m (Space Density) where
+  explSet (Space _ sMap _ _ _) ety (Density density) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setDensity s density
 
-instance ExplGet IO (Space Density) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Density) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Density <$> getDensity s
 
@@ -245,26 +246,26 @@ setFriction shape (realToFrac -> friction) = [C.exp| void {
 
 instance Component Friction where
   type Storage Friction = Space Friction
-instance Has w IO Physics => Has w IO Friction where
+instance (MonadIO m, Has w m Physics) => Has w m Friction where
   getStore = (cast :: Space Physics -> Space Friction) <$> getStore
 
-instance ExplMembers IO (Space Friction) where
+instance MonadIO m => ExplMembers m (Space Friction) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space Friction) where
-  explSet (Space _ sMap _ _ _) ety (Friction friction) = do
+instance MonadIO m => ExplSet m (Space Friction) where
+  explSet (Space _ sMap _ _ _) ety (Friction friction) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setFriction s friction
 
-instance ExplGet IO (Space Friction) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Friction) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     Friction <$> getFriction s
 
 -- SurfaceVelocity
 getSurfaceVelocity :: Ptr Shape -> IO Vec
-getSurfaceVelocity shape = do
+getSurfaceVelocity shape = liftIO $ do
  x <- [C.exp| double { cpShapeGetSurfaceVelocity($(cpShape* shape)).x }|]
  y <- [C.exp| double { cpShapeGetSurfaceVelocity($(cpShape* shape)).y }|]
  return (V2 (realToFrac x) (realToFrac y))
@@ -277,26 +278,26 @@ setSurfaceVelocity shape (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| vo
 
 instance Component SurfaceVelocity where
   type Storage SurfaceVelocity = Space SurfaceVelocity
-instance Has w IO Physics => Has w IO SurfaceVelocity where
+instance (MonadIO m, Has w m Physics) => Has w m SurfaceVelocity where
   getStore = (cast :: Space Physics -> Space SurfaceVelocity) <$> getStore
 
-instance ExplMembers IO (Space SurfaceVelocity) where
+instance MonadIO m => ExplMembers m (Space SurfaceVelocity) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space SurfaceVelocity) where
-  explSet (Space _ sMap _ _ _) ety (SurfaceVelocity svel) = do
+instance MonadIO m => ExplSet m (Space SurfaceVelocity) where
+  explSet (Space _ sMap _ _ _) ety (SurfaceVelocity svel) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setSurfaceVelocity s svel
 
-instance ExplGet IO (Space SurfaceVelocity) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space SurfaceVelocity) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     SurfaceVelocity <$> getSurfaceVelocity s
 
 -- CollisionFilter
 getFilter :: Ptr Shape -> IO CollisionFilter
-getFilter shape = do
+getFilter shape = liftIO $ do
  group <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).group }|]
  cats  <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).categories }|]
  mask  <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).mask }|]
@@ -313,20 +314,20 @@ setFilter shape (CollisionFilter group (Bitmask cats) (Bitmask mask)) =
 
 instance Component CollisionFilter where
   type Storage CollisionFilter = Space CollisionFilter
-instance Has w IO Physics => Has w IO CollisionFilter where
+instance (MonadIO m, Has w m Physics) => Has w m CollisionFilter where
   getStore = (cast :: Space Physics -> Space CollisionFilter) <$> getStore
 
-instance ExplMembers IO (Space CollisionFilter) where
+instance MonadIO m => ExplMembers m (Space CollisionFilter) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space CollisionFilter) where
-  explSet (Space _ sMap _ _ _) ety cfilter = do
+instance MonadIO m => ExplSet m (Space CollisionFilter) where
+  explSet (Space _ sMap _ _ _) ety cfilter = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setFilter s cfilter
 
-instance ExplGet IO (Space CollisionFilter) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space CollisionFilter) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     getFilter s
 
@@ -341,19 +342,19 @@ setCollisionType shape ctype = [C.exp| void {
 
 instance Component CollisionType where
   type Storage CollisionType = Space CollisionType
-instance Has w IO Physics => Has w IO CollisionType where
+instance (MonadIO m, Has w m Physics) => Has w m CollisionType where
   getStore = (cast :: Space Physics -> Space CollisionType) <$> getStore
 
-instance ExplMembers IO (Space CollisionType) where
+instance MonadIO m => ExplMembers m (Space CollisionType) where
   explMembers s = explMembers (cast s :: Space Shape)
 
-instance ExplSet IO (Space CollisionType) where
-  explSet (Space _ sMap _ _ _) ety (CollisionType ctype) = do
+instance MonadIO m => ExplSet m (Space CollisionType) where
+  explSet (Space _ sMap _ _ _) ety (CollisionType ctype) = liftIO $ do
     rd <- M.lookup ety <$> readIORef sMap
     forM_ rd$ \(Record s _) -> setCollisionType s ctype
 
-instance ExplGet IO (Space CollisionType) where
-  explExists s ety = explExists (cast s :: Space Shape) ety
-  explGet (Space _ sMap _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space CollisionType) where
+  explExists s ety = liftIO $ explExists (cast s :: Space Shape) ety
+  explGet (Space _ sMap _ _ _) ety = liftIO $ do
     Just (Record s _) <- M.lookup ety <$> readIORef sMap
     CollisionType <$> getCollisionType s

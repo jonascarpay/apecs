@@ -16,11 +16,13 @@
 module Apecs.Physics.Collision
   ( defaultHandler
   , mkBeginCB, mkSeparateCB, mkPreSolveCB, mkPostSolveCB
+  , addPostStepCallback
   ) where
 
 import           Apecs
 import           Apecs.Core
 import           Control.Monad
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Data.IntMap         as M
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U
@@ -41,7 +43,7 @@ defaultHandler :: CollisionHandler
 defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
 
 mkCollision :: Ptr Collision -> IO Collision
-mkCollision arb = do
+mkCollision arb = liftIO $ do
   nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
   ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
   ba <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
@@ -50,32 +52,32 @@ mkCollision arb = do
   sb <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_SHAPES($(cpArbiter* arb), sa, sb); return (intptr_t) (sb->userData); } |]
   return $ Collision (V2 nx ny) (Entity ba) (Entity bb) (Entity sa) (Entity sb)
 
-mkBeginCB :: (Collision -> System w Bool) -> System w BeginCB
+mkBeginCB :: MonadIO m => (Collision -> SystemT w IO Bool) -> SystemT w m BeginCB
 mkBeginCB sys = do
     w <- ask
 
     let cb arb _ _ = do
-          col <- mkCollision arb
-          r <- liftIO$ runSystem (sys col) w
+          col <- liftIO $ mkCollision arb
+          r <- runSystem (sys col) w
           return . fromIntegral . fromEnum $ r
 
     return (BeginCB cb)
 
-mkSeparateCB :: (Collision -> System w ()) -> System w SeparateCB
+mkSeparateCB :: MonadIO m => (Collision -> SystemT w IO ()) -> SystemT w m SeparateCB
 mkSeparateCB sys = do
     w <- ask
 
     let cb arb _ _ = do
-          col <- mkCollision arb
-          liftIO$ runSystem (sys col) w
+          col <- liftIO $ mkCollision arb
+          runSystem (sys col) w
 
     return (SeparateCB cb)
 
 
-mkPreSolveCB :: (Collision -> System w Bool) -> System w PreSolveCB
+mkPreSolveCB :: MonadIO m => (Collision -> SystemT w IO Bool) -> SystemT w m PreSolveCB
 mkPreSolveCB sys = (\(BeginCB cb) -> PreSolveCB cb) <$> mkBeginCB sys
 
-mkPostSolveCB :: (Collision -> System w ()) -> System w PostSolveCB
+mkPostSolveCB :: MonadIO m => (Collision -> SystemT w IO ()) -> SystemT w m PostSolveCB
 mkPostSolveCB sys = (\(SeparateCB cb) -> PostSolveCB cb) <$> mkSeparateCB sys
 
 newCollisionHandler :: SpacePtr -> CollisionHandler -> Int -> IO (Ptr CollisionHandler)
@@ -86,6 +88,7 @@ newCollisionHandler spcPtr (CollisionHandler source begin separate presolve post
         -> [C.exp| cpCollisionHandler* {cpSpaceAddCollisionHandler($(cpSpace* space), $(uintptr_t cta), $(uintptr_t ctb))}|]
       Wildcard (CollisionType ct)
         -> [C.exp| cpCollisionHandler* {cpSpaceAddWildcardHandler($(cpSpace* space), $(uintptr_t ct))}|]
+
 
     [C.exp| void { $(cpCollisionHandler* handler)->userData = (void*) $(intptr_t ety) }|]
 
@@ -117,26 +120,39 @@ destroyCollisionHandler = error "Destroy CollisionHandler not yet implemented"
 instance Component CollisionHandler where
   type Storage CollisionHandler = Space CollisionHandler
 
-instance Has w IO Physics => Has w IO CollisionHandler where
+instance (MonadIO m, Has w m Physics) => Has w m CollisionHandler where
   getStore = (cast :: Space Physics -> Space CollisionHandler) <$> getStore
 
-instance ExplSet IO (Space CollisionHandler) where
-  explSet sp@(Space _ _ _ hMap spcPtr) ety handler = do
+instance (MonadIO m) => ExplSet m (Space CollisionHandler) where
+  explSet sp@(Space _ _ _ hMap spcPtr) ety handler = liftIO $ do
     explDestroy sp ety
     hPtr <- newCollisionHandler spcPtr handler ety
     modifyIORef' hMap (M.insert ety (Record hPtr handler))
 
-instance ExplDestroy IO (Space CollisionHandler) where
-  explDestroy (Space _ _ _ hMap _) ety = do
+instance (MonadIO m) => ExplDestroy m (Space CollisionHandler) where
+  explDestroy (Space _ _ _ hMap _) ety = liftIO $ do
     rd <- M.lookup ety <$> readIORef hMap
     forM_ rd$ \(Record c _) -> destroyCollisionHandler c >> modifyIORef' hMap (M.delete ety)
 
-instance ExplMembers IO (Space CollisionHandler) where
-  explMembers (Space _ _ _ hMap _) = U.fromList . M.keys <$> readIORef hMap
+instance (MonadIO m) => ExplMembers m (Space CollisionHandler) where
+  explMembers (Space _ _ _ hMap _) = liftIO $ U.fromList . M.keys <$> readIORef hMap
 
-instance ExplGet IO (Space CollisionHandler) where
-  explExists (Space _ _ _ hMap _) ety = M.member ety <$> readIORef hMap
-  explGet (Space _ _ _ hMap _) ety = do
+instance (MonadIO m) => ExplGet m (Space CollisionHandler) where
+  explExists (Space _ _ _ hMap _) ety = liftIO $ M.member ety <$> readIORef hMap
+  explGet (Space _ _ _ hMap _) ety = liftIO $ do
     Just (Record _ handler) <- M.lookup ety <$> readIORef hMap
     return handler
 
+addPostStepCallback :: (Has w m Physics, MonadIO m) => Int -> SystemT w IO () -> SystemT w m ()
+addPostStepCallback (toEnum -> k) systemCallback= do
+  w <- ask
+  let callback _ _ _ = runSystem systemCallback w
+  (Space _ _ _ _ spcPtr) :: Space Physics <- getStore
+  liftIO $ withForeignPtr spcPtr $ \space -> do
+    funPtr <- liftIO$ $(C.mkFunPtr [t| Ptr FrnSpace -> Ptr () -> Ptr () -> IO () |]) callback
+    let fn = castFunPtrToPtr funPtr
+    [C.block| void {
+      int *data = 0;
+      cpSpaceAddPostStepCallback($(cpSpace *space), $(void*fn),$(int k), &data);
+    } |]
+  pure ()

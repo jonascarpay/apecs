@@ -16,6 +16,7 @@
 module Apecs.Physics.Query where
 
 import           Apecs
+import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Foreign.C.Types
 import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc
@@ -34,7 +35,7 @@ C.include "<chipmunk.h>"
 -- cpFloat cpShapeNearestPointQuery(cpShape *shape, cpVect p, cpPointQueryInfo *out)
 -- cpShape *cpSpacePointQueryNearest(cpSpace *space, cpVect point, cpFloat maxDistance, cpShapeFilter filter, cpPointQueryInfo *out)
 
-pointQuery :: Has w IO Physics => WVec -> Double -> CollisionFilter -> System w (Maybe PointQueryResult)
+pointQuery :: (MonadIO m, Has w m Physics) => WVec -> Double -> CollisionFilter -> SystemT w m (Maybe PointQueryResult)
 pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionFilter gr (Bitmask cs) (Bitmask mk)) = do
   Space _ _ _ _ spcPtr :: Space Physics <- getStore
   liftIO $ alloca $ \pq -> do

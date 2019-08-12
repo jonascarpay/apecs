@@ -33,7 +33,7 @@ worldTransform (Position (V2 x y), Angle theta) =
  Translate (realToFrac x) (realToFrac y) .
  Rotate (negate . radToDeg . realToFrac $ theta)
 
-drawBody :: Has w IO Shape => (Body, Transform, ShapeList) -> System w Picture
+drawBody :: Has w IO Physics => (Body, Transform, ShapeList) -> System w Picture
 drawBody (btype, transform, ShapeList shapes) = color shColor . worldTransform transform <$> foldM foldfn mempty shapes
   where foldfn pic shapeEty = do
           Shape _ convex <- get shapeEty
