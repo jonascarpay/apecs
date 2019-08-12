@@ -20,6 +20,7 @@ module Apecs.Physics.Constraint
 import           Apecs
 import           Apecs.Core
 import           Control.Monad
+import           Control.Monad.IO.Class (liftIO, MonadIO)
 import qualified Data.IntMap         as M
 import qualified Data.IntSet         as S
 import           Data.IORef
@@ -146,11 +147,11 @@ destroyConstraint spacePtr constraintPtr = withForeignPtr spacePtr $ \space -> [
 instance Component Constraint where
   type Storage Constraint = Space Constraint
 
-instance Has w IO Physics => Has w IO Constraint where
+instance (MonadIO m, Has w m Physics) => Has w m Constraint where
   getStore = (cast :: Space Physics -> Space Constraint) <$> getStore
 
-instance ExplSet IO (Space Constraint) where
-  explSet sp@(Space bMap _ cMap _ spcPtr) cEty cons@(Constraint (Entity bEtyA) (Entity bEtyB) ctype) = do
+instance MonadIO m => ExplSet m (Space Constraint) where
+  explSet sp@(Space bMap _ cMap _ spcPtr) cEty cons@(Constraint (Entity bEtyA) (Entity bEtyB) ctype) = liftIO $ do
     explDestroy sp cEty
     mBrA <- M.lookup bEtyA <$> readIORef bMap
     mBrB <- M.lookup bEtyB <$> readIORef bMap
@@ -164,8 +165,8 @@ instance ExplSet IO (Space Constraint) where
 
       _ -> return ()
 
-instance ExplDestroy IO (Space Constraint) where
-  explDestroy (Space bMap _ cMap _ spc) cEty = do
+instance MonadIO m => ExplDestroy m (Space Constraint) where
+  explDestroy (Space bMap _ cMap _ spc) cEty = liftIO $ do
     rd <- M.lookup cEty <$> readIORef cMap
     forM_ rd $ \(Record cPtr (Constraint (Entity bEtyA) (Entity bEtyB) _)) -> do
       bMap' <- readIORef bMap
@@ -175,12 +176,12 @@ instance ExplDestroy IO (Space Constraint) where
       modifyIORef' cMap $ M.delete cEty
       destroyConstraint spc cPtr
 
-instance ExplMembers IO (Space Constraint) where
-  explMembers (Space _ _ cMap _ _) = U.fromList . M.keys <$> readIORef cMap
+instance MonadIO m => ExplMembers m (Space Constraint) where
+  explMembers (Space _ _ cMap _ _) = liftIO $ U.fromList . M.keys <$> readIORef cMap
 
-instance ExplGet IO (Space Constraint) where
-  explExists (Space _ _ cMap _ _) ety = M.member ety <$> readIORef cMap
-  explGet    (Space _ _ cMap _ _) ety = do
+instance MonadIO m => ExplGet m (Space Constraint) where
+  explExists (Space _ _ cMap _ _) ety = liftIO $ M.member ety <$> readIORef cMap
+  explGet    (Space _ _ cMap _ _) ety = liftIO $ do
     Just (Record _ cons)  <- M.lookup ety <$> readIORef cMap
     return cons
 
@@ -194,28 +195,28 @@ setMaxForce c (realToFrac -> maxForce) = [C.exp| void { cpConstraintSetMaxForce(
 instance Component MaxForce where
   type Storage MaxForce = Space MaxForce
 
-instance Has w IO Physics => Has w IO MaxForce where
+instance (MonadIO m, Has w m Physics) => Has w m MaxForce where
   getStore = (cast :: Space Physics -> Space MaxForce) <$> getStore
 
-instance ExplMembers IO (Space MaxForce) where
+instance MonadIO m => ExplMembers m (Space MaxForce) where
   explMembers s = explMembers (cast s :: Space Constraint)
 
-instance ExplSet IO (Space MaxForce) where
-  explSet (Space _ _ cMap _ _) ety (MaxForce vec) = do
+instance MonadIO m => ExplSet m (Space MaxForce) where
+  explSet (Space _ _ cMap _ _) ety (MaxForce vec) = liftIO $ do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just (Record c _) -> setMaxForce c vec
 
-instance ExplGet IO (Space MaxForce) where
+instance MonadIO m => ExplGet m (Space MaxForce) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explGet (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = liftIO $ do
     Just (Record c _) <- M.lookup ety <$> readIORef cMap
     MaxForce <$> getMaxForce c
 
 -- MaxBias
 getMaxBias :: Ptr Constraint -> IO Double
-getMaxBias c = do
+getMaxBias c = liftIO $ do
   maxBias <- [C.exp| double { cpConstraintGetMaxBias ($(cpConstraint* c)) } |]
   return (realToFrac maxBias)
 
@@ -225,28 +226,28 @@ setMaxBias c (realToFrac -> maxBias) = [C.exp| void { cpConstraintSetMaxBias($(c
 instance Component MaxBias where
   type Storage MaxBias = Space MaxBias
 
-instance Has w IO Physics => Has w IO MaxBias where
+instance (MonadIO m, Has w m Physics) => Has w m MaxBias where
   getStore = (cast :: Space Physics -> Space MaxBias) <$> getStore
 
-instance ExplMembers IO (Space MaxBias) where
+instance MonadIO m => ExplMembers m (Space MaxBias) where
   explMembers s = explMembers (cast s :: Space Constraint)
 
-instance ExplSet IO (Space MaxBias) where
-  explSet (Space _ _ cMap _ _) ety (MaxBias vec) = do
+instance MonadIO m => ExplSet m (Space MaxBias) where
+  explSet (Space _ _ cMap _ _) ety (MaxBias vec) = liftIO $ do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just (Record c _) -> setMaxBias c vec
 
-instance ExplGet IO (Space MaxBias) where
-  explGet (Space _ _ cMap _ _) ety = do
+instance MonadIO m => ExplGet m (Space MaxBias) where
+  explGet (Space _ _ cMap _ _) ety = liftIO $ do
     Just (Record c _) <- M.lookup ety <$> readIORef cMap
     MaxBias <$> getMaxBias c
   explExists s ety = explExists (cast s :: Space Constraint) ety
 
 -- ErrorBias
 getErrorBias :: Ptr Constraint -> IO Double
-getErrorBias c = do
+getErrorBias c = liftIO $ do
   errorBias <- [C.exp| double { cpConstraintGetErrorBias ($(cpConstraint* c)) } |]
   return (realToFrac errorBias)
 
@@ -256,22 +257,22 @@ setErrorBias c (realToFrac -> errorBias) = [C.exp| void { cpConstraintSetErrorBi
 instance Component ErrorBias where
   type Storage ErrorBias = Space ErrorBias
 
-instance Has w IO Physics => Has w IO ErrorBias where
+instance (MonadIO m, Has w m Physics) => Has w m ErrorBias where
   getStore = (cast :: Space Physics -> Space ErrorBias) <$> getStore
 
-instance ExplMembers IO (Space ErrorBias) where
+instance MonadIO m => ExplMembers m (Space ErrorBias) where
   explMembers s = explMembers (cast s :: Space Constraint)
 
-instance ExplSet IO (Space ErrorBias) where
-  explSet (Space _ _ cMap _ _) ety (ErrorBias vec) = do
+instance MonadIO m => ExplSet m (Space ErrorBias) where
+  explSet (Space _ _ cMap _ _) ety (ErrorBias vec) = liftIO $ do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just (Record c _) -> setErrorBias c vec
 
-instance ExplGet IO (Space ErrorBias) where
+instance MonadIO m => ExplGet m (Space ErrorBias) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explGet (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = liftIO $ do
     Just (Record c _) <- M.lookup ety <$> readIORef cMap
     ErrorBias <$> getErrorBias c
 
@@ -282,21 +283,21 @@ getImpulse c = realToFrac <$> [C.exp| double { cpConstraintGetImpulse ($(cpConst
 instance Component Impulse where
   type Storage Impulse = Space Impulse
 
-instance Has w IO Physics => Has w IO Impulse where
+instance (MonadIO m, Has w m Physics) => Has w m Impulse where
   getStore = (cast :: Space Physics -> Space Impulse) <$> getStore
 
-instance ExplMembers IO (Space Impulse) where
+instance MonadIO m => ExplMembers m (Space Impulse) where
   explMembers s = explMembers (cast s :: Space Constraint)
 
-instance ExplGet IO (Space Impulse) where
+instance MonadIO m => ExplGet m (Space Impulse) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explGet (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = liftIO $ do
     Just (Record c _) <- M.lookup ety <$> readIORef cMap
     Impulse <$> getImpulse c
 
 -- CollideBodies
 getCollideBodies :: Ptr Constraint -> IO Bool
-getCollideBodies c = do
+getCollideBodies c = liftIO $ do
   collide <- [C.exp| int { cpConstraintGetCollideBodies ($(cpConstraint* c)) } |]
   return . toEnum . fromIntegral $ collide
 
@@ -306,21 +307,21 @@ setCollideBodies c (fromIntegral . fromEnum -> collide) = [C.exp| void { cpConst
 instance Component CollideBodies where
   type Storage CollideBodies = Space CollideBodies
 
-instance Has w IO Physics => Has w IO CollideBodies where
+instance (MonadIO m, Has w m Physics) => Has w m CollideBodies where
   getStore = (cast :: Space Physics -> Space CollideBodies) <$> getStore
 
-instance ExplMembers IO (Space CollideBodies) where
+instance MonadIO m => ExplMembers m (Space CollideBodies) where
   explMembers s = explMembers (cast s :: Space Constraint)
 
-instance ExplSet IO (Space CollideBodies) where
-  explSet (Space _ _ cMap _ _) ety (CollideBodies vec) = do
+instance MonadIO m => ExplSet m (Space CollideBodies) where
+  explSet (Space _ _ cMap _ _) ety (CollideBodies vec) = liftIO $ do
     rd <- M.lookup ety <$> readIORef cMap
     case rd of
       Nothing -> return ()
       Just (Record c _) -> setCollideBodies c vec
 
-instance ExplGet IO (Space CollideBodies) where
+instance MonadIO m => ExplGet m (Space CollideBodies) where
   explExists s ety = explExists (cast s :: Space Constraint) ety
-  explGet (Space _ _ cMap _ _) ety = do
+  explGet (Space _ _ cMap _ _) ety = liftIO $ do
     Just (Record c _) <- M.lookup ety <$> readIORef cMap
     CollideBodies <$> getCollideBodies c
