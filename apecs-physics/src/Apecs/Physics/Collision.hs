@@ -43,7 +43,7 @@ defaultHandler :: CollisionHandler
 defaultHandler = CollisionHandler (Wildcard 0) Nothing Nothing Nothing Nothing
 
 mkCollision :: Ptr Collision -> IO Collision
-mkCollision arb = liftIO $ do
+mkCollision arb = do
   nx <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).x } |]
   ny <- realToFrac   <$> [C.exp| double { cpArbiterGetNormal($(cpArbiter* arb)).y } |]
   ba <- fromIntegral <$> [C.block| unsigned int { CP_ARBITER_GET_BODIES($(cpArbiter* arb), ba, bb); return (intptr_t) (ba->userData); } |]
@@ -143,6 +143,8 @@ instance (MonadIO m) => ExplGet m (Space CollisionHandler) where
     Just (Record _ handler) <- M.lookup ety <$> readIORef hMap
     return handler
 
+-- | Add an action that will be executed after the physics engine is done processing the current step. Since you generally cannot modify the physics space while the engine is handling collisions, 'addPostStepCallback' is the primary way of making changes to the physics space with a 'CollisionHandler' in a safe manner.
+-- Please note that you should only use this function for callbacks in conjunction with a 'CollisionHandler'!
 addPostStepCallback :: (Has w m Physics, MonadIO m) => Int -> SystemT w IO () -> SystemT w m ()
 addPostStepCallback (toEnum -> k) systemCallback= do
   w <- ask

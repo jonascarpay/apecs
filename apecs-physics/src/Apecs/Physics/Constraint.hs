@@ -216,7 +216,7 @@ instance MonadIO m => ExplGet m (Space MaxForce) where
 
 -- MaxBias
 getMaxBias :: Ptr Constraint -> IO Double
-getMaxBias c = liftIO $ do
+getMaxBias c = do
   maxBias <- [C.exp| double { cpConstraintGetMaxBias ($(cpConstraint* c)) } |]
   return (realToFrac maxBias)
 
@@ -297,7 +297,7 @@ instance MonadIO m => ExplGet m (Space Impulse) where
 
 -- CollideBodies
 getCollideBodies :: Ptr Constraint -> IO Bool
-getCollideBodies c = liftIO $ do
+getCollideBodies c = do
   collide <- [C.exp| int { cpConstraintGetCollideBodies ($(cpConstraint* c)) } |]
   return . toEnum . fromIntegral $ collide
 

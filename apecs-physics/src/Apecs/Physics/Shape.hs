@@ -265,7 +265,7 @@ instance MonadIO m => ExplGet m (Space Friction) where
 
 -- SurfaceVelocity
 getSurfaceVelocity :: Ptr Shape -> IO Vec
-getSurfaceVelocity shape = liftIO $ do
+getSurfaceVelocity shape = do
  x <- [C.exp| double { cpShapeGetSurfaceVelocity($(cpShape* shape)).x }|]
  y <- [C.exp| double { cpShapeGetSurfaceVelocity($(cpShape* shape)).y }|]
  return (V2 (realToFrac x) (realToFrac y))
@@ -297,7 +297,7 @@ instance MonadIO m => ExplGet m (Space SurfaceVelocity) where
 
 -- CollisionFilter
 getFilter :: Ptr Shape -> IO CollisionFilter
-getFilter shape = liftIO $ do
+getFilter shape = do
  group <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).group }|]
  cats  <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).categories }|]
  mask  <- [C.exp| unsigned int { cpShapeGetFilter($(cpShape* shape)).mask }|]
