@@ -13,8 +13,8 @@
 - [x] Add explicitly managed shapes whose properties you can change at runtime
 - [x] Check(enforce?) proper deallocation of bodies/shapes/constraints on overwrites etc.
 - [ ] Remaining spatial queries
-- [ ] Fix issues on [travis](https://travis-ci.org/jonascarpay/apecs-physics)
-- [ ] Hackage
+- [x] Fix issues on [travis](https://travis-ci.org/jonascarpay/apecs-physics)
+- [x] Hackage
 - [x] Presolve/Postsolve collision handlers
 - [x] Remaining collision properties
 - [x] Wildcard collision handlers
@@ -34,7 +34,7 @@
 - [x] `playWorld` camera tracking?
 - [ ] Documentation/tutorials?
 - [ ] Switch to normal FFI instead of inline-c?
-- [ ] Better naming for shapes/convex
+- [x] Better naming for shapes/convex
 - [ ] Get constaint properties (getConstraintImpulse, getPinJointDistance, etc.)
 - [ ] Include entity index from data pointer in Chipmunk error messages
 - [ ] Implement remaining global properties (errorbias etc.)

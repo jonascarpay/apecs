@@ -1,3 +1,10 @@
+## [0.4.3]
+### Added
+- `addPostStepCallback`
+
+### Changed
+- Now runs in `MonadIO` rather than `IO`
+
 ## [0.4.2]
 ### Added
 - Query `Impulse` for `Constraints`
