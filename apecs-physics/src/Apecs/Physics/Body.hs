@@ -18,6 +18,7 @@ module Apecs.Physics.Body where
 import           Apecs
 import           Apecs.Core
 import           Control.Monad
+import           Control.Monad.IO.Class (liftIO, MonadIO)
 import qualified Data.IntMap         as M
 import qualified Data.IntSet         as S
 import           Data.IORef
@@ -59,11 +60,11 @@ destroyBody spacePtr bodyPtr = withForeignPtr spacePtr $ \space -> [C.block| voi
 instance Component Body where
   type Storage Body = Space Body
 
-instance Has w IO Physics => Has w IO Body where
+instance (MonadIO m, Has w m Physics) => Has w m Body where
   getStore = (cast :: Space Physics -> Space Body) <$> getStore
 
-instance ExplSet IO (Space Body) where
-  explSet (Space bMap _ _ _ spcPtr) ety btype = do
+instance MonadIO m => ExplSet m (Space Body) where
+  explSet (Space bMap _ _ _ spcPtr) ety btype = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     bdyPtr <- case rd of
                 Just (BodyRecord bdyPtr _ _ _) -> return bdyPtr
@@ -75,8 +76,8 @@ instance ExplSet IO (Space Body) where
                   return bdyPtr
     setBodyType bdyPtr btype
 
-instance ExplDestroy IO (Space Body) where
-  explDestroy sp@(Space bMap _ _ _ spc) ety = do
+instance MonadIO m => ExplDestroy m (Space Body) where
+  explDestroy sp@(Space bMap _ _ _ spc) ety = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     modifyIORef' bMap (M.delete ety)
     forM_ rd $ \(BodyRecord bPtr _ shapes constraints) -> do
@@ -84,12 +85,12 @@ instance ExplDestroy IO (Space Body) where
       readIORef constraints >>= mapM_ (explDestroy (cast sp :: Space Constraint)) . S.toList
       destroyBody spc bPtr
 
-instance ExplMembers IO (Space Body) where
-  explMembers (Space bMap _ _ _ _) = U.fromList . M.keys <$> readIORef bMap
+instance MonadIO m => ExplMembers m (Space Body) where
+  explMembers (Space bMap _ _ _ _) = liftIO $ U.fromList . M.keys <$> readIORef bMap
 
-instance ExplGet IO (Space Body) where
-  explExists (Space bMap _ _ _ _) ety = M.member ety <$> readIORef bMap
-  explGet (Space bMap _ _ _ _) ety = do
+instance MonadIO m => ExplGet m (Space Body) where
+  explExists (Space bMap _ _ _ _) ety = liftIO $ M.member ety <$> readIORef bMap
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord _ b _ _) <- M.lookup ety <$> readIORef bMap
     return b
 
@@ -112,20 +113,20 @@ setPosition bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
 instance Component Position where
   type Storage Position = Space Position
 
-instance Has w IO Physics => Has w IO Position where
+instance (MonadIO m, Has w m Physics) => Has w m Position where
   getStore = (cast :: Space Physics -> Space Position) <$> getStore
 
-instance ExplMembers IO (Space Position) where
+instance MonadIO m => ExplMembers m (Space Position) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space Position) where
-  explSet (Space bMap _ _ _ _) ety (Position pos) = do
+instance MonadIO m => ExplSet m (Space Position) where
+  explSet (Space bMap _ _ _ _) ety (Position pos) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _ _) -> setPosition b pos
 
-instance ExplGet IO (Space Position) where
+instance MonadIO m => ExplGet m (Space Position) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Position <$> getPosition b
 
@@ -145,20 +146,20 @@ setVelocity bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
 instance Component Velocity where
   type Storage Velocity = Space Velocity
 
-instance Has w IO Physics => Has w IO Velocity where
+instance (MonadIO m, Has w m Physics) => Has w m Velocity where
   getStore = (cast :: Space Physics -> Space Velocity) <$> getStore
 
-instance ExplMembers IO (Space Velocity) where
+instance MonadIO m => ExplMembers m (Space Velocity) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space Velocity) where
-  explSet (Space bMap _ _ _ _) ety (Velocity vel) = do
+instance MonadIO m => ExplSet m (Space Velocity) where
+  explSet (Space bMap _ _ _ _) ety (Velocity vel) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _ _) -> setVelocity b vel
 
-instance ExplGet IO (Space Velocity) where
+instance MonadIO m => ExplGet m (Space Velocity) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Velocity <$> getVelocity b
 
@@ -180,20 +181,20 @@ setAngle bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component Angle where
   type Storage Angle = Space Angle
 
-instance Has w IO Physics => Has w IO Angle where
+instance (MonadIO m, Has w m Physics) => Has w m Angle where
   getStore = (cast :: Space Physics -> Space Angle) <$> getStore
 
-instance ExplMembers IO (Space Angle) where
+instance MonadIO m => ExplMembers m (Space Angle) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space Angle) where
-  explSet (Space bMap _ _ _ _) ety (Angle angle) = do
+instance MonadIO m => ExplSet m (Space Angle) where
+  explSet (Space bMap _ _ _ _) ety (Angle angle) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _ _) -> setAngle b angle
 
-instance ExplGet IO (Space Angle) where
+instance MonadIO m => ExplGet m (Space Angle) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Angle <$> getAngle b
 
@@ -215,20 +216,20 @@ setAngularVelocity bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component AngularVelocity where
   type Storage AngularVelocity = Space AngularVelocity
 
-instance Has w IO Physics => Has w IO AngularVelocity where
+instance (MonadIO m, Has w m Physics) => Has w m AngularVelocity where
   getStore = (cast :: Space Physics -> Space AngularVelocity) <$> getStore
 
-instance ExplMembers IO (Space AngularVelocity) where
+instance MonadIO m => ExplMembers m (Space AngularVelocity) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space AngularVelocity) where
-  explSet (Space bMap _ _ _ _) ety (AngularVelocity angle) = do
+instance MonadIO m => ExplSet m (Space AngularVelocity) where
+  explSet (Space bMap _ _ _ _) ety (AngularVelocity angle) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _ _) -> setAngularVelocity b angle
 
-instance ExplGet IO (Space AngularVelocity) where
+instance MonadIO m => ExplGet m (Space AngularVelocity) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     AngularVelocity <$> getAngularVelocity b
 
@@ -248,20 +249,20 @@ setForce bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| void {
 instance Component Force where
   type Storage Force = Space Force
 
-instance Has w IO Physics => Has w IO Force where
+instance (MonadIO m, Has w m Physics) => Has w m Force where
   getStore = (cast :: Space Physics -> Space Force) <$> getStore
 
-instance ExplMembers IO (Space Force) where
+instance MonadIO m => ExplMembers m (Space Force) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space Force) where
-  explSet (Space bMap _ _ _ _) ety (Force frc) = do
+instance MonadIO m => ExplSet m (Space Force) where
+  explSet (Space bMap _ _ _ _) ety (Force frc) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _ _) -> setForce b frc
 
-instance ExplGet IO (Space Force) where
+instance MonadIO m => ExplGet m (Space Force) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Force <$> getForce b
 
@@ -283,20 +284,20 @@ setBodyMass bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component BodyMass where
   type Storage BodyMass = Space BodyMass
 
-instance Has w IO Physics => Has w IO BodyMass where
+instance (MonadIO m, Has w m Physics) => Has w m BodyMass where
   getStore = (cast :: Space Physics -> Space BodyMass) <$> getStore
 
-instance ExplMembers IO (Space BodyMass) where
+instance MonadIO m => ExplMembers m (Space BodyMass) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space BodyMass) where
-  explSet (Space bMap _ _ _ _) ety (BodyMass angle) = do
+instance MonadIO m => ExplSet m (Space BodyMass) where
+  explSet (Space bMap _ _ _ _) ety (BodyMass angle) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _ _) -> setBodyMass b angle
 
-instance ExplGet IO (Space BodyMass) where
+instance MonadIO m => ExplGet m (Space BodyMass) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     BodyMass <$> getBodyMass b
 
@@ -318,20 +319,20 @@ setMoment bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component Moment where
   type Storage Moment = Space Moment
 
-instance Has w IO Physics => Has w IO Moment where
+instance (MonadIO m, Has w m Physics) => Has w m Moment where
   getStore = (cast :: Space Physics -> Space Moment) <$> getStore
 
-instance ExplMembers IO (Space Moment) where
+instance MonadIO m => ExplMembers m (Space Moment) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space Moment) where
-  explSet (Space bMap _ _ _ _) ety (Moment angle) = do
+instance MonadIO m => ExplSet m (Space Moment) where
+  explSet (Space bMap _ _ _ _) ety (Moment angle) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _ _) -> setMoment b angle
 
-instance ExplGet IO (Space Moment) where
+instance MonadIO m => ExplGet m (Space Moment) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Moment <$> getMoment b
 
@@ -353,20 +354,20 @@ setTorque bodyPtr (realToFrac -> angle) = [C.block| void {
 instance Component Torque where
   type Storage Torque = Space Torque
 
-instance Has w IO Physics => Has w IO Torque where
+instance (MonadIO m, Has w m Physics) => Has w m Torque where
   getStore = (cast :: Space Physics -> Space Torque) <$> getStore
 
-instance ExplMembers IO (Space Torque) where
+instance MonadIO m => ExplMembers m (Space Torque) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space Torque) where
-  explSet (Space bMap _ _ _ _) ety (Torque angle) = do
+instance MonadIO m => ExplSet m (Space Torque) where
+  explSet (Space bMap _ _ _ _) ety (Torque angle) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd $ \(BodyRecord b _ _ _) -> setTorque b angle
 
-instance ExplGet IO (Space Torque) where
+instance MonadIO m => ExplGet m (Space Torque) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Torque <$> getTorque b
 
@@ -386,20 +387,20 @@ setCenterOfGravity bodyPtr (V2 (realToFrac -> x) (realToFrac -> y)) = [C.block| 
 instance Component CenterOfGravity where
   type Storage CenterOfGravity = Space CenterOfGravity
 
-instance Has w IO Physics => Has w IO CenterOfGravity where
+instance (MonadIO m, Has w m Physics) => Has w m CenterOfGravity where
   getStore = (cast :: Space Physics -> Space CenterOfGravity) <$> getStore
 
-instance ExplMembers IO (Space CenterOfGravity) where
+instance MonadIO m => ExplMembers m (Space CenterOfGravity) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplSet IO (Space CenterOfGravity) where
-  explSet (Space bMap _ _ _ _) ety (CenterOfGravity vel) = do
+instance MonadIO m => ExplSet m (Space CenterOfGravity) where
+  explSet (Space bMap _ _ _ _) ety (CenterOfGravity vel) = liftIO $ do
     rd <- M.lookup ety <$> readIORef bMap
     forM_ rd$ \(BodyRecord b _ _ _) -> setCenterOfGravity b vel
 
-instance ExplGet IO (Space CenterOfGravity) where
+instance MonadIO m => ExplGet m (Space CenterOfGravity) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     CenterOfGravity <$> getCenterOfGravity b
 
@@ -407,15 +408,15 @@ instance ExplGet IO (Space CenterOfGravity) where
 instance Component ShapeList where
   type Storage ShapeList = Space ShapeList
 
-instance Has w IO Physics => Has w IO ShapeList where
+instance (MonadIO m, Has w m Physics) => Has w m ShapeList where
   getStore = (cast :: Space Physics -> Space ShapeList) <$> getStore
 
-instance ExplMembers IO (Space ShapeList) where
+instance MonadIO m => ExplMembers m (Space ShapeList) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplGet IO (Space ShapeList) where
+instance MonadIO m => ExplGet m (Space ShapeList) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord _ _ sPtr _) <- M.lookup ety <$> readIORef bMap
     ShapeList . fmap Entity . S.toList <$> readIORef sPtr
 
@@ -423,14 +424,14 @@ instance ExplGet IO (Space ShapeList) where
 instance Component ConstraintList where
   type Storage ConstraintList = Space ConstraintList
 
-instance Has w IO Physics => Has w IO ConstraintList where
+instance (MonadIO m, Has w m Physics) => Has w m ConstraintList where
   getStore = (cast :: Space Physics -> Space ConstraintList) <$> getStore
 
-instance ExplMembers IO (Space ConstraintList) where
+instance MonadIO m => ExplMembers m (Space ConstraintList) where
   explMembers s = explMembers (cast s :: Space Body)
 
-instance ExplGet IO (Space ConstraintList) where
+instance MonadIO m => ExplGet m (Space ConstraintList) where
   explExists s ety = explExists (cast s :: Space Body) ety
-  explGet (Space bMap _ _ _ _) ety = do
+  explGet (Space bMap _ _ _ _) ety = liftIO $ do
     Just (BodyRecord _ _ _ cPtr) <- M.lookup ety <$> readIORef bMap
     ConstraintList . fmap Entity . S.toList <$> readIORef cPtr
