@@ -1,3 +1,7 @@
+## [0.2.3]
+### Changed
+- Small compatibility update for apecs-physics-0.4.3
+
 ## [0.2.2]
 ### Changed
 - Fixed the `windowToWorld` direction

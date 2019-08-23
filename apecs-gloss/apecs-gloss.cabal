@@ -1,5 +1,5 @@
 name:                apecs-gloss
-version:             0.2.2
+version:             0.2.3
 synopsis:            Simple gloss renderer for apecs
 homepage:            https://github.com/jonascarpay/apecs/apecs-gloss
 license:             BSD3
