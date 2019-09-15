@@ -46,7 +46,7 @@ instance ExplDestroy m s => ExplDestroy m (Identity s) where
 
 T.makeInstances [2..8]
 
--- | Psuedocomponent indicating the absence of @a@.
+-- | Pseudocomponent indicating the absence of @a@.
 --   Mainly used as e.g. @cmap $ \(a, Not b) -> c@ to iterate over entities with an @a@ but no @b@.
 --   Can also be used to delete components, like @cmap $ \a -> (Not :: Not a)@ to delete every @a@ component.
 data Not a = Not
