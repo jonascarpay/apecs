@@ -20,7 +20,7 @@ apecs aims to be
 - [apecs-stm](apecs-stm/) - STM-based stores for easy concurrency
 
 ##### By other authors
-- [An Introduction to Developing Games in Haskell with Apecs](https://blog.aas.sh/posts/2018-09-10-Making-A-Game-With-Haskell-And-Apecs/) by Ashley Smith
+- [An Introduction to Developing Games in Haskell with Apecs](https://aas.sh/blog/making-a-game-with-haskell-and-apecs) by Ashley Smith
 
 #### Status
 | Package | Hackage | Stack LTS | Stack Nightly |
