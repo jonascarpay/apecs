@@ -176,11 +176,10 @@ instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
   explDestroy (Cache mask tags cache s) ety = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
-    if tag == ety
-       then do
-         liftIO$ UM.unsafeWrite tags  index (-2)
-         liftIO$ VM.unsafeWrite cache index cacheMiss
-       else explDestroy s ety
+    when (tag == ety) $ liftIO $ do
+      UM.unsafeWrite tags  index (-2)
+      VM.unsafeWrite cache index cacheMiss
+    explDestroy s ety
 
 instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
   {-# INLINE explMembers #-}
