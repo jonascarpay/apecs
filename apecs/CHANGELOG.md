@@ -1,3 +1,7 @@
+## [0.8.2]
+### Changed
+- (#55) Fixed a bug where components where not properly deleted from the cache following the cache bitmasking update
+
 ## [0.8.1]
 ### Changed
 - Changed `Cache`s to use bitmasks instead of the remainder operation. This makes caches up to three times faster.
