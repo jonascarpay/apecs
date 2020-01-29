@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP #-}
 
 module Apecs.THTuples where
 
@@ -54,9 +55,12 @@ tupleInstances n = do
       compT var = ConT compN `AppT` var
       strgN = mkName "Storage"
       strgT var = ConT strgN `AppT` var
-      compI = InstanceD Nothing (fmap compT vars) (compT varTuple)
-        [ TySynInstD strgN $
-          TySynEqn [varTuple] (tupleUpT . fmap strgT $ vars)
+      compI = InstanceD Nothing (fmap compT vars) (compT varTuple) [
+#if MIN_VERSION_template_haskell(2,15,0)
+          TySynInstD $ TySynEqn Nothing (strgT varTuple) (tupleUpT . fmap strgT $ vars)
+#else
+          TySynInstD strgN $ TySynEqn [varTuple] (tupleUpT . fmap strgT $ vars)
+#endif
         ]
 
       -- Has
@@ -79,7 +83,11 @@ tupleInstances n = do
       -- Elem
       elemN = mkName "Elem"
       elemT var = ConT elemN `AppT` var
+#if MIN_VERSION_template_haskell(2,15,0)
+      elemI = TySynInstD $ TySynEqn Nothing (elemT varTuple) (tupleUpT $ fmap elemT vars)
+#else
       elemI = TySynInstD elemN $ TySynEqn [varTuple] (tupleUpT $ fmap elemT vars)
+#endif
 
       -- s, ety, w arguments
       sNs = [ mkName $ "s_" ++ show i | i <- [0..n-1]]
