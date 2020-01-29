@@ -32,10 +32,6 @@ matrix:
     compiler: ": #stack default"
     addons: {apt: {packages: [libgmp-dev,freeglut3-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-12"
-    compiler: ": #stack 8.4.4"
-    addons: {apt: {packages: [libgmp-dev,freeglut3-dev]}}
-
   - env: BUILD=stack ARGS="--resolver lts-13"
     compiler: ": #stack 8.6.5"
     addons: {apt: {packages: [libgmp-dev,freeglut3-dev]}}
@@ -51,10 +47,6 @@ matrix:
 
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default osx"
-    os: osx
-
-  - env: BUILD=stack ARGS="--resolver lts-12"
-    compiler: ": #stack 8.4.4 osx"
     os: osx
 
   - env: BUILD=stack ARGS="--resolver lts-13"
