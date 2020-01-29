@@ -1,3 +1,7 @@
+## [0.8.3]
+### Changed
+- (#58) Added support for Template Haskell 2.15.0.0 through CPP flags
+
 ## [0.8.2]
 ### Changed
 - (#55) Fixed a bug where components where not properly deleted from the cache following the cache bitmasking update
