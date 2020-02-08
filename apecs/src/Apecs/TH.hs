@@ -3,6 +3,7 @@
 
 module Apecs.TH
   ( makeWorld, makeWorldNoEC, makeWorldAndComponents
+  , makeMapComponents
   ) where
 
 import Control.Monad
@@ -49,8 +50,11 @@ makeWorldNoEC worldName cTypes = do
 
   return $ wldDecl : initSig : initDecl : hasDecl
 
-makeComponent :: Name -> Q Dec
-makeComponent comp = do
+makeMapComponents :: [Name] -> Q [Dec]
+makeMapComponents = mapM makeMapComponent
+
+makeMapComponent :: Name -> Q Dec
+makeMapComponent comp = do
   let ct = return$ ConT comp
   head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
 
@@ -58,7 +62,7 @@ makeComponent comp = do
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
-  cdecls <- mapM makeComponent cTypes
+  cdecls <- makeMapComponents cTypes
   return $ wdecls ++ cdecls
 
 {-|
