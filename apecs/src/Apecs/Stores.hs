@@ -22,6 +22,7 @@ import qualified Data.IntMap.Strict          as M
 import           Data.IORef
 import           Data.Proxy
 import           Data.Bits (shiftL, (.&.))
+import           Data.Typeable (Typeable, typeRep)
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -36,11 +37,16 @@ type instance Elem (Map c) = c
 instance MonadIO m => ExplInit m (Map c) where
   explInit = liftIO$ Map <$> newIORef mempty
 
-instance MonadIO m => ExplGet m (Map c) where
+instance (MonadIO m, Typeable c) => ExplGet m (Map c) where
   explExists (Map ref) ety = liftIO$ M.member ety <$> readIORef ref
   explGet    (Map ref) ety = liftIO$ flip fmap (M.lookup ety <$> readIORef ref) $ \case
     Just c -> c
-    Nothing -> error $ "Reading non-existant Map component for entity " <> show ety
+    notFound -> error $ unwords
+      [ "Reading non-existant Map component"
+      , show (typeRep notFound)
+      , "for entity"
+      , show ety
+      ]
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
@@ -66,11 +72,15 @@ type instance Elem (Unique c) = c
 instance MonadIO m => ExplInit m (Unique c) where
   explInit = liftIO$ Unique <$> newIORef Nothing
 
-instance MonadIO m => ExplGet m (Unique c) where
+instance (MonadIO m, Typeable c) => ExplGet m (Unique c) where
   {-# INLINE explGet #-}
   explGet (Unique ref) _ = liftIO$ flip fmap (readIORef ref) $ \case
     Just (_, c)  -> c
-    Nothing -> error $ "Reading non-existant Unique component"
+    notFound -> error $ unwords
+      [ "Reading non-existant Unique component"
+      , show (typeRep notFound)
+      ]
+
   {-# INLINE explExists #-}
   explExists (Unique ref) ety = liftIO$ maybe False ((==ety) . fst) <$> readIORef ref
 

@@ -31,6 +31,7 @@ import           Control.Monad
 import           Data.Maybe
 import           Data.Monoid                 (Sum (..))
 import           Data.Semigroup
+import           Data.Typeable (Typeable, typeRep)
 import qualified Data.Vector.Unboxed         as U
 import           Language.Haskell.TH
 import qualified ListT                       as L
@@ -46,13 +47,19 @@ type instance Elem (Map c) = c
 
 instance ExplInit STM (Map c) where
   explInit = Map <$> M.new
-instance ExplGet STM (Map c) where
+instance Typeable c => ExplGet STM (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
   explExists (Map m) ety = isJust   <$> M.lookup ety m
   explGet    (Map m) ety = flip fmap (M.lookup ety m) $ \case
     Just c -> c
-    Nothing -> error $ "Reading non-existant STM Map component for entity " <> show ety
+    notFound -> error $ unwords
+      [ "Reading non-existant STM Map component"
+      , show (typeRep notFound)
+      , "for entity"
+      , show ety
+      ]
+
 instance ExplSet STM (Map c) where
   {-# INLINE explSet #-}
   explSet (Map m) ety x = M.insert x ety m
@@ -66,7 +73,7 @@ instance ExplMembers STM (Map c) where
 instance ExplInit IO (Map c) where
   {-# INLINE explInit #-}
   explInit = S.atomically explInit
-instance ExplGet IO (Map c) where
+instance Typeable c => ExplGet IO (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
   explExists m e = S.atomically $ explExists m e
@@ -86,11 +93,14 @@ type instance Elem (Unique c) = c
 instance ExplInit STM (Unique c) where
   explInit = Unique <$> newTVar Nothing
 
-instance ExplGet STM (Unique c) where
+instance Typeable c => ExplGet STM (Unique c) where
   {-# INLINE explGet #-}
   explGet (Unique ref) _ = flip fmap (readTVar ref) $ \case
     Just (_, c)  -> c
-    Nothing -> error $ "Reading non-existant Unique component"
+    notFound -> error $ unwords
+      [ "Reading non-existant STM Unique component"
+      , show (typeRep notFound)
+      ]
   {-# INLINE explExists #-}
   explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readTVar ref
 
@@ -112,7 +122,7 @@ instance ExplMembers STM (Unique c) where
 instance ExplInit IO (Unique c) where
   {-# INLINE explInit #-}
   explInit = S.atomically explInit
-instance ExplGet IO (Unique c) where
+instance Typeable c => ExplGet IO (Unique c) where
   {-# INLINE explExists #-}
   explExists m e = S.atomically $ explExists m e
   {-# INLINE explGet #-}
