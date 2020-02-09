@@ -5,6 +5,7 @@
 - (#60) Report `Component` type names to non-existent component errors
 - Relaxed the type of `modify` to allow a different return type
 - Constrain the `cmapM_` type `(c -> SystemT w m ()) -> SystemT w m ()`, to make it clearer that the inner function does not update `Components`
+- Simplify nix infrastructure
 
 ## [0.8.3]
 ### Changed
