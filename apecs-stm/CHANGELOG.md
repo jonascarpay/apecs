@@ -1,4 +1,7 @@
-## [Unreleased]
+## [0.1.3]
+### Changed
+- (#60) Add `Component` type names in non-existent component errors
+- apecs version bump
 
 ## [0.1.2]
 ### Changed

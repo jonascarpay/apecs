@@ -1,3 +1,9 @@
+## [0.9.0]
+### Added
+- (#59) Expose `makeMapComponents`, which creates `Component` instances with `Map` stores
+### Changed
+- (#60) Report `Component` type names to non-existent component errors
+
 ## [0.8.3]
 ### Changed
 - (#58) Added support for Template Haskell 2.15.0.0 through CPP flags

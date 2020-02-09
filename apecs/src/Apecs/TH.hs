@@ -2,7 +2,9 @@
 {-# LANGUAGE TypeFamilies    #-}
 
 module Apecs.TH
-  ( makeWorld, makeWorldNoEC, makeWorldAndComponents
+  ( makeWorld
+  , makeWorldNoEC
+  , makeWorldAndComponents
   , makeMapComponents
   ) where
 
@@ -50,6 +52,7 @@ makeWorldNoEC worldName cTypes = do
 
   return $ wldDecl : initSig : initDecl : hasDecl
 
+-- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]
 makeMapComponents = mapM makeMapComponent
 
@@ -58,7 +61,7 @@ makeMapComponent comp = do
   let ct = return$ ConT comp
   head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
 
--- | Same as makeWorld, but also defines @Component@ instances with a @Map@ store.
+-- | Calls 'makeWorld' and 'makeMapComponents', i.e. makes a world and also defines @Component@ instances with a @Map@ store.
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
