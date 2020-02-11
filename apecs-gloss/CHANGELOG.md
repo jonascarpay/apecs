@@ -1,3 +1,7 @@
+## [0.2.4]
+### Changed
+- Increased upper bound `apecs` dependency
+
 ## [0.2.3]
 ### Changed
 - Small compatibility update for apecs-physics-0.4.3
