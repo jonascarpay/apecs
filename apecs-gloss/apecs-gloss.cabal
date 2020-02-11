@@ -1,5 +1,5 @@
 name:                apecs-gloss
-version:             0.2.3
+version:             0.2.4
 synopsis:            Simple gloss renderer for apecs
 homepage:            https://github.com/jonascarpay/apecs/apecs-gloss
 license:             BSD3
@@ -23,7 +23,7 @@ library
     Apecs.Gloss
     Apecs.Physics.Gloss
   build-depends:
-    apecs         >= 0.7  && < 0.9,
+    apecs         >= 0.7  && < 0.10,
     apecs-physics >= 0.3  && < 0.5,
     base          >= 4.9  && < 5,
     containers    >= 0.5  && < 0.8,

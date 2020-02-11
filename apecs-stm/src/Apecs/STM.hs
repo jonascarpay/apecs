@@ -54,7 +54,7 @@ instance Typeable c => ExplGet STM (Map c) where
   explGet    (Map m) ety = flip fmap (M.lookup ety m) $ \case
     Just c -> c
     notFound -> error $ unwords
-      [ "Reading non-existant STM Map component"
+      [ "Reading non-existent STM Map component"
       , show (typeRep notFound)
       , "for entity"
       , show ety
@@ -98,7 +98,7 @@ instance Typeable c => ExplGet STM (Unique c) where
   explGet (Unique ref) _ = flip fmap (readTVar ref) $ \case
     Just (_, c)  -> c
     notFound -> error $ unwords
-      [ "Reading non-existant STM Unique component"
+      [ "Reading non-existent STM Unique component"
       , show (typeRep notFound)
       ]
   {-# INLINE explExists #-}

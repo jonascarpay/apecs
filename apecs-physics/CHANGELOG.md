@@ -1,3 +1,7 @@
+## [0.4.4]
+### Changed
+- Increased upper bound `apecs` dependency
+
 ## [0.4.3]
 ### Added
 - `addPostStepCallback`

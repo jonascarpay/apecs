@@ -42,7 +42,7 @@ instance (MonadIO m, Typeable c) => ExplGet m (Map c) where
   explGet    (Map ref) ety = liftIO$ flip fmap (M.lookup ety <$> readIORef ref) $ \case
     Just c -> c
     notFound -> error $ unwords
-      [ "Reading non-existant Map component"
+      [ "Reading non-existent Map component"
       , show (typeRep notFound)
       , "for entity"
       , show ety
@@ -77,7 +77,7 @@ instance (MonadIO m, Typeable c) => ExplGet m (Unique c) where
   explGet (Unique ref) _ = liftIO$ flip fmap (readIORef ref) $ \case
     Just (_, c)  -> c
     notFound -> error $ unwords
-      [ "Reading non-existant Unique component"
+      [ "Reading non-existent Unique component"
       , show (typeRep notFound)
       ]
 

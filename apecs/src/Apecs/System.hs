@@ -57,12 +57,13 @@ destroy (Entity ety) ~_ = do
 
 -- | Applies a function, if possible.
 {-# INLINE modify #-}
-modify, ($~) :: forall w m c. (Get w m c, Set w m c) => Entity -> (c -> c) -> SystemT w m ()
+modify, ($~) :: forall w m cx cy. (Get w m cx, Set w m cy) => Entity -> (cx -> cy) -> SystemT w m ()
 modify (Entity ety) f = do
-  s :: Storage c <- getStore
+  sx :: Storage cx <- getStore
+  sy :: Storage cy <- getStore
   lift$ do
-    x <- explGet s ety
-    explSet s ety (f x)
+    x <- explGet sx ety
+    explSet sy ety (f x)
 
 -- | @modify@ operator
 ($~) = modify
@@ -119,8 +120,8 @@ cmapM sys = do
 
 -- | Monadically iterates over all entites with a @cx@
 {-# INLINE cmapM_ #-}
-cmapM_ :: forall w m c a. (Get w m c, Members w m c)
-       => (c -> SystemT w m a) -> SystemT w m ()
+cmapM_ :: forall w m c. (Get w m c, Members w m c)
+       => (c -> SystemT w m ()) -> SystemT w m ()
 cmapM_ sys = do
   s :: Storage c <- getStore
   sl <- lift$ explMembers s
