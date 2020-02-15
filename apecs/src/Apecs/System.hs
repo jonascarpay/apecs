@@ -62,8 +62,10 @@ modify (Entity ety) f = do
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
   lift$ do
-    x <- explGet sx ety
-    explSet sy ety (f x)
+    possible <- explExists sx ety
+    when possible $ do
+      x <- explGet sx ety
+      explSet sy ety (f x)
 
 -- | @modify@ operator
 ($~) = modify
