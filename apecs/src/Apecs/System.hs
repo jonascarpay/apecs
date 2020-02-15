@@ -71,16 +71,6 @@ modify (Entity ety) f = do
 ($~) = modify
 infixr 2 $~
 
--- | Applies a function unconditionally. The entity /must/ have @cx@.
-{-# INLINE unsafeModify #-}
-unsafeModify :: forall w m cx cy. (Get w m cx, Set w m cy) => Entity -> (cx -> cy) -> SystemT w m ()
-unsafeModify (Entity ety) f = do
-  sx :: Storage cx <- getStore
-  sy :: Storage cy <- getStore
-  lift$ do
-    x <- explGet sx ety
-    explSet sy ety (f x)
-
 -- | Maps a function over all entities with a @cx@, and writes their @cy@.
 {-# INLINE cmap #-}
 cmap :: forall w m cx cy. (Get w m cx, Members w m cx, Set w m cy)
