@@ -1,3 +1,7 @@
+## [0.9.1]
+### Changed
+- (#63) Fixed bug where `modify` on non-existent components crashes
+
 ## [0.9.0]
 ### Added
 - (#59) Expose `makeMapComponents`, which creates `Component` instances with `Map` stores
