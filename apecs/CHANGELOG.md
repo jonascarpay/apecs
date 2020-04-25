@@ -1,3 +1,7 @@
+## [0.9.2]
+### Changed
+- (#68) Add instances of MonadThrow, MonadCatch, and MonadMask to SystemT
+
 ## [0.9.1]
 ### Changed
 - (#63) Fixed bug where `modify` on non-existent components crashes
