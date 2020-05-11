@@ -1,6 +1,7 @@
 ## [0.9.2]
 ### Changed
 - (#68) Add instances of MonadThrow, MonadCatch, and MonadMask to SystemT
+- Cleaned up the README
 
 ## [0.9.1]
 ### Changed

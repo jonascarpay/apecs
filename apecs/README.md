@@ -1,37 +1,58 @@
-# apecs [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
-apecs is an _Entity Component System_ (ECS) library inspired by [specs](https://github.com/slide-rs/specs) and [Entitas](https://github.com/sschmid/Entitas-CSharp).
-ECS presents a data-driven approach to game development, that elegantly tackles many of the unique issues of game programming.
+# apecs
+
+apecs is an [_Entity Component System_](https://en.wikipedia.org/wiki/Entity_component_system) (ECS) library for game development.
 
 apecs aims to be
-* **Fast** - Performance is competitive with Rust ECS libraries (see benchmark results below).
-* **Concise** - Game logic is expressed using a small number of powerful combinators.
-* **Safe** - The `cmap`/`cfold`-DSL completely hides the dangers of the low-level API.
-* **Extensible** - At its heart apecs is just a data manipulation DSL that can be implemented with any number of backends. As a monad transformer it easily integrates into larger applications.
+* **Fast** - Performance is competitive with Rust ECS libraries (see benchmark results below)
+* **Safe** - Completely hides the dangers of the low-level machinery
+* **Concise** - Game logic is expressed using a small number of powerful combinators
+* **Flexible** - Easily add new modules or backends
 * **Cool**
 
-![Benchmarks](apecs/bench/chart.png)
+![Benchmarks](https://raw.githubusercontent.com/jonascarpay/apecs/master/apecs/bench/chart.png)
 
-#### Links
+### Links
 - [documentation on hackage](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
-- [tutorial](../examples/Shmup.md) and other [examples](../examples/)
-- [paper (prepublication)](../apecs/prepub.pdf) (see [#19](https://github.com/jonascarpay/apecs/issues/19))
-- [apecs-physics](../apecs-physics/) - 2D physics using the [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) engine
-- [apecs-gloss](../apecs-gloss/) - Simple frontend for [gloss](http://hackage.haskell.org/package/gloss)-based rendering
-- [apecs-stm](../apecs-stm/) - STM-based stores for easy concurrency
+- [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md) and other [examples](../examples/)
 
-##### By other authors
-- [An Introduction to Developing Games in Haskell with Apecs](https://aas.sh/blog/making-a-game-with-haskell-and-apecs/) by Ashley Smith
+##### Games/articles
+- [An Introduction to Developing Games in Haskell with Apecs](https://aas.sh/blog/making-a-game-with-haskell-and-apecs/)
+- [mallRL](https://github.com/nmaehlmann/mallRL) - a _grocery shopping roguelike_
+- [An implementation of the Unity tutorial project using apecs](https://github.com/mewhhaha/apecs-unity-tutorial-haskell)
+- [(Your game here)](https://github.com/jonascarpay/apecs/pulls)
 
-#### Status
-| Package | Hackage | Stack LTS | Stack Nightly |
-|---|---|---|---|
-| [apecs](apecs/) | [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs) | [![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=lts)](https://www.stackage.org/package/apecs) | [![Stackage](https://www.stackage.org/package/apecs/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs)
-| [apecs-physics](apecs-physics/) |  [![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics) | [![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics) | [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics) |
-| [apecs-gloss](apecs-gloss/) | [![Hackage](https://img.shields.io/hackage/v/apecs-gloss.svg)](https://hackage.haskell.org/package/apecs-gloss) | [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-gloss) | [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-gloss) |
-| [apecs-stm](apecs-stm/) | [![Hackage](https://img.shields.io/hackage/v/apecs-stm.svg)](https://hackage.haskell.org/package/apecs-stm) | - | - |
-| [examples](examples/) | - | - | - |
+##### Packages
+- [apecs](https://github.com/jonascarpay/apecs/tree/master/apecs)
 
-#### Example
+  [![Hackage](https://img.shields.io/hackage/v/apecs.svg)](https://hackage.haskell.org/package/apecs)
+  [![Stackage](https://www.stackage.org/package/apecs/badge/lts?label=lts)](https://www.stackage.org/package/apecs)
+  [![Stackage](https://www.stackage.org/package/apecs/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs)
+  [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
+
+- [apecs-physics](https://github.com/jonascarpay/apecs/tree/master/apecs-physics) - 2D physics using the [Chipmunk2D](https://github.com/slembcke/Chipmunk2D) engine
+
+  [![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics)
+  [![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics)
+  [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics) 
+  [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
+
+- [apecs-gloss](https://github.com/jonascarpay/apecs/tree/master/apecs-gloss) - Simple frontend for [gloss](http://hackage.haskell.org/package/gloss)-based rendering
+
+  [![Hackage](https://img.shields.io/hackage/v/apecs-gloss.svg)](https://hackage.haskell.org/package/apecs-gloss) 
+  [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-gloss) 
+  [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-gloss) 
+  [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
+
+- [apecs-stm](https://github.com/jonascarpay/apecs/tree/master/apecs-stm) - STM-based stores for easy concurrency
+
+  [![Hackage](https://img.shields.io/hackage/v/apecs-stm.svg)](https://hackage.haskell.org/package/apecs-stm)
+  [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
+
+- [*examples*](https://github.com/jonascarpay/apecs/tree/master/examples/)
+
+  [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
+
+### Example
 ```haskell
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
