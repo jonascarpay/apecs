@@ -22,6 +22,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
+import qualified Data.IntSet                 as IS
 import           Data.IORef
 import           Data.Proxy
 import           Data.Typeable               (Typeable, typeRep)
@@ -209,6 +210,28 @@ instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
     let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety .&. mask)
     stored <- explMembers child >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
+
+-- | A set of entities, based on 'IS.IntSet'.
+--   Intended to be used with flags/tags/unit types.
+--   Does not contain values, so `explGet` will always yield `mempty`, regardless of what it was set to.
+newtype FlagSet s = FlagSet (IORef IS.IntSet)
+type instance Elem (FlagSet s) = s
+
+instance MonadIO m => ExplInit m (FlagSet s) where
+  explInit = liftIO $ FlagSet <$> newIORef mempty
+
+instance (Monoid s, MonadIO m) => ExplGet m (FlagSet s) where
+  explExists (FlagSet s) ety = liftIO $ IS.member ety <$> readIORef s
+  explGet _ _ = pure mempty
+
+instance MonadIO m => ExplSet m (FlagSet s) where
+  explSet (FlagSet s) ety _ = liftIO $ modifyIORef' s $ IS.insert ety
+
+instance MonadIO m => ExplMembers m (FlagSet s) where
+  explMembers (FlagSet s) = liftIO $ U.fromList . IS.toList <$> readIORef s
+
+instance MonadIO m => ExplDestroy m (FlagSet s) where
+  explDestroy (FlagSet s) ety = liftIO $ modifyIORef' s $ IS.delete ety
 
 -- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy' instances.
 --   This is primarily used to protect the 'EntityCounter' from accidental overwrites.
