@@ -8,19 +8,19 @@ module Apecs.TH
   , makeMapComponents
   ) where
 
-import Control.Monad
-import Language.Haskell.TH
+import           Control.Monad
+import           Language.Haskell.TH
 
-import Apecs.Core
-import Apecs.Stores
-import Apecs.Util   (EntityCounter)
+import           Apecs.Core
+import           Apecs.Stores
+import           Apecs.Util          (EntityCounter)
 
 genName :: String -> Q Name
 genName s = mkName . show <$> newName s
 
--- | Same as 'makeWorld', but has no 'EntityCounter'
+-- | Same as 'makeWorld', but does not include an 'EntityCounter'
+--   You don't typically want to use this, but it's exposed in case you know what you're doing.
 makeWorldNoEC :: String -> [Name] -> Q [Dec]
--- makeWorldNoEC _ [] = do
 makeWorldNoEC worldName cTypes = do
   cTypesNames <- forM cTypes $ \t -> do
     rec <- genName "rec"
@@ -61,7 +61,7 @@ makeMapComponent comp = do
   let ct = return$ ConT comp
   head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
 
--- | Calls 'makeWorld' and 'makeMapComponents', i.e. makes a world and also defines @Component@ instances with a @Map@ store.
+-- | Calls 'makeWorld' and 'makeMapComponents', i.e. makes a world and also defines 'Component' instances with a 'Map' store.
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
@@ -70,19 +70,21 @@ makeWorldAndComponents worldName cTypes = do
 
 {-|
 
-> makeWorld "WorldName" [''Component1, ''Component2, ...]
+The typical way to create a @world@ record, associated 'Has' instances, and initialization function.
+
+> makeWorld "MyWorld" [''Component1, ''Component2, ...]
 
 turns into
 
-> data WorldName = WorldName Component1 Component2 ... EntityCounter
-> instance WorldName `Has` Component1 where ...
-> instance WorldName `Has` Component2 where ...
+> data MyWorld = MyWorld Component1 Component2 ... EntityCounter
+> instance MyWorld `Has` Component1 where ...
+> instance MyWorld `Has` Component2 where ...
 > ...
-> instance WorldName `Has` EntityCounter where ...
+> instance MyWorld `Has` EntityCounter where ...
 >
-> initWorldName :: IO WorldName
-> initWorldName = WorldName <$> initStore <*> initStore <*> ... <*> initStore
+> initMyWorld :: IO MyWorld
+> initMyWorld = MyWorld <$> initStore <*> initStore <*> ... <*> initStore
 
-|-}
+-}
 makeWorld :: String -> [Name] -> Q [Dec]
 makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])

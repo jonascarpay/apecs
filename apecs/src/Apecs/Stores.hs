@@ -18,19 +18,19 @@ module Apecs.Stores
   ) where
 
 import           Control.Monad.Reader
+import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
 import           Data.IORef
 import           Data.Proxy
-import           Data.Bits (shiftL, (.&.))
-import           Data.Typeable (Typeable, typeRep)
+import           Data.Typeable               (Typeable, typeRep)
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           GHC.TypeLits
 
-import Apecs.Core
+import           Apecs.Core
 
--- | A map based on @Data.IntMap.Strict@. O(log(n)) for most operations.
+-- | A map based on 'Data.IntMap.Strict'. O(log(n)) for most operations.
 newtype Map c = Map (IORef (M.IntMap c))
 
 type instance Elem (Map c) = c
@@ -66,7 +66,7 @@ instance MonadIO m => ExplMembers m (Map c) where
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
---   Its main purpose is to be a @Map@ optimized for when only ever one component inhabits it.
+--   Its main purpose is to be a 'Map' optimized for when only ever one component inhabits it.
 newtype Unique c = Unique (IORef (Maybe (Int, c)))
 type instance Elem (Unique c) = c
 instance MonadIO m => ExplInit m (Unique c) where
@@ -99,14 +99,14 @@ instance MonadIO m => ExplMembers m (Unique c) where
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
 
--- | A @Global@ contains exactly one component.
+-- | A 'Global' contains exactly one component.
 --   The initial value is 'mempty' from the component's 'Monoid' instance.
+--   Querying a 'Global' at /any/ Entity yields this one component, effectively sharing the component between /all/ entities.
 --
---   When operating on a Global, any entity arguments are ignored.
---   A Global component can be read with @get 0@ or @get 1@ or even @get undefined@.
---   This means that you can read and write Globals while @cmap@ping over other components.
+--   A Global component can be read with @'get' 0@ or @'get' 1@ or even @'get' undefined@.
+--   The convenience entity 'global' is defined as -1, and can be used to make operations on a global more explicit, i.e. 'Time t <- get global'.
 --
---   The integer @global@ is defined as -1, and can be used to make operations on a global explicit, i.e. 'Time t <- get global'.
+--   You also can read and write Globals during a 'cmap' over other components.
 newtype Global c = Global (IORef c)
 type instance Elem (Global c) = c
 instance (Monoid c, MonadIO m) => ExplInit m (Global c) where
@@ -123,20 +123,26 @@ instance MonadIO m => ExplSet m (Global c) where
   {-# INLINE explSet #-}
   explSet (Global ref) _ c = liftIO$ writeIORef ref c
 
--- | An empty type class indicating that the store behaves like a regular map, and can therefore safely be cached.
+-- | Class of stores that behave like a regular map, and can therefore safely be cached.
+--   This prevents stores like `Unique` and 'Global', which do /not/ behave like simple maps, from being cached.
 class Cachable s
 instance Cachable (Map s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
 -- | A cache around another store.
---   Caches store their members in a fixed-size vector, so operations run in O(1).
---   Caches can provide huge performance boosts, especially for large numbers of components.
+--   Caches store their members in a fixed-size vector, so read/write operations become O(1).
+--   Caches can provide huge performance boosts, especially when working with large numbers of components.
+--
 --   The cache size is given as a type-level argument.
 --
---   Note that iterating over a cache is linear in cache size, so sparsely populated caches might actually decrease performance.
+--   Note that iterating over a cache is linear in cache size, so sparsely populated caches might /decrease/ performance.
 --   In general, the exact size of the cache does not matter as long as it reasonably approximates the number of components present.
 --
---   The cache uses entity (-2) to internally represent missing entities, so be wary when manually manipulating entities.
+--   The cache uses entity (-2) internally to represent missing entities.
+--   If you manually manipulate Entity values, be careful that you do not use (-2)
+--
+--   The actual cache is not necessarily the given argument, but the next biggest power of two.
+--   This is allows most operations to be expressed as bit masks, for a large potential performance boost.
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
@@ -199,8 +205,9 @@ instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
     stored <- explMembers s >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
 
--- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy'. Use 'setReadOnly' and 'destroyReadOnly' to override.
--- This is used to protect the 'EntityCounter'.
+-- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy' instances.
+--   This is primarily used to protect the 'EntityCounter' from accidental overwrites.
+--   Use 'setReadOnly' and 'destroyReadOnly' to override.
 newtype ReadOnly s = ReadOnly s
 type instance Elem (ReadOnly s) = Elem s
 

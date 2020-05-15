@@ -11,8 +11,8 @@
 
 module Apecs.Core where
 
-import           Control.Monad.Reader
 import           Control.Monad.Catch
+import           Control.Monad.Reader
 import qualified Data.Vector.Unboxed  as U
 
 -- | An Entity is just an integer, used to index into a component store.
@@ -38,6 +38,7 @@ class (Elem (Storage c) ~ c) => Component c where
   type Storage c
 
 -- | @Has w m c@ means that world @w@ can produce a @Storage c@.
+--   It is parameterized over @m@ to allow stores to be foreign.
 class (Monad m, Component c) => Has w m c where
   getStore :: SystemT w m (Storage c)
 
