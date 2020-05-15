@@ -16,15 +16,47 @@ This module is experimental, and its API might change between point releases. Us
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Apecs.Experimental.Stores
-  ( Pushdown(..), Stack(..)
+  ( Void, Pushdown(..), Stack(..)
   ) where
 
-import Control.Monad.Reader
-import Data.Proxy
-import Data.Semigroup
+import           Control.Monad.Reader
+import           Data.Coerce
+import           Data.Proxy
+import           Data.Semigroup
 
-import Apecs.Components (MaybeStore (..))
-import Apecs.Core
+import           Apecs.Components     (MaybeStore (..))
+import           Apecs.Core
+import           Apecs.Stores         (Cachable)
+
+-- | Stateless store that never contains any Components.
+--   This is intended to back a Cache where you want to discard evicted values.
+--   An example would be a particle system in which you want a hard limit on the number of concurrent particles.
+data Void a = Void
+type instance Elem (Void a) = a
+
+instance Monad m => ExplInit m (Void c) where
+  {-# INLINE explInit #-}
+  explInit = pure Void
+
+instance Monad m => ExplGet m (Void c) where
+  {-# INLINE explExists #-}
+  explExists _ _ = pure False
+  {-# INLINE explGet #-}
+  explGet _ _ = pure (error "Reading from a Void store")
+
+instance Monad m => ExplSet m (Void c) where
+  {-# INLINE explSet #-}
+  explSet _ _ _ = pure ()
+
+instance Monad m => ExplMembers m (Void c) where
+  {-# INLINE explMembers #-}
+  explMembers _ = pure mempty
+
+instance Monad m => ExplDestroy m (Void c) where
+  {-# INLINE explDestroy #-}
+  explDestroy _ _ = pure ()
+
+instance Cachable (Void c)
 
 -- | Overrides a store to have history/pushdown semantics.
 --   Setting this store adds a new value on top of the stack.

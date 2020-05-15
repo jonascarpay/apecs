@@ -134,22 +134,22 @@ instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 -- | A cache around another store.
 --   Caches store their members in a fixed-size vector, so read/write operations become O(1).
 --   Caches can provide huge performance boosts, especially when working with large numbers of components.
+--   They can be nested, which will result in LRU behavior.
 --
 --   The cache size is given as a type-level argument.
+--   The actual cache is not necessarily the given argument, but the next biggest power of two.
+--   This is allows most operations to be expressed as fast bit mask operations.
 --
 --   Note that iterating over a cache is linear in cache size, so sparsely populated caches might /decrease/ performance.
 --   In general, the exact size of the cache does not matter as long as it reasonably approximates the number of components present.
 --
 --   The cache uses entity (-2) internally to represent missing entities.
 --   If you manually manipulate Entity values, be careful that you do not use (-2)
---
---   The actual cache is not necessarily the given argument, but the next biggest power of two.
---   This is allows most operations to be expressed as bit masks, for a large potential performance boost.
 data Cache (n :: Nat) s =
   Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
 
 cacheMiss :: t
-cacheMiss = error "Cache miss! If you are seeing this during normal operation, please open a bug report at https://github.com/jonascarpay/apecs"
+cacheMiss = error "Cache miss! If you are seeing this during normal operation, please open a bug report!"
 
 type instance Elem (Cache n s) = Elem s
 
@@ -166,45 +166,48 @@ instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (Cache 
 
 instance (MonadIO m, ExplGet m s) => ExplGet m (Cache n s) where
   {-# INLINE explGet #-}
-  explGet (Cache mask tags cache s) ety = do
+  explGet (Cache mask tags cache child) ety = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
     if tag == ety
        then liftIO$ VM.unsafeRead cache index
-       else explGet s ety
+       else explGet child ety
 
   {-# INLINE explExists #-}
-  explExists (Cache mask tags _ s) ety = do
+  explExists (Cache mask tags _ child) ety = do
     tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
-    if tag == ety then return True else explExists s ety
+    if tag == ety
+       then return True
+       else explExists child ety
 
 instance (MonadIO m, ExplSet m s) => ExplSet m (Cache n s) where
   {-# INLINE explSet #-}
-  explSet (Cache mask tags cache s) ety x = do
+  explSet (Cache mask tags cache child) ety x = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
-    when (tag /= (-2) && tag /= ety) $ do
+    let occupied = tag /= (-2) && tag /= ety
+    when occupied $ do
       cached <- liftIO$ VM.unsafeRead cache index
-      explSet s tag cached
+      explSet child tag cached
     liftIO$ UM.unsafeWrite tags  index ety
     liftIO$ VM.unsafeWrite cache index x
 
 instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
   {-# INLINE explDestroy #-}
-  explDestroy (Cache mask tags cache s) ety = do
+  explDestroy (Cache mask tags cache child) ety = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
     when (tag == ety) $ liftIO $ do
       UM.unsafeWrite tags  index (-2)
       VM.unsafeWrite cache index cacheMiss
-    explDestroy s ety
+    explDestroy child ety
 
 instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
   {-# INLINE explMembers #-}
-  explMembers (Cache mask tags _ s) = do
+  explMembers (Cache mask tags _ child) = do
     cached <- liftIO$ U.filter (/= (-2)) <$> U.freeze tags
     let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety .&. mask)
-    stored <- explMembers s >>= liftIO . U.filterM etyFilter
+    stored <- explMembers child >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
 
 -- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy' instances.
