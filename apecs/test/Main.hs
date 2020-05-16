@@ -15,10 +15,10 @@ import           Control.Monad
 import qualified Data.IntSet                 as S
 import           Data.IORef
 import           Data.List                   (sort)
+import           Data.List                   (nub)
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
-import           Data.List (nub)
 
 import           Apecs
 import           Apecs.Core
@@ -143,8 +143,8 @@ prop_lookupValid writes deletes = assertSys initReactiveWld $ do
   et <- fmap snd . filter ((== TestEnum True ) . fst) <$> getAll
   ef <- fmap snd . filter ((== TestEnum False) . fst) <$> getAll
 
-  rt <- withReactive $ enumLookup (TestEnum True)
-  rf <- withReactive $ enumLookup (TestEnum False)
+  rt <- enumLookup (TestEnum True)
+  rf <- enumLookup (TestEnum False)
 
   return (  sort rt == sort et
          && sort rf == sort ef
