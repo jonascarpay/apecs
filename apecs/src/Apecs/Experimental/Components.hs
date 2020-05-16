@@ -47,7 +47,7 @@ instance Has w m c => Has w m (Head c) where
   getStore = HeadStore <$> getStore
 
 instance (ExplGet m s) => ExplGet m (HeadStore s) where
-  explExists (HeadStore s) ety = explExists s ety
+  explExists (HeadStore s) = explExists s
   explGet (HeadStore s) ety = Head <$> explGet s ety
 
 instance (ExplMembers m s) => ExplMembers m (HeadStore s) where

@@ -3,10 +3,6 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE StandaloneDeriving         #-}
-{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
 module Apecs.Core where
@@ -28,10 +24,9 @@ newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show, Enum)
 --   * Allow type-based lookup of a component's store through @getStore@.
 --
 --   * Lift side effects into their host Monad.
-newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO, MonadThrow, MonadCatch, MonadMask)
+newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a}
+  deriving (Functor, Monad, Applicative, MonadTrans, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadReader w)
 type System w a = SystemT w IO a
-
-deriving instance Monad m => MonadReader w (SystemT w m)
 
 -- | A component is defined by specifying how it is stored.
 --   The constraint ensures that stores and components are mapped one-to-one.

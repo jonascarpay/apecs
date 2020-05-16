@@ -33,6 +33,8 @@ instance (ExplMembers a, ExplGet b) => ExplMembers (a, b) where
 makeInstances :: [Int] -> Q [Dec]
 makeInstances is = concat <$> traverse tupleInstances is
 
+{-# ANN module "hlint: ignore Eta reduce" #-}
+
 tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do
   let vars = [ VarT . mkName $ "t_" ++ show i | i <- [0..n-1]]
@@ -76,7 +78,7 @@ tupleInstances n = do
         , PragmaD$ InlineP getStoreN Inline FunLike AllPhases
         ]
 
-      liftAll f mas = foldl (\a x -> AppE (AppE apE a) x) (AppE (VarE (mkName "pure")) f) mas
+      liftAll f = foldl (\a x -> AppE (AppE apE a) x) (AppE (VarE (mkName "pure")) f)
       sequenceAll :: [Exp] -> Exp
       sequenceAll = foldl1 (\a x -> AppE (AppE (VarE$ mkName ">>") a) x)
 

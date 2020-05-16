@@ -178,7 +178,7 @@ instance ExplGet m s => ExplGet m (FilterStore s) where
   {-# INLINE explGet #-}
   explGet _ _ = return Filter
   {-# INLINE explExists #-}
-  explExists (FilterStore s) ety = explExists s ety
+  explExists (FilterStore s) = explExists s
 
 instance ExplMembers m s => ExplMembers m (FilterStore s) where
   {-# INLINE explMembers #-}

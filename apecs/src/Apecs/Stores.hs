@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -155,6 +154,7 @@ cacheMiss = error "Cache miss! If you are seeing this during normal operation, p
 
 type instance Elem (Cache n s) = Elem s
 
+{-# ANN module "hlint: ignore Use <$>" #-}
 instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (Cache n s) where
   {-# INLINE explInit #-}
   explInit = do
