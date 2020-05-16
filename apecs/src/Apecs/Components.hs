@@ -44,7 +44,7 @@ instance ExplDestroy m s => ExplDestroy m (Identity s) where
   {-# INLINE explDestroy #-}
   explDestroy (Identity s) = explDestroy s
 
-T.makeInstances [2..8]
+T.makeInstances [2..20]
 
 -- | Pseudocomponent indicating the absence of @a@.
 --   Mainly used as e.g. @cmap $ \(a, Not b) -> c@ to iterate over entities with an @a@ but no @b@.
