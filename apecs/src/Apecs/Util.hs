@@ -17,6 +17,7 @@ module Apecs.Util (
 ) where
 
 import           Control.Applicative  (liftA2)
+import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Monoid
 import           Data.Semigroup

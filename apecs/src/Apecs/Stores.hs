@@ -17,6 +17,8 @@ module Apecs.Stores
     -- Register, regLookup
   ) where
 
+import           Control.Monad
+import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M

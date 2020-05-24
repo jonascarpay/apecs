@@ -12,6 +12,7 @@
 module Apecs.Core where
 
 import           Control.Monad.Catch
+import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.Vector.Unboxed  as U
 
