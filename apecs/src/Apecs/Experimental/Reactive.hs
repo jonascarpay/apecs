@@ -25,6 +25,8 @@ module Apecs.Experimental.Reactive
   , IxMap, ixLookup
   ) where
 
+import           Control.Monad
+import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.Array.IO        as A
 import qualified Data.IntMap.Strict   as IM

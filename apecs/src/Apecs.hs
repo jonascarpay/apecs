@@ -27,7 +27,8 @@ module Apecs (
     asks, ask, liftIO, lift, Proxy (..)
 ) where
 
-import           Control.Monad.Reader (ask, asks, lift, liftIO)
+import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Reader (ask, asks, lift)
 import           Data.Proxy
 
 import           Apecs.Components

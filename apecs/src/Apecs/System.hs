@@ -6,6 +6,7 @@
 
 module Apecs.System where
 
+import           Control.Monad
 import           Control.Monad.Reader
 import           Data.Proxy
 import qualified Data.Vector.Unboxed  as U
