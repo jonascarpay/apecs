@@ -33,6 +33,7 @@ library
     Apecs.Util,
 
     Apecs.Experimental.Components,
+    Apecs.Experimental.Pool,
     Apecs.Experimental.Reactive,
     Apecs.Experimental.Stores,
     Apecs.Experimental.Util

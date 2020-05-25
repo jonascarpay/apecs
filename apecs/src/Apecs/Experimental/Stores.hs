@@ -16,7 +16,7 @@ This module is experimental, and its API might change between point releases. Us
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Apecs.Experimental.Stores
-  ( Void, Pushdown(..), Stack(..)
+  ( VoidStore, Pushdown(..), Stack(..)
   ) where
 
 import           Control.Monad.Reader
@@ -31,32 +31,32 @@ import           Apecs.Stores         (Cachable)
 -- | Stateless store that never contains any Components.
 --   This is intended to back a Cache where you want to discard evicted values.
 --   An example would be a particle system in which you want a hard limit on the number of concurrent particles.
-data Void a = Void
-type instance Elem (Void a) = a
+data VoidStore a = VoidStore
+type instance Elem (VoidStore a) = a
 
-instance Monad m => ExplInit m (Void c) where
+instance Monad m => ExplInit m (VoidStore c) where
   {-# INLINE explInit #-}
-  explInit = pure Void
+  explInit = pure VoidStore
 
-instance Monad m => ExplGet m (Void c) where
+instance Monad m => ExplGet m (VoidStore c) where
   {-# INLINE explExists #-}
   explExists _ _ = pure False
   {-# INLINE explGet #-}
-  explGet _ _ = pure (error "Reading from a Void store")
+  explGet _ _ = pure (error "Reading from a VoidStore store")
 
-instance Monad m => ExplSet m (Void c) where
+instance Monad m => ExplSet m (VoidStore c) where
   {-# INLINE explSet #-}
   explSet _ _ _ = pure ()
 
-instance Monad m => ExplMembers m (Void c) where
+instance Monad m => ExplMembers m (VoidStore c) where
   {-# INLINE explMembers #-}
   explMembers _ = pure mempty
 
-instance Monad m => ExplDestroy m (Void c) where
+instance Monad m => ExplDestroy m (VoidStore c) where
   {-# INLINE explDestroy #-}
   explDestroy _ _ = pure ()
 
-instance Cachable (Void c)
+instance Cachable (VoidStore c)
 
 -- | Overrides a store to have history/pushdown semantics.
 --   Setting this store adds a new value on top of the stack.
