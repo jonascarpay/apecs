@@ -10,7 +10,8 @@ module Apecs.Core where
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import qualified Data.Vector.Unboxed  as U
+import           Data.Functor.Identity
+import qualified Data.Vector.Unboxed    as U
 
 -- | An Entity is just an integer, used to index into a component store.
 --   In general, use @newEntity@, @cmap@, and component tags instead of manipulating these directly.
@@ -31,7 +32,8 @@ type System w a = SystemT w IO a
 -- | A component is defined by specifying how it is stored.
 --   The constraint ensures that stores and components are mapped one-to-one.
 class (Elem (Storage c) ~ c) => Component c where
-  type Storage c
+  type Storage c :: *
+  type Storage c = Identity c
 
 -- | @Has w m c@ means that world @w@ can produce a @Storage c@.
 --   It is parameterized over @m@ to allow stores to be foreign.

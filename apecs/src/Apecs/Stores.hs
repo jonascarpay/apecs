@@ -12,7 +12,6 @@ module Apecs.Stores
   ( Map, Cache, Unique,
     Global,
     Cachable,
-    Tags,
     ReadOnly, setReadOnly, destroyReadOnly
     -- Register, regLookup
   ) where
@@ -22,7 +21,6 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
-import qualified Data.IntSet                 as IS
 import           Data.IORef
 import           Data.Proxy
 import           Data.Typeable               (Typeable, typeRep)
@@ -211,28 +209,6 @@ instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
     let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety .&. mask)
     stored <- explMembers child >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
-
--- | A set of entities, based on 'IS.IntSet'.
---   Intended to be used with flags/tags/unit types.
---   Does not contain values, so `explGet` will always yield `mempty`, regardless of what it was set to.
-newtype Tags s = Tags (IORef IS.IntSet)
-type instance Elem (Tags s) = s
-
-instance MonadIO m => ExplInit m (Tags s) where
-  explInit = liftIO $ Tags <$> newIORef mempty
-
-instance (Monoid s, MonadIO m) => ExplGet m (Tags s) where
-  explExists (Tags s) ety = liftIO $ IS.member ety <$> readIORef s
-  explGet _ _ = pure mempty
-
-instance MonadIO m => ExplSet m (Tags s) where
-  explSet (Tags s) ety _ = liftIO $ modifyIORef' s $ IS.insert ety
-
-instance MonadIO m => ExplMembers m (Tags s) where
-  explMembers (Tags s) = liftIO $ U.fromList . IS.toList <$> readIORef s
-
-instance MonadIO m => ExplDestroy m (Tags s) where
-  explDestroy (Tags s) ety = liftIO $ modifyIORef' s $ IS.delete ety
 
 -- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy' instances.
 --   This is primarily used to protect the 'EntityCounter' from accidental overwrites.
