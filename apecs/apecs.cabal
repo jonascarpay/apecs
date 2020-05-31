@@ -28,6 +28,7 @@ library
     Apecs.Core,
     Apecs.Components,
     Apecs.Stores,
+    Apecs.Stores.Cache,
     Apecs.System,
     Apecs.TH,
     Apecs.Util,
