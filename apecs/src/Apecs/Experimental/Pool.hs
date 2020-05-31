@@ -1,33 +1,33 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DefaultSignatures     #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Strict #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Apecs.Experimental.Pool
   (
   )
 where
 
-import Apecs.Core
-import Apecs.System
-import Apecs.Experimental.Stores (VoidStore)
-import Control.Monad
-import Data.Functor
-import Control.Monad.IO.Class
-import Data.Bits ((.&.), shiftL)
-import Data.IORef
-import qualified Data.IntSet as IS
-import Data.Proxy (Proxy (..))
-import qualified Data.Vector.Unboxed as U
+import           Apecs.Core
+import           Apecs.Experimental.Stores   (VoidStore)
+import           Apecs.System
+import           Control.Monad
+import           Control.Monad.IO.Class
+import           Data.Bits                   (shiftL, (.&.))
+import           Data.Functor
+import qualified Data.IntSet                 as IS
+import           Data.IORef
+import           Data.Proxy                  (Proxy (..))
+import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-import GHC.Generics
-import GHC.TypeLits (KnownNat, Nat, natVal)
+import           GHC.Generics
+import           GHC.TypeLits                (KnownNat, Nat, natVal)
 
 class Unit a where
   unit :: a
@@ -59,9 +59,9 @@ instance MonadIO m => ExplDestroy m (EtySet s) where
 
 data Pool (n :: Nat) a
   = Pool
-      { _bitmask :: Int,
-        _set :: UM.IOVector Bool,
-        _queue :: UM.IOVector Int,
+      { _bitmask   :: Int,
+        _set       :: UM.IOVector Bool,
+        _queue     :: UM.IOVector Int,
         _queueHead :: IORef Int,
         _queueTail :: IORef Int
       }
@@ -98,7 +98,7 @@ newPoolEntity :: forall w m n c a. (Has w m a, Storage a ~ Pool n a, Set w m c, 
 newPoolEntity p c = do
   mn <- nextPoolEntity p
   case mn of
-    Just n -> set n c $> Just n
+    Just n  -> set n c $> Just n
     Nothing -> pure Nothing
 
 type instance Elem (Pool n a) = a
