@@ -8,6 +8,7 @@
 {-# LANGUAGE Strict                #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Apecs.Stores
   ( Map, Cache, Unique,
@@ -19,12 +20,14 @@ module Apecs.Stores
 
 import           Control.Monad
 import           Control.Monad.IO.Class
+import           Control.Monad.Primitive     (PrimState)
 import           Control.Monad.Reader
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
 import           Data.IORef
 import           Data.Proxy
 import           Data.Typeable               (Typeable, typeRep)
+import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -129,7 +132,7 @@ instance MonadIO m => ExplSet m (Global c) where
 --   This prevents stores like `Unique` and 'Global', which do /not/ behave like simple maps, from being cached.
 class Cachable s
 instance Cachable (Map s)
-instance (KnownNat n, Cachable s) => Cachable (Cache n s)
+instance (KnownNat n, Cachable s) => Cachable (GCache v n s)
 
 -- | A cache around another store.
 --   Caches store their members in a fixed-size vector, so read/write operations become O(1).
@@ -145,66 +148,69 @@ instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 --
 --   The actual cache is not necessarily the given argument, but the next biggest power of two.
 --   This is allows most operations to be expressed as bit masks, for a large potential performance boost.
-data Cache (n :: Nat) s =
-  Cache Int (UM.IOVector Int) (VM.IOVector (Elem s)) s
+data GCache v (n :: Nat) s =
+  GCache Int (UM.IOVector Int) (v (PrimState IO) (Elem s)) s
 
 cacheMiss :: t
 cacheMiss = error "Cache miss! If you are seeing this during normal operation, please open a bug report at https://github.com/jonascarpay/apecs"
 
-type instance Elem (Cache n s) = Elem s
+type instance Elem (GCache v n s) = Elem s
 
-instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (Cache n s) where
+type Cache n s = GCache VM.MVector n s
+
+{-# ANN module "hlint: ignore Use <$>" #-}
+instance (GM.MVector v (Elem s), MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (GCache v n s) where
   {-# INLINE explInit #-}
   explInit = do
     let n = fromIntegral$ natVal (Proxy @n) :: Int
         size = head . dropWhile (<n) $ iterate (`shiftL` 1) 1
         mask = size - 1
     tags <- liftIO$ UM.replicate size (-2)
-    cache <- liftIO$ VM.replicate size cacheMiss
+    cache <- liftIO$ GM.replicate size cacheMiss
     child <- explInit
-    return (Cache mask tags cache child)
+    return (GCache mask tags cache child)
 
-instance (MonadIO m, ExplGet m s) => ExplGet m (Cache n s) where
+instance (GM.MVector v (Elem s), MonadIO m, ExplGet m s) => ExplGet m (GCache v n s) where
   {-# INLINE explGet #-}
-  explGet (Cache mask tags cache s) ety = do
+  explGet (GCache mask tags cache child) ety = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
     if tag == ety
-       then liftIO$ VM.unsafeRead cache index
-       else explGet s ety
+       then liftIO$ GM.unsafeRead cache index
+       else explGet child ety
 
   {-# INLINE explExists #-}
-  explExists (Cache mask tags _ s) ety = do
+  explExists (GCache mask tags _ child) ety = do
     tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
-    if tag == ety then return True else explExists s ety
+    if tag == ety then return True else explExists child ety
 
-instance (MonadIO m, ExplSet m s) => ExplSet m (Cache n s) where
+instance (GM.MVector v (Elem s), MonadIO m, ExplSet m s) => ExplSet m (GCache v n s) where
   {-# INLINE explSet #-}
-  explSet (Cache mask tags cache s) ety x = do
+  explSet (GCache mask tags cache child) ety x = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
     when (tag /= (-2) && tag /= ety) $ do
-      cached <- liftIO$ VM.unsafeRead cache index
-      explSet s tag cached
+      cached <- liftIO$ GM.unsafeRead cache index
+      explSet child tag cached
     liftIO$ UM.unsafeWrite tags  index ety
-    liftIO$ VM.unsafeWrite cache index x
+    liftIO$ GM.unsafeWrite cache index x
 
-instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
+instance (GM.MVector v (Elem s), MonadIO m, ExplDestroy m s) => ExplDestroy m (GCache v n s) where
   {-# INLINE explDestroy #-}
-  explDestroy (Cache mask tags cache s) ety = do
+  explDestroy (GCache mask tags cache child) ety = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags (ety .&. mask)
     when (tag == ety) $ liftIO $ do
       UM.unsafeWrite tags  index (-2)
-      VM.unsafeWrite cache index cacheMiss
-    explDestroy s ety
+      GM.unsafeWrite cache index cacheMiss
+    explDestroy child ety
 
-instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
+instance (GM.MVector v (Elem s), MonadIO m, ExplMembers m s) => ExplMembers m (GCache v n s) where
   {-# INLINE explMembers #-}
-  explMembers (Cache mask tags _ s) = do
+  explMembers (GCache mask tags _ child) = do
     cached <- liftIO$ U.filter (/= (-2)) <$> U.freeze tags
     let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety .&. mask)
-    stored <- explMembers s >>= liftIO . U.filterM etyFilter
+    stored <- explMembers child >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
 
 -- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy' instances.
