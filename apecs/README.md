@@ -85,3 +85,7 @@ game = do
 main :: IO ()
 main = initWorld >>= runSystem game
 ```
+
+### Dependencies
+
+To be successfuly built, the repo relies on you having (at least) the GLU dev package on your machine.  
