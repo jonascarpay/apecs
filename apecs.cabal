@@ -1,0 +1,54 @@
+cabal-version:   2.4
+name:            apecs
+version:         1.0
+license:         BSD-3-Clause
+build-type:      Simple
+license-file:    LICENSE
+author:          Jonas Carpay
+maintainer:      Jonas Carpay <jonascarpay@gmail.com>
+copyright:       2017 Jonas Carpay
+category:        Game, Control, Data
+tested-with:     GHC ==8.8.3
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+
+common common-options
+  build-depends:
+    , base  ^>=4.13.0.0
+    , mtl
+
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields -O3
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Apecs
+    Apecs.Core
+    Apecs.Example
+    Apecs.Focus
+    Apecs.Stores
+    Apecs.System
+
+  build-depends:
+    , containers
+    , vector
+
+benchmark apecs-bench
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Main.hs
+  build-depends:
+    , apecs
+    , criterion
+    , linear
+
+  ghc-options:
+    -threaded -optlo-O3 -funfolding-use-threshold1000
+    -funfolding-keeness-factor1000
