@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    - path: "src/"
+      component: "lib:apecs"
+    - path: "bench/"
+      component: "apecs:apecs-bench"
