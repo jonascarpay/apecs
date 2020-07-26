@@ -18,7 +18,6 @@ import Control.Monad.Reader
 import qualified Data.Array.IO as A
 import qualified Data.IntSet as IS
 import Data.Ix
-import GHC.Generics
 
 data SpatialHash c s = SpatialHash
   { shTable :: A.IOArray c IS.IntSet,
@@ -36,7 +35,6 @@ inverseGetLocal c = do
 inverseGet ::
   forall w m s c.
   ( Ix c,
-    Generic w,
     MonadIO m,
     HasStore w c,
     GetStore w c ~ SpatialHash c s

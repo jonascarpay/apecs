@@ -103,21 +103,21 @@ class GInitialize m w where
 -- These define instances for _Stores_
 -- "Magic" because overlappable and undecidable
 
-instance {-# OVERLAPPABLE #-} (Generic w, HasStore w c, Get (GetStore w c) m c) => Get w m c where
+instance {-# OVERLAPPABLE #-} (HasStore w c, Get (GetStore w c) m c) => Get w m c where
   {-# INLINE exists #-}
   exists p ety = focusStore @c $ exists p ety
   {-# INLINE get #-}
   get ety = focusStore @c $ get ety
 
-instance {-# OVERLAPPABLE #-} (Generic w, HasStore w c, Set (GetStore w c) m c) => Set w m c where
+instance {-# OVERLAPPABLE #-} (HasStore w c, Set (GetStore w c) m c) => Set w m c where
   {-# INLINE set #-}
   set a ety = focusStore @c $ set a ety
 
-instance {-# OVERLAPPABLE #-} (Generic w, HasStore w c, Destroy (GetStore w c) m c) => Destroy w m c where
+instance {-# OVERLAPPABLE #-} (HasStore w c, Destroy (GetStore w c) m c) => Destroy w m c where
   {-# INLINE destroy #-}
   destroy p ety = focusStore @c $ destroy p ety
 
-instance {-# OVERLAPPABLE #-} (Generic w, HasStore w c, Members (GetStore w c) m c) => Members w m c where
+instance {-# OVERLAPPABLE #-} (HasStore w c, Members (GetStore w c) m c) => Members w m c where
   {-# INLINE members #-}
   members p = focusStore @c $ members p
 

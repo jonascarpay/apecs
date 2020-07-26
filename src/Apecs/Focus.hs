@@ -116,14 +116,14 @@ type GetStore w c =
         ':$$: 'ShowType (Stores (Rep w) c)
     )
 
-type HasField w t = GHasField (Rep w) t
+type HasField w t = (Generic w, GHasField (Rep w) t)
 
 type HasStore w c = HasField w (GetStore w c)
 
 {-# INLINE focusField #-}
 focusField ::
   forall t w m a.
-  (Generic w, HasField w t) =>
+  HasField w t =>
   ReaderT t m a ->
   ReaderT w m a
 focusField = withReaderT (\w -> (askField (from w) :: t))
@@ -131,7 +131,7 @@ focusField = withReaderT (\w -> (askField (from w) :: t))
 {-# INLINE focusStore #-}
 focusStore ::
   forall c w m a.
-  (Generic w, HasStore w c) =>
+  HasStore w c =>
   ReaderT (GetStore w c) m a ->
   ReaderT w m a
 focusStore = focusField
