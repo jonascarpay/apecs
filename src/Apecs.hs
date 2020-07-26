@@ -25,9 +25,9 @@ module Apecs
 
     -- * Misc
     Not (..),
-    Initialize,
     Generic,
     Proxy (..),
+    Initialize (..),
   )
 where
 
