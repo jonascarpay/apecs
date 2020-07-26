@@ -129,12 +129,12 @@ data Cache (n :: Nat) s c = Cache
   { _cacheBitMask :: Int,
     _cacheTags :: VSM.IOVector Entity,
     _cacheMembers :: VM.IOVector c,
-    _cachee :: s
+    _cacheChild :: s
   }
 
 {-# INLINE withCached #-}
 withCached :: SystemT s m a -> SystemT (Cache n s c) m a
-withCached = withReaderT _cachee
+withCached = withReaderT _cacheChild
 
 cacheMiss :: t
 cacheMiss = error "Cache miss! If you are seeing this during normal operation, please open a bug report at https://github.com/jonascarpay/apecs"

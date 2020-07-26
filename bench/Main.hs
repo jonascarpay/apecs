@@ -1,17 +1,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Strict #-}
 
 module Main (main) where
 
+import Apecs
 import Control.Monad
 import Control.Monad.Reader
 import Criterion.Main
-import GHC.Generics
-import Lib
 import Linear
-import Stores
-import System
 
 newtype Pos = Pos (V2 Float)
 

@@ -80,7 +80,8 @@ class Initialize m w where
   {-# INLINE initialize #-}
   initialize = to <$> ginitialize
 
--- Generic Core
+-- Generic Core classes
+-- These are used to derive instances for _Components_
 
 class GGet w m c where
   gexists :: Proxy c -> Entity -> SystemT w m Bool
@@ -99,6 +100,7 @@ class GInitialize m w where
   ginitialize :: m (w x)
 
 -- Magic Instances
+-- These define instances for _Stores_
 -- "Magic" because overlappable and undecidable
 
 instance {-# OVERLAPPABLE #-} (Generic w, HasStore w c, Get (GetStore w c) m c) => Get w m c where

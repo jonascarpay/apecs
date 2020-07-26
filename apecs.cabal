@@ -22,7 +22,7 @@ common common-options
   ghc-options:
     -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
     -Wincomplete-record-updates -Wredundant-constraints
-    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields -O3
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
 
 library
   import:          common-options
@@ -32,10 +32,12 @@ library
     Apecs.Core
     Apecs.Example
     Apecs.Focus
+    Apecs.Reactive
     Apecs.Stores
     Apecs.System
 
   build-depends:
+    , array
     , containers
     , vector
 
@@ -49,6 +51,4 @@ benchmark apecs-bench
     , criterion
     , linear
 
-  ghc-options:
-    -threaded -optlo-O3 -funfolding-use-threshold1000
-    -funfolding-keeness-factor1000
+  ghc-options:    -threaded -O2
