@@ -6,6 +6,7 @@ module Apecs.TH
   , makeWorldNoEC
   , makeWorldAndComponents
   , makeMapComponents
+  , makeMapComponentsFor
   ) where
 
 import           Control.Monad
@@ -57,9 +58,17 @@ makeMapComponents :: [Name] -> Q [Dec]
 makeMapComponents = mapM makeMapComponent
 
 makeMapComponent :: Name -> Q Dec
-makeMapComponent comp = do
-  let ct = return$ ConT comp
-  head <$> [d| instance Component $ct where type Storage $ct = Map $ct |]
+makeMapComponent = makeMapComponentFor ''Map
+
+-- | Allows customization of the store to be used. For example, the base 'Map' or an STM Map.
+makeMapComponentFor :: Name -> Name -> Q Dec
+makeMapComponentFor store comp = do
+  let ct = pure $ ConT comp
+      st = pure $ ConT store
+  head <$> [d| instance Component $ct where type Storage $ct = $st $ct |]
+
+makeMapComponentsFor :: Name -> [Name] -> Q [Dec]
+makeMapComponentsFor store = mapM (makeMapComponentFor store)
 
 -- | Calls 'makeWorld' and 'makeMapComponents', i.e. makes a world and also defines 'Component' instances with a 'Map' store.
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]

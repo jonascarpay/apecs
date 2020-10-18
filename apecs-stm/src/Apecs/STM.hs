@@ -18,7 +18,7 @@ module Apecs.STM
   , Global (..)
     -- * EntityCounter
   , EntityCounter (..)
-  , nextEntity, newEntity, makeWorld
+  , nextEntity, newEntity, makeWorld, makeWorldAndComponents
     -- * STM conveniences
   , atomically, retry, check, forkSys, threadDelay, STM
   ) where
@@ -40,7 +40,7 @@ import qualified StmContainers.Map           as M
 import           Apecs                       (ask, get, global, lift, liftIO,
                                               runSystem, set)
 import           Apecs.Core
-import           Apecs.TH                    (makeWorldNoEC)
+import           Apecs.TH                    (makeWorldNoEC, makeMapComponentsFor)
 
 newtype Map c = Map (M.Map Int c)
 type instance Elem (Map c) = c
@@ -184,6 +184,13 @@ newEntity c = do ety <- nextEntity
 -- | Like @makeWorld@ from @Apecs@, but uses the STM @EntityCounter@
 makeWorld :: String -> [Name] -> Q [Dec]
 makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])
+
+-- | Like @makeWorldAndComponents@ from @Apecs@, but uses the STM @EntityCounter@ and the STM @Map@
+makeWorldAndComponents :: String -> [Name] -> Q [Dec]
+makeWorldAndComponents worldName cTypes = do
+  wdecls <- makeWorld worldName cTypes
+  cdecls <- makeMapComponentsFor ''Map cTypes
+  pure $ wdecls ++ cdecls
 
 -- | @atomically@ from STM, lifted to the System level.
 atomically :: SystemT w STM a -> SystemT w IO a
