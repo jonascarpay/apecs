@@ -7,7 +7,7 @@ module Apecs.STM.Prelude
   ) where
 
 import           Apecs     hiding (EntityCounter, Global, Map, System, Unique,
-                            makeWorld, newEntity)
+                            makeWorld, makeWorldAndComponents, newEntity)
 import           Apecs.STM
 
 type System w a = SystemT w STM a
