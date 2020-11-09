@@ -3,7 +3,7 @@ to be making a little shoot ‘em up-style game, mirroring the Entitas
 example. Consider this a vertical slice; we’ll cover most of apecs’
 features, but not in great detail. If you are not familiar with the
 basics of ECS it might be worth reading the introductory sections of the
-paper.
+[paper](https://github.com/jonascarpay/apecs/blob/master/apecs/prepub.pdf).
 
 If you want to run the game, clone this repository and run `stack exec
 shmup`. Since this document is a literate Haskell file (or a rendered
@@ -168,7 +168,7 @@ makeWorld "World" [''Position, ''Velocity, ''Player, ''Target, ''Bullet, ''Score
 
 `makeWorld` defines a `World` data type, and the necessary instances.
 More information on what exactly it generates can be found in the apecs
-paper.
+[paper](https://github.com/jonascarpay/apecs/blob/master/apecs/prepub.pdf).
 
 At this point I also like to define some type synonyms and constants:
 
