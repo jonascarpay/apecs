@@ -1,19 +1,17 @@
-name:                apecs-stm
-version:             0.1.4
-homepage:            https://github.com/jonascarpay/apecs-stm#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Jonas Carpay
-maintainer:          jonascarpay@gmail.com
-category:            Game, Control, Data
-build-type:          Simple
-cabal-version:       >=1.10
-synopsis:            STM stores for apecs
-description:
-  Apecs stores that live in the STM monad, and other tools.
-
+name:               apecs-stm
+version:            0.1.4
+homepage:           https://github.com/jonascarpay/apecs-stm#readme
+license:            BSD3
+license-file:       LICENSE
+author:             Jonas Carpay
+maintainer:         jonascarpay@gmail.com
+category:           Game, Control, Data
+build-type:         Simple
+cabal-version:      >=1.10
+synopsis:           STM stores for apecs
+description:        Apecs stores that live in the STM monad, and other tools.
 extra-source-files:
-  README.md,
+  README.md
   CHANGELOG.md
 
 source-repository head
@@ -21,20 +19,20 @@ source-repository head
   location: git://github.com/jonascarpay/apecs-stm.git
 
 library
-  hs-source-dirs:
-    src
+  hs-source-dirs:   src
   exposed-modules:
-    Apecs.STM, Apecs.STM.Prelude
-  default-language:
-    Haskell2010
+    Apecs.STM
+    Apecs.STM.Prelude
+
+  default-language: Haskell2010
   build-depends:
-    apecs            >= 0.7  && < 0.10,
-    base             >= 4.9  && < 5,
-    containers       >= 0.5  && < 0.8,
-    list-t           >= 1    && < 1.2,
-    stm              >= 2.3  && < 3,
-    stm-containers   >= 1.1  && < 2,
-    template-haskell >= 2.12 && < 3,
-    vector           >= 0.10 && < 0.13
-  ghc-options:
-    -Wall
+      apecs             >=0.7  && <0.10
+    , base              >=4.9  && <5
+    , containers        >=0.5  && <0.8
+    , list-t            >=1    && <1.2
+    , stm               >=2.3  && <3
+    , stm-containers    >=1.1  && <2
+    , template-haskell  >=2.12 && <3
+    , vector            >=0.10 && <0.13
+
+  ghc-options:      -Wall
