@@ -1,3 +1,7 @@
+## [0.1.4]
+### Add
+- (#74) `makeWorldAndComponents`, similar to how it exists in apecs proper
+
 ## [0.1.3]
 ### Changed
 - (#60) Add `Component` type names in non-existent component errors
