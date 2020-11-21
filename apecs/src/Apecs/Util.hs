@@ -13,7 +13,7 @@ module Apecs.Util (
   runGC, global,
 
   -- * EntityCounter
-  EntityCounter(..), nextEntity, newEntity,
+  EntityCounter(..), nextEntity, newEntity, newEntity_,
 ) where
 
 import           Control.Applicative  (liftA2)
@@ -53,6 +53,15 @@ newEntity :: (MonadIO m, Set w m c, Get w m EntityCounter)
 newEntity c = do ety <- nextEntity
                  set ety c
                  return ety
+
+-- | Writes the given components to a new entity without yelding the result.
+-- Used mostly for convenience.
+{-# INLINE newEntity_ #-}
+newEntity_ :: (MonadIO m, Set world m component, Get world m EntityCounter)
+           => component -> SystemT world m ()
+newEntity_ component = do
+  entity <- nextEntity
+  set entity component
 
 -- | Explicitly invoke the garbage collector
 runGC :: System w ()
