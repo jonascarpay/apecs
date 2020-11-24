@@ -1,3 +1,7 @@
+## [0.9.3]
+### Added
+- `newEntity_ = void . newEntity`
+
 ## [0.9.2]
 ### Changed
 - (#68) Add instances of MonadThrow, MonadCatch, and MonadMask to SystemT
