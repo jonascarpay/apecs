@@ -64,27 +64,27 @@ handlerSetTrans(cpCollisionHandler *handler, void *unused)
 // Default collision functions.
 
 static cpBool
-DefaultBegin(cpArbiter *arb, cpSpace *space, void *data){
+DefaultBegin(cpArbiter *arb, cpSpace *space, cpDataPointer data){
 	cpBool retA = cpArbiterCallWildcardBeginA(arb, space);
 	cpBool retB = cpArbiterCallWildcardBeginB(arb, space);
 	return retA && retB;
 }
 
 static cpBool
-DefaultPreSolve(cpArbiter *arb, cpSpace *space, void *data){
+DefaultPreSolve(cpArbiter *arb, cpSpace *space, cpDataPointer data){
 	cpBool retA = cpArbiterCallWildcardPreSolveA(arb, space);
 	cpBool retB = cpArbiterCallWildcardPreSolveB(arb, space);
 	return retA && retB;
 }
 
 static void
-DefaultPostSolve(cpArbiter *arb, cpSpace *space, void *data){
+DefaultPostSolve(cpArbiter *arb, cpSpace *space, cpDataPointer data){
 	cpArbiterCallWildcardPostSolveA(arb, space);
 	cpArbiterCallWildcardPostSolveB(arb, space);
 }
 
 static void
-DefaultSeparate(cpArbiter *arb, cpSpace *space, void *data){
+DefaultSeparate(cpArbiter *arb, cpSpace *space, cpDataPointer data){
 	cpArbiterCallWildcardSeparateA(arb, space);
 	cpArbiterCallWildcardSeparateB(arb, space);
 }
@@ -95,8 +95,8 @@ static cpCollisionHandler cpCollisionHandlerDefault = {
 	DefaultBegin, DefaultPreSolve, DefaultPostSolve, DefaultSeparate, NULL
 };
 
-static cpBool AlwaysCollide(cpArbiter *arb, cpSpace *space, void *data){return cpTrue;}
-static void DoNothing(cpArbiter *arb, cpSpace *space, void *data){}
+static cpBool AlwaysCollide(cpArbiter *arb, cpSpace *space, cpDataPointer data){return cpTrue;}
+static void DoNothing(cpArbiter *arb, cpSpace *space, cpDataPointer data){}
 
 cpCollisionHandler cpCollisionHandlerDoNothing = {
 	CP_WILDCARD_COLLISION_TYPE, CP_WILDCARD_COLLISION_TYPE,
@@ -418,12 +418,13 @@ cpSpaceAddWildcardHandler(cpSpace *space, cpCollisionType type)
 cpShape *
 cpSpaceAddShape(cpSpace *space, cpShape *shape)
 {
-	cpBody *body = shape->body;
-	
 	cpAssertHard(shape->space != space, "You have already added this shape to this space. You must not add it a second time.");
 	cpAssertHard(!shape->space, "You have already added this shape to another space. You cannot add it to a second.");
-//	cpAssertHard(body->space == space, "The shape's body must be added to the space before the shape.");
+	cpAssertHard(shape->body, "The shape's body is not defined.");
+	cpAssertHard(shape->body->space == space, "The shape's body must be added to the space before the shape.");
 	cpAssertSpaceUnlocked(space);
+	
+	cpBody *body = shape->body;
 	
 	cpBool isStatic = (cpBodyGetType(body) == CP_BODY_TYPE_STATIC);
 	if(!isStatic) cpBodyActivate(body);

@@ -1,5 +1,5 @@
 name:               apecs-physics
-version:            0.4.4
+version:            0.4.5
 synopsis:           2D physics for apecs
 description:
   2D physics for apecs. Uses Chipmunk physics library under the hood.
@@ -14,39 +14,10 @@ category:           Web
 build-type:         Custom
 cabal-version:      >=1.10
 extra-source-files:
-  README.md
   CHANGELOG.md
-  Chipmunk2D/include/chipmunk/prime.h
-  Chipmunk2D/include/chipmunk/chipmunk_private.h
-  Chipmunk2D/include/chipmunk/chipmunk_types.h
-  Chipmunk2D/include/chipmunk/cpSlideJoint.h
-  Chipmunk2D/include/chipmunk/cpBB.h
-  Chipmunk2D/include/chipmunk/cpPolyline.h
-  Chipmunk2D/include/chipmunk/cpBody.h
-  Chipmunk2D/include/chipmunk/chipmunk_unsafe.h
-  Chipmunk2D/include/chipmunk/cpSimpleMotor.h
-  Chipmunk2D/include/chipmunk/chipmunk.h
-  Chipmunk2D/include/chipmunk/cpSpatialIndex.h
-  Chipmunk2D/include/chipmunk/cpRobust.h
-  Chipmunk2D/include/chipmunk/chipmunk_structs.h
-  Chipmunk2D/include/chipmunk/cpMarch.h
-  Chipmunk2D/include/chipmunk/cpTransform.h
-  Chipmunk2D/include/chipmunk/cpShape.h
-  Chipmunk2D/include/chipmunk/cpConstraint.h
-  Chipmunk2D/include/chipmunk/cpGrooveJoint.h
-  Chipmunk2D/include/chipmunk/cpHastySpace.h
-  Chipmunk2D/include/chipmunk/cpGearJoint.h
-  Chipmunk2D/include/chipmunk/chipmunk_ffi.h
-  Chipmunk2D/include/chipmunk/cpRatchetJoint.h
-  Chipmunk2D/include/chipmunk/cpRotaryLimitJoint.h
-  Chipmunk2D/include/chipmunk/cpVect.h
-  Chipmunk2D/include/chipmunk/cpArbiter.h
-  Chipmunk2D/include/chipmunk/cpSpace.h
-  Chipmunk2D/include/chipmunk/cpDampedRotarySpring.h
-  Chipmunk2D/include/chipmunk/cpPinJoint.h
-  Chipmunk2D/include/chipmunk/cpDampedSpring.h
-  Chipmunk2D/include/chipmunk/cpPolyShape.h
-  Chipmunk2D/include/chipmunk/cpPivotJoint.h
+  Chipmunk2D/include/chipmunk/*.h
+  Chipmunk2D/src/prime.h
+  README.md
 
 source-repository HEAD
   type:     git
@@ -98,10 +69,10 @@ library
   include-dirs:     Chipmunk2D/include/chipmunk
   c-sources:
     Chipmunk2D/src/chipmunk.c
-    Chipmunk2D/src/cpBody.c
     Chipmunk2D/src/cpArbiter.c
     Chipmunk2D/src/cpArray.c
     Chipmunk2D/src/cpBBTree.c
+    Chipmunk2D/src/cpBody.c
     Chipmunk2D/src/cpCollision.c
     Chipmunk2D/src/cpConstraint.c
     Chipmunk2D/src/cpDampedRotarySpring.c
@@ -113,8 +84,8 @@ library
     Chipmunk2D/src/cpMarch.c
     Chipmunk2D/src/cpPinJoint.c
     Chipmunk2D/src/cpPivotJoint.c
-    Chipmunk2D/src/cpPolyShape.c
     Chipmunk2D/src/cpPolyline.c
+    Chipmunk2D/src/cpPolyShape.c
     Chipmunk2D/src/cpRatchetJoint.c
     Chipmunk2D/src/cpRobust.c
     Chipmunk2D/src/cpRotaryLimitJoint.c
