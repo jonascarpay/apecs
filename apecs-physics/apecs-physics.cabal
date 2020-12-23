@@ -1,5 +1,5 @@
 name:               apecs-physics
-version:            0.4.4
+version:            0.4.5
 synopsis:           2D physics for apecs
 description:
   2D physics for apecs. Uses Chipmunk physics library under the hood.
