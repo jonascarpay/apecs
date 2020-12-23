@@ -7,8 +7,14 @@
 //TODO: Move all the thread stuff to another file
 
 //#include <sys/param.h >
-#ifndef _WIN32
+
+#ifdef __APPLE__
 #include <sys/sysctl.h>
+#endif
+
+#ifndef _WIN32
+#include <pthread.h>
+#elif defined(__MINGW32__)
 #include <pthread.h>
 #else
 #ifndef WIN32_LEAN_AND_MEAN
