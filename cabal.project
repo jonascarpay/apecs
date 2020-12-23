@@ -1,0 +1,9 @@
+packages:
+  apecs
+  apecs-physics
+  apecs-gloss
+  apecs-stm
+  examples
+
+package apecs
+  tests: True
