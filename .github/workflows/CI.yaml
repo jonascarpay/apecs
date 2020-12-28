@@ -43,6 +43,7 @@ jobs:
         with:
           enable-stack: true
       - uses: actions/cache@v2
+        if: matrix.os == 'ubuntu-latest' # Stack caching doesn't work and I don't feel like figuring out why
         with:
           path: |
             ~/.stack
