@@ -6,23 +6,33 @@
 
 module Apecs.System where
 
-import           Control.Monad
-import           Control.Monad.Reader
+import           Control.Monad.State hiding (modify)
 import           Data.Proxy
 import qualified Data.Vector.Unboxed  as U
 
 import Apecs.Components ()
 import Apecs.Core
+import Control.Monad.Identity
 
 -- | Run a system in a game world
 {-# INLINE runSystem #-}
-runSystem :: SystemT w m a -> w -> m a
-runSystem sys = runReaderT (unSystem sys)
+runSystem :: System w a -> w -> (a, w)
+runSystem sys = runIdentity . runStateT (unSystem sys)
 
 -- | Run a system in a game world
 {-# INLINE runWith #-}
-runWith :: w -> SystemT w m a -> m a
+runWith :: w -> System w a -> (a, w)
 runWith = flip runSystem
+
+-- | Run a system in a game world
+{-# INLINE runSystemM #-}
+runSystemM :: Monad m => SystemT w m a -> w -> m (a, w)
+runSystemM sys = runStateT (unSystem sys)
+
+-- | Run a system in a game world
+{-# INLINE runWithM #-}
+runWithM :: Monad m => w -> SystemT w m a -> m (a, w)
+runWithM = flip runSystemM
 
 -- | Read a Component
 {-# INLINE get #-}
@@ -36,7 +46,8 @@ get (Entity ety) = do
 set, ($=) :: forall w m c. Set w m c => Entity -> c -> SystemT w m ()
 set (Entity ety) x = do
   s :: Storage c <- getStore
-  lift$ explSet s ety x
+  s' <- lift$ explSet s ety x
+  setStore s'
 
 -- | @set@ operator
 ($=) = set
@@ -54,7 +65,8 @@ exists (Entity ety) _ = do
 destroy :: forall w m c. Destroy w m c => Entity -> Proxy c -> SystemT w m ()
 destroy (Entity ety) ~_ = do
   s :: Storage c <- getStore
-  lift$ explDestroy s ety
+  s' <- lift$ explDestroy s ety
+  setStore s'
 
 -- | Applies a function, if possible.
 {-# INLINE modify #-}
@@ -62,11 +74,14 @@ modify, ($~) :: forall w m cx cy. (Get w m cx, Set w m cy) => Entity -> (cx -> c
 modify (Entity ety) f = do
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
-  lift$ do
+  sy' <- lift$ do
     possible <- explExists sx ety
-    when possible $ do
-      x <- explGet sx ety
-      explSet sy ety (f x)
+    if possible
+      then do
+        x <- explGet sx ety
+        explSet sy ety (f x)
+      else return sy
+  setStore sy'
 
 -- | @modify@ operator
 ($~) = modify
@@ -100,13 +115,20 @@ cmapIf cond f = do
   sp :: Storage cp <- getStore
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
-  lift$ do
+  sy' <- lift$ do
     sl <- explMembers (sx,sp)
-    U.forM_ sl $ \ e -> do
-      p <- explGet sp e
-      when (cond p) $ do
-        x <- explGet sx e
-        explSet sy e (f x)
+    U.foldM'
+      (\sy' e -> do
+        p <- explGet sp e
+        if (cond p)
+          then do
+            x <- explGet sx e
+            explSet sy' e (f x)
+          else return sy'
+      )
+      sy
+      sl
+  setStore sy'
 
 -- | Monadically iterates over all entites with a @cx@, and writes their @cy@.
 {-# INLINE cmapM #-}
