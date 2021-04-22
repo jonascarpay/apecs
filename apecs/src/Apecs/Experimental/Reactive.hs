@@ -27,7 +27,7 @@ module Apecs.Experimental.Reactive
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
+import           Control.Monad.State
 import qualified Data.Array.IO        as A
 import qualified Data.IntMap.Strict   as IM
 import qualified Data.IntSet          as S
@@ -69,7 +69,7 @@ instance (Reacts m r, ExplSet m s, ExplGet m s, Elem s ~ Elem r)
   explSet (Reactive r s) ety c = do
     old <- explGet (MaybeStore s) ety
     react (Entity ety) old (Just c) r
-    explSet s ety c
+    Reactive r <$> explSet s ety c
 
 instance (Reacts m r, ExplDestroy m s, ExplGet m s, Elem s ~ Elem r)
   => ExplDestroy m (Reactive r s) where
@@ -77,7 +77,7 @@ instance (Reacts m r, ExplDestroy m s, ExplGet m s, Elem s ~ Elem r)
   explDestroy (Reactive r s) ety = do
     old <- explGet (MaybeStore s) ety
     react (Entity ety) old Nothing r
-    explDestroy s ety
+    Reactive r <$> explDestroy s ety
 
 instance ExplGet m s => ExplGet m (Reactive r s) where
   {-# INLINE explExists #-}

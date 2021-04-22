@@ -19,7 +19,7 @@ module Apecs.Experimental.Stores
   ( Pushdown(..), Stack(..)
   ) where
 
-import Control.Monad.Reader
+import Control.Monad.State
 import Data.Proxy
 import Data.Semigroup
 
@@ -62,7 +62,7 @@ instance
       ms <- explGet (MaybeStore s) ety
       let tail (StackList _ cs) = cs
           tail _                = []
-      explSet s ety (Stack (c:tail ms))
+      Pushdown <$> explSet s ety (Stack (c:tail ms))
 
 instance
   ( Monad m
@@ -73,7 +73,7 @@ instance
   ) => ExplDestroy m (Pushdown s c) where
     explDestroy (Pushdown s) ety = do
       mscs <- explGet (MaybeStore s) ety
-      case mscs of
+      Pushdown <$> case mscs of
         StackList _ cs' -> explSet s ety (Stack cs')
         _               -> explDestroy s ety
 
@@ -92,6 +92,7 @@ type instance Elem (StackStore s) = Stack (Elem s)
 
 instance (Storage c ~ Pushdown s c, Has w m c) => Has w m (Stack c) where
   getStore = StackStore <$> getStore
+  setStore (StackStore s) = setStore s
 
 instance
   ( Elem (s (Stack c)) ~ Stack c
@@ -105,14 +106,17 @@ instance
   , ExplSet     m (s (Stack c))
   , ExplDestroy m (s (Stack c))
   ) => ExplSet m (StackStore (Pushdown s c)) where
-  explSet (StackStore (Pushdown s)) ety (Stack []) = explDestroy s ety
-  explSet (StackStore (Pushdown s)) ety st         = explSet s ety st
+  explSet (StackStore (Pushdown s)) ety (Stack [])
+    = StackStore . Pushdown <$> explDestroy s ety
+  explSet (StackStore (Pushdown s)) ety st
+    = StackStore . Pushdown <$> explSet s ety st
 
 instance
   ( Elem (s (Stack c)) ~ Stack c
   , ExplDestroy m (s (Stack c))
   ) => ExplDestroy m (StackStore (Pushdown s c)) where
-  explDestroy (StackStore (Pushdown s)) = explDestroy s
+  explDestroy (StackStore (Pushdown s)) ety
+    =  StackStore . Pushdown <$> explDestroy s ety
 
 instance
   ( Elem (s (Stack c)) ~ Stack c

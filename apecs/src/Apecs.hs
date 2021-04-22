@@ -20,15 +20,16 @@ module Apecs (
 
   -- * Other
     runSystem, runWith,
+    runSystemM, runWithM,
     runGC, EntityCounter, newEntity, newEntity_, global,
     makeWorld, makeWorldAndComponents,
 
   -- * Re-exports
-    asks, ask, liftIO, lift, Proxy (..)
+    asks, ask, liftIO, S.lift, Proxy (..)
 ) where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Reader (ask, asks, lift)
+import qualified Control.Monad.State as S
 import           Data.Proxy
 
 import           Apecs.Components
@@ -37,3 +38,9 @@ import           Apecs.Stores
 import           Apecs.System
 import           Apecs.TH
 import           Apecs.Util
+
+ask :: S.MonadState a f => f a
+ask = S.get
+
+asks :: S.MonadState a f => (a -> b) -> f b
+asks f = f <$> S.get

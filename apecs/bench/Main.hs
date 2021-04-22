@@ -25,19 +25,19 @@ instance Component ECSVel where type Storage ECSVel = Cache 1000 (Map ECSVel)
 
 makeWorld "PosVel" [''ECSPos, ''ECSVel]
 
-posVelInit :: System PosVel ()
+posVelInit :: SystemT PosVel IO ()
 posVelInit = do
   replicateM_ 1000 $ newEntity (ECSPos 0, ECSVel 1)
   replicateM_ 9000 $ newEntity (ECSPos 0)
 
-posVelStep :: System PosVel ()
+posVelStep :: SystemT PosVel IO ()
 posVelStep = cmap $ \(ECSVel v, ECSPos p) -> ECSPos (p+v)
 
 main :: IO ()
 main = C.defaultMainWith (C.defaultConfig {timeLimit = 10})
   [ bgroup "pos_vel"
-    [ bench "init" $ whnfIO (initPosVel >>= runSystem posVelInit)
-    , bench "step" $ whnfIO (initPosVel >>= runSystem (posVelInit >> posVelStep))
+    [ bench "init" $ whnfIO (initPosVelM >>= (fmap fst . runSystemM posVelInit))
+    , bench "step" $ whnfIO (initPosVelM >>= (fmap fst . runSystemM (posVelInit >> posVelStep)))
     ]
   ]
 
