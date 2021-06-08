@@ -35,7 +35,8 @@ main =
   defaultMain
     [ bgroup
         "pos_vel"
-        [ bench "step" $ whnfIO (initialize >>= runReaderT (benchInit >> benchStep)),
-          bench "init" $ whnfIO (initialize >>= runReaderT benchInit)
+        [ bench "init" $ whnfIO (initialize >>= runReaderT benchInit),
+          bench "step" $ whnfIO (initialize >>= runReaderT (benchInit >> benchStep)),
+          bench "step 100" $ whnfIO (initialize >>= runReaderT (benchInit >> replicateM_ 100 benchStep))
         ]
     ]
