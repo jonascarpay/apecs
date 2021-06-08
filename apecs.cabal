@@ -51,4 +51,6 @@ benchmark apecs-bench
     , criterion
     , linear
 
-  ghc-options:    -threaded -O2
+  ghc-options:
+    -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
+    -funfolding-keeness-factor1000
