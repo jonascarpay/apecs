@@ -15,7 +15,7 @@ module Apecs
 
     -- * Stores
     EntityCounter (..),
-    Map (..),
+    IntMap,
     Global (..),
     Unique (..),
     Cacheable,

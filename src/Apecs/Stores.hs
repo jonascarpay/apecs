@@ -3,6 +3,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -11,14 +12,18 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
--- | A collection of default stores in the IO monad.
 module Apecs.Stores
   ( EntityCounter (..),
     newEntity,
+
+    -- * Simple Stores
     IM.IntMap,
-    Map (..),
     Global (..),
     Unique (..),
+
+    -- * Modifiers
+    IOStore (..),
+    newEntityIO,
     Cacheable,
     Cache (..),
     ReadOnly (..),
@@ -29,9 +34,10 @@ where
 import Apecs.Core
 import Apecs.Focus
 import Control.Monad
-import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.IO.Class
 import qualified Control.Monad.State as S
 import Data.Bits
+import Data.Functor.Identity
 import Data.IORef
 import qualified Data.IntMap.Strict as IM
 import Data.Proxy
@@ -45,104 +51,173 @@ import GHC.TypeNats
 type instance Components (IM.IntMap c) = '[c]
 
 instance Monad m => Get (IM.IntMap c) m c where
+  {-# INLINE get #-}
   get (Entity ety) = S.gets (IM.! ety)
+  {-# INLINE exists #-}
   exists _ (Entity ety) = S.gets (IM.member ety)
 
 instance Monad m => Set (IM.IntMap c) m c where
+  {-# INLINE set #-}
   set c (Entity ety) = S.modify (IM.insert ety c)
 
 instance Monad m => Destroy (IM.IntMap c) m c where
+  {-# INLINE destroy #-}
   destroy _ (Entity ety) = S.modify (IM.delete ety)
 
 instance Monad m => Members (IM.IntMap c) m c where
+  {-# INLINE members #-}
   members _ = S.gets $ VS.fromList . fmap Entity . IM.keys
 
 instance Applicative m => Initialize m (IM.IntMap c) where
   initialize = pure mempty
 
--- Map
-newtype Map c = Map {getMap :: IORef (IM.IntMap c)}
-
-type instance Components (Map c) = '[c]
-
-instance MonadIO m => Get (Map c) m c where
-  get (Entity ety) = do
-    Map ref <- S.get
-    liftIO $ (IM.! ety) <$> readIORef ref
-  exists _ (Entity ety) = do
-    Map ref <- S.get
-    liftIO $ IM.member ety <$> readIORef ref
-
-instance MonadIO m => Set (Map c) m c where
-  set c (Entity ety) = do
-    Map ref <- S.get
-    liftIO $ modifyIORef' ref (IM.insert ety c)
-
-instance MonadIO m => Destroy (Map c) m c where
-  destroy _ (Entity ety) = do
-    Map ref <- S.get
-    liftIO $ modifyIORef' ref (IM.delete ety)
-
-instance MonadIO m => Members (Map c) m c where
-  members _ = do
-    Map ref <- S.get
-    etys <- liftIO $ fmap Entity . IM.keys <$> readIORef ref
-    pure $ VS.fromList etys
-
-instance MonadIO m => Initialize m (Map c) where
-  initialize = liftIO $ Map <$> newIORef mempty
-
 -- Global
-newtype Global c = Global {getGlobal :: IORef c}
+newtype Global c = Global {unGlobal :: c}
 
 type instance Components (Global c) = '[c]
 
-instance MonadIO m => Get (Global c) m c where
+instance Monad m => Get (Global c) m c where
+  {-# INLINE exists #-}
   exists _ _ = pure True
-  get _ = do
-    Global ref <- S.get
-    liftIO $ readIORef ref
+  {-# INLINE get #-}
+  get _ = S.gets unGlobal
 
-instance MonadIO m => Set (Global c) m c where
-  set s _ = do
-    Global ref <- S.get
-    liftIO $ writeIORef ref s
+instance Monad m => Set (Global c) m c where
+  {-# INLINE set #-}
+  set s _ = S.put $ Global s
 
-instance (Monoid c, MonadIO m) => Initialize m (Global c) where
-  initialize = Global <$> liftIO (newIORef mempty)
+instance (Monoid c, Applicative m) => Initialize m (Global c) where
+  initialize = pure $ Global mempty
 
 -- Unique
-newtype Unique c = Unique {getUnique :: IORef (Maybe (Entity, c))}
+newtype Unique c = Unique {getUnique :: Maybe (Entity, c)}
 
 type instance Components (Unique c) = '[c]
 
-instance MonadIO m => Get (Unique c) m c where
+instance Monad m => Get (Unique c) m c where
+  {-# INLINE exists #-}
+  exists _ ety = S.gets $ \case
+    Unique (Just (n, _)) | n == ety -> True
+    _ -> False
+
+  {-# INLINE get #-}
+  get _ = S.gets $ \case
+    Unique (Just (_, c)) -> c
+    _ -> error "get: getting from empty Unique"
+
+instance Monad m => Set (Unique c) m c where
+  {-# INLINE set #-}
+  set s ety = S.put $ Unique $ Just (ety, s)
+
+instance Monad m => Initialize m (Unique c) where
+  initialize = pure $ Unique Nothing
+
+-- ReadOnly
+newtype ReadOnly s = ReadOnly {getReadOnly :: s}
+  deriving (Generic)
+
+{-# INLINE forceReadonly #-}
+forceReadonly :: Functor m => SystemT s m c -> SystemT (ReadOnly s) m c
+forceReadonly = zoom l
+  where
+    l f (ReadOnly s) = ReadOnly <$> f s
+
+type instance Components (ReadOnly s) = Components s
+
+instance (Functor m, Get s m c) => Get (ReadOnly s) m c where
+  {-# INLINE get #-}
+  get = forceReadonly . get
+  {-# INLINE exists #-}
+  exists p = forceReadonly . exists p
+
+instance (Functor m, Members s m c) => Members (ReadOnly s) m c where
+  {-# INLINE members #-}
+  members = forceReadonly . members
+
+instance (Initialize m s, Functor m) => Initialize m (ReadOnly s)
+
+-- EntityCounter
+newtype EntityCounter = EntityCounter Entity
+
+type instance Components EntityCounter = '[]
+
+instance Monad m => Initialize m EntityCounter where
+  initialize = pure $ EntityCounter (Entity 0)
+
+{-# INLINE newEntity #-}
+newEntity ::
+  ( Generic w,
+    Monad m,
+    HasField w EntityCounter,
+    Set w m c
+  ) =>
+  c ->
+  SystemT w m Entity
+newEntity c = do
+  EntityCounter (Entity ety) <- focusField S.get
+  set c (Entity ety)
+  focusField $ S.put $ EntityCounter $ Entity (ety + 1)
+  pure $ Entity ety
+
+{-# INLINE newEntityIO #-}
+newEntityIO ::
+  ( Generic w,
+    MonadIO m,
+    HasField w (IOStore EntityCounter),
+    Set w m c
+  ) =>
+  c ->
+  SystemT w m Entity
+newEntityIO c = do
+  IOStore ref <- focusField S.get
+  ety <- liftIO $ do
+    EntityCounter (Entity ety) <- readIORef ref
+    writeIORef ref $ EntityCounter (Entity (ety + 1))
+    pure (Entity ety)
+  set c ety
+  pure ety
+
+newtype IOStore s = IOStore (IORef s)
+
+type instance Components (IOStore s) = Components s
+
+instance (Get s Identity c, MonadIO m) => Get (IOStore s) m c where
+  {-# INLINE exists #-}
   exists _ ety = do
-    Unique ref <- S.get
-    r <- liftIO $ readIORef ref
-    pure $ case r of
-      Just (n, _) | n == ety -> True
-      _ -> False
+    IOStore ref <- S.get
+    S.evalState (exists (Proxy @c) ety) <$> liftIO (readIORef ref)
+  {-# INLINE get #-}
+  get ety = do
+    IOStore ref <- S.get
+    S.evalState (get ety) <$> liftIO (readIORef ref)
 
-  get _ = do
-    Unique ref <- S.get
-    r <- liftIO $ readIORef ref
-    pure $ case r of
-      Just (_, c) -> c
-      _ -> error "Invalid `get` from Unique"
+instance (Set s Identity c, MonadIO m) => Set (IOStore s) m c where
+  {-# INLINE set #-}
+  set c ety = do
+    IOStore ref <- S.get
+    liftIO $
+      readIORef ref >>= writeIORef ref . S.execState (set c ety)
 
-instance MonadIO m => Set (Unique c) m c where
-  set s ety = do
-    Unique ref <- S.get
-    liftIO $ writeIORef ref (Just (ety, s))
+instance (MonadIO m, Destroy s Identity c) => Destroy (IOStore s) m c where
+  {-# INLINE destroy #-}
+  destroy _ ety = do
+    IOStore ref <- S.get
+    liftIO $
+      readIORef ref >>= writeIORef ref . S.execState (destroy (Proxy @c) ety)
 
-instance MonadIO m => Initialize m (Unique c) where
-  initialize = Unique <$> liftIO (newIORef Nothing)
+instance (MonadIO m, Members s Identity c) => Members (IOStore s) m c where
+  {-# INLINE members #-}
+  members _ = do
+    IOStore ref <- S.get
+    S.evalState (members (Proxy @c)) <$> liftIO (readIORef ref)
+
+instance (MonadIO m, Initialize Identity s) => Initialize m (IOStore s) where
+  initialize = liftIO $ IOStore <$> newIORef (runIdentity initialize)
 
 -- Cache
 class Cacheable s c
 
-instance Cacheable (Map c) c
+instance Cacheable s c => Cacheable (IOStore s) c
 
 instance Cacheable (IM.IntMap c) c
 
@@ -245,48 +320,3 @@ instance {-# OVERLAPPABLE #-} (Functor m, Destroy s m c) => Destroy (Cache n s c
 instance {-# OVERLAPPABLE #-} (Functor m, Members s m c) => Members (Cache n s c') m c where
   {-# INLINE members #-}
   members p = withCached $ members p
-
--- ReadOnly
-newtype ReadOnly s = ReadOnly {getReadOnly :: s}
-  deriving (Generic)
-
-{-# INLINE forceReadonly #-}
-forceReadonly :: Functor m => SystemT s m c -> SystemT (ReadOnly s) m c
-forceReadonly = zoom l
-  where
-    l f (ReadOnly s) = ReadOnly <$> f s
-
-type instance Components (ReadOnly s) = Components s
-
-instance (Functor m, Get s m c) => Get (ReadOnly s) m c where
-  get = forceReadonly . get
-  exists p = forceReadonly . exists p
-
-instance (Functor m, Members s m c) => Members (ReadOnly s) m c where
-  members = forceReadonly . members
-
-instance (Initialize m s, Functor m) => Initialize m (ReadOnly s)
-
--- EntityCounter
-newtype EntityCounter = EntityCounter (IORef Entity)
-
-type instance Components EntityCounter = '[]
-
-instance MonadIO m => Initialize m EntityCounter where
-  initialize = liftIO $ EntityCounter <$> newIORef (Entity 0)
-
-{-# INLINE newEntity #-}
-newEntity ::
-  ( Generic w,
-    HasField w EntityCounter,
-    MonadIO m,
-    Set w m c
-  ) =>
-  c ->
-  SystemT w m Entity
-newEntity c = do
-  EntityCounter ref <- focusField S.get
-  ety <- liftIO $ readIORef ref
-  set c ety
-  liftIO $ writeIORef ref (Entity . (+ 1) . unEntity $ ety)
-  pure ety

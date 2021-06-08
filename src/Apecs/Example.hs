@@ -7,7 +7,7 @@
 module Apecs.Example (main) where
 
 import Apecs.Core (Get, Initialize (..))
-import Apecs.Stores (EntityCounter, Map, newEntity)
+import Apecs.Stores (EntityCounter, IntMap, newEntity)
 import Apecs.System (cmap, cmapM_)
 import Control.Monad.Reader (MonadIO (liftIO))
 import Control.Monad.State (evalStateT)
@@ -19,8 +19,8 @@ newtype Velocity = Velocity Float deriving (Eq, Show)
 
 data World
   = World
-      (Map Position)
-      (Map Velocity)
+      (IntMap Position)
+      (IntMap Velocity)
       EntityCounter
   deriving (Generic, Initialize IO)
 

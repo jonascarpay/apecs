@@ -6,7 +6,7 @@
 module Main (main) where
 
 import Apecs
-import Apecs.Stores (IntMap)
+import Apecs.Stores (IOStore, newEntityIO)
 import Control.Monad
 import Control.Monad.State
 import Criterion.Main
@@ -20,7 +20,7 @@ data World
   = World
       (Cache 10000 (IntMap Pos) Pos)
       (Cache 1000 (IntMap Vel) Vel)
-      EntityCounter
+      (EntityCounter)
   deriving (Generic, Initialize IO)
 
 benchInit :: System World ()
