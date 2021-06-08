@@ -8,12 +8,14 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 -- | A collection of default stores in the IO monad.
 module Apecs.Stores
   ( EntityCounter (..),
     newEntity,
+    IM.IntMap,
     Map (..),
     Global (..),
     Unique (..),
@@ -38,6 +40,25 @@ import qualified Data.Vector.Storable as VS
 import qualified Data.Vector.Storable.Mutable as VSM
 import GHC.Generics
 import GHC.TypeNats
+
+-- Map
+type instance Components (IM.IntMap c) = '[c]
+
+instance Monad m => Get (IM.IntMap c) m c where
+  get (Entity ety) = S.gets (IM.! ety)
+  exists _ (Entity ety) = S.gets (IM.member ety)
+
+instance Monad m => Set (IM.IntMap c) m c where
+  set c (Entity ety) = S.modify (IM.insert ety c)
+
+instance Monad m => Destroy (IM.IntMap c) m c where
+  destroy _ (Entity ety) = S.modify (IM.delete ety)
+
+instance Monad m => Members (IM.IntMap c) m c where
+  members _ = S.gets $ VS.fromList . fmap Entity . IM.keys
+
+instance Applicative m => Initialize m (IM.IntMap c) where
+  initialize = pure mempty
 
 -- Map
 newtype Map c = Map {getMap :: IORef (IM.IntMap c)}
@@ -122,6 +143,8 @@ instance MonadIO m => Initialize m (Unique c) where
 class Cacheable s c
 
 instance Cacheable (Map c) c
+
+instance Cacheable (IM.IntMap c) c
 
 instance Cacheable s c => Cacheable (Cache n s c) c
 

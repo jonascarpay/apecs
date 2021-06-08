@@ -6,6 +6,7 @@
 module Main (main) where
 
 import Apecs
+import Apecs.Stores (IntMap)
 import Control.Monad
 import Control.Monad.State
 import Criterion.Main
@@ -17,8 +18,8 @@ newtype Vel = Vel (V2 Float)
 
 data World
   = World
-      (Cache 10000 (Map Pos) Pos)
-      (Cache 1000 (Map Vel) Vel)
+      (Cache 10000 (IntMap Pos) Pos)
+      (Cache 1000 (IntMap Vel) Vel)
       EntityCounter
   deriving (Generic, Initialize IO)
 
