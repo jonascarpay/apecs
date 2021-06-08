@@ -10,12 +10,12 @@ copyright:       2017 Jonas Carpay
 category:        Game, Control, Data
 tested-with:     GHC ==8.8.3
 extra-doc-files:
-  README.md
   CHANGELOG.md
+  README.md
 
 common common-options
   build-depends:
-    , base  ^>=4.13.0.0
+    , base  >=4.9.0.0
     , mtl
 
   default-language: Haskell2010

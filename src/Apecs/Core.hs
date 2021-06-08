@@ -30,8 +30,8 @@ import Control.Applicative
 import Control.Monad.Reader
 import Data.IntSet as IS
 import Data.Proxy
-import qualified Data.Vector.Storable as V
 import Data.Vector.Storable (Vector)
+import qualified Data.Vector.Storable as V
 import GHC.Generics
 
 -- Core
