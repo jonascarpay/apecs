@@ -15,21 +15,25 @@ where
 import Apecs.Core
 import Apecs.Focus
 import Control.Monad.Reader
+import qualified Control.Monad.State as S
 import qualified Data.Array.IO as A
 import qualified Data.IntSet as IS
 import Data.Ix
 
 data SpatialHash c s = SpatialHash
-  { shTable :: A.IOArray c IS.IntSet,
-    shChild :: s
+  { _shTable :: A.IOArray c IS.IntSet,
+    _shChild :: s
   }
+
+shChild :: Lens' (SpatialHash c s) s
+shChild f (SpatialHash t c) = SpatialHash t <$> f c
 
 type instance Components (SpatialHash c s) = Components s
 
 {-# INLINE inverseGetLocal #-}
 inverseGetLocal :: (Ix c, MonadIO m) => c -> SystemT (SpatialHash c s) m [Entity]
 inverseGetLocal c = do
-  t <- asks shTable
+  t <- S.gets _shTable
   liftIO $ fmap Entity . IS.toList <$> A.readArray t c
 
 inverseGet ::
@@ -46,13 +50,13 @@ inverseGet c = focusStore @c $ inverseGetLocal c
 {-# INLINE register #-}
 register :: (Ix c, MonadIO m) => c -> Entity -> SystemT (SpatialHash c s) m ()
 register c (Entity ety) = do
-  table <- asks shTable
+  table <- S.gets _shTable
   liftIO $ A.readArray table c >>= A.writeArray table c . IS.insert ety
 
 {-# INLINE deregister #-}
 deregister :: (Ix c, MonadIO m) => c -> Entity -> SystemT (SpatialHash c s) m ()
 deregister c (Entity ety) = do
-  table <- asks shTable
+  table <- S.gets _shTable
   liftIO $ A.readArray table c >>= A.writeArray table c . IS.delete ety
 
 instance (Ix c, Bounded c, MonadIO m, Initialize m s) => Initialize m (SpatialHash c s) where
@@ -60,12 +64,12 @@ instance (Ix c, Bounded c, MonadIO m, Initialize m s) => Initialize m (SpatialHa
     t <- liftIO $ A.newArray (minBound, maxBound) mempty
     SpatialHash t <$> initialize
 
-instance Get s m c => Get (SpatialHash c' s) m c where
-  get = withReaderT shChild . get
-  exists p = withReaderT shChild . exists p
+instance (Functor m, Get s m c) => Get (SpatialHash c' s) m c where
+  get = zoom shChild . get
+  exists p = zoom shChild . exists p
 
-instance Members s m c => Members (SpatialHash c' s) m c where
-  members = withReaderT shChild . members
+instance (Functor m, Members s m c) => Members (SpatialHash c' s) m c where
+  members = zoom shChild . members
 
 instance (Get s m c, Set s m c, Ix c, MonadIO m) => Set (SpatialHash c s) m c where
   -- TODO:
@@ -76,19 +80,19 @@ instance (Get s m c, Set s m c, Ix c, MonadIO m) => Set (SpatialHash c s) m c wh
   --   SpatialHash is not cacheable itself, so precludes nesting?
   -- This also goes for Destroy
   set c ety = do
-    old :: Maybe c <- withReaderT shChild $ get ety
+    old :: Maybe c <- zoom shChild $ get ety
     forM_ old $ \c' -> deregister c' ety
     register c ety
-    withReaderT shChild $ set c ety
+    zoom shChild $ set c ety
 
-instance (Set s m c) => Set (SpatialHash d s) m c where
-  set c = withReaderT shChild . set c
+instance (Functor m, Set s m c) => Set (SpatialHash d s) m c where
+  set c = zoom shChild . set c
 
 instance (Ix c, Get s m c, MonadIO m, Destroy s m c) => Destroy (SpatialHash c s) m c where
   destroy p ety = do
-    old :: Maybe c <- withReaderT shChild $ get ety
+    old :: Maybe c <- zoom shChild $ get ety
     forM_ old $ \c' -> deregister c' ety
-    withReaderT shChild $ destroy p ety
+    zoom shChild $ destroy p ety
 
-instance Destroy s m c => Destroy (SpatialHash d s) m c where
-  destroy p = withReaderT shChild . destroy p
+instance (Functor m, Destroy s m c) => Destroy (SpatialHash d s) m c where
+  destroy p = zoom shChild . destroy p

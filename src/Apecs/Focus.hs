@@ -20,10 +20,14 @@ module Apecs.Focus
     HasStore,
     HasField,
     GetStore,
+    Lens',
+    zoom,
   )
 where
 
-import Control.Monad.Reader
+import Control.Monad.State (StateT (..))
+import Data.Functor.Const
+import Data.Functor.Identity
 import Data.Kind
 import GHC.Generics
 import GHC.TypeLits
@@ -71,31 +75,33 @@ type family CountTypes w s :: Nat where
   CountTypes (M1 p q k) s = CountTypes k s
   CountTypes (l :*: r) s = CountTypes l s + CountTypes r s
 
+type Lens' s a = forall f. Functor f => (a -> f a) -> (s -> f s)
+
 class GHasField w s where
-  askField :: w x -> s
+  getField :: Lens' (w x) s
 
 instance GHasField r s => GHasField (M1 p q r) s where
-  {-# INLINE askField #-}
-  askField = askField . unM1
+  {-# INLINE getField #-}
+  getField f (M1 s) = M1 <$> getField f s
 
 instance GHasField (K1 p s) s where
-  {-# INLINE askField #-}
-  askField = unK1
+  {-# INLINE getField #-}
+  getField f (K1 s) = K1 <$> f s
 
 instance GHasTypeProduct (CountTypes l s) (l :*: r) s => GHasField (l :*: r) s where
-  {-# INLINE askField #-}
-  askField = askFieldProduct @(CountTypes l s)
+  {-# INLINE getField #-}
+  getField = askFieldProduct @(CountTypes l s)
 
 class GHasTypeProduct (wl :: Nat) w s where
-  askFieldProduct :: w x -> s
+  askFieldProduct :: Lens' (w x) s
 
 instance GHasField l s => GHasTypeProduct 1 (l :*: r) s where
   {-# INLINE askFieldProduct #-}
-  askFieldProduct (l :*: _) = askField l
+  askFieldProduct f (l :*: r) = (:*: r) <$> getField f l
 
 instance GHasField r s => GHasTypeProduct 0 (l :*: r) s where
   {-# INLINE askFieldProduct #-}
-  askFieldProduct (_ :*: r) = askField r
+  askFieldProduct f (l :*: r) = (l :*:) <$> getField f r
 
 -- Step 3 Tie them together
 
@@ -120,18 +126,34 @@ type HasField w t = (Generic w, GHasField (Rep w) t)
 
 type HasStore w c = HasField w (GetStore w c)
 
+{-# INLINE view #-}
+view :: Lens' s a -> s -> a
+view l = getConst . l Const
+
+{-# INLINE set #-}
+set :: Lens' s a -> s -> a -> s
+set l s a = runIdentity $ l (Identity . const a) s
+
+{-# INLINE zoom #-}
+zoom :: Functor m => Lens' s a -> StateT a m x -> StateT s m x
+zoom l (StateT inner) = StateT $ \s -> fmap (set l s) <$> inner (view l s)
+
+{-# INLINE generic #-}
+generic :: Generic a => Lens' a (Rep a x)
+generic f a = to <$> f (from a)
+
 {-# INLINE focusField #-}
 focusField ::
   forall t w m a.
-  HasField w t =>
-  ReaderT t m a ->
-  ReaderT w m a
-focusField = withReaderT (\w -> (askField (from w) :: t))
+  (Functor m, HasField w t) =>
+  StateT t m a ->
+  StateT w m a
+focusField = zoom (generic . getField)
 
 {-# INLINE focusStore #-}
 focusStore ::
   forall c w m a.
-  HasStore w c =>
-  ReaderT (GetStore w c) m a ->
-  ReaderT w m a
+  (Functor m, HasStore w c) =>
+  StateT (GetStore w c) m a ->
+  StateT w m a
 focusStore = focusField

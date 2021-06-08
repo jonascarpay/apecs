@@ -7,7 +7,7 @@ module Main (main) where
 
 import Apecs
 import Control.Monad
-import Control.Monad.Reader
+import Control.Monad.State
 import Criterion.Main
 import Linear
 

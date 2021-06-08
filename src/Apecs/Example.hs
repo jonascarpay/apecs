@@ -6,11 +6,12 @@
 
 module Apecs.Example (main) where
 
-import Apecs.Core
-import Apecs.Stores
-import Apecs.System
-import Control.Monad.Reader
-import GHC.Generics
+import Apecs.Core (Get, Initialize (..))
+import Apecs.Stores (EntityCounter, Map, newEntity)
+import Apecs.System (cmap, cmapM_)
+import Control.Monad.Reader (MonadIO (liftIO))
+import Control.Monad.State (evalStateT)
+import GHC.Generics (Generic)
 
 newtype Position = Position Float deriving (Eq, Show)
 
@@ -26,7 +27,7 @@ data World
 main :: IO ()
 main = do
   (w :: World) <- initialize
-  flip runReaderT w $ do
+  flip evalStateT w $ do
     newEntity (Position 0, Velocity 3)
     newEntity (Position 1, Velocity 4)
     newEntity (Position 2, Velocity 5)
