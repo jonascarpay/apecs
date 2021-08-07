@@ -1,3 +1,7 @@
+## [0.1.5]
+### Changed
+- Bumped the minimum apecs version to 0.9.3, since we need `makeMapComponentsFor`
+
 ## [0.1.4]
 ### Add
 - (#74) `makeWorldAndComponents`, similar to how it exists in apecs proper
