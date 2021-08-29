@@ -19,6 +19,7 @@ apecs aims to be
 - [An Introduction to Developing Games in Haskell with Apecs](https://aas.sh/blog/making-a-game-with-haskell-and-apecs/)
 - [mallRL](https://github.com/nmaehlmann/mallRL) - a _grocery shopping roguelike_
 - [An implementation of the Unity tutorial project using apecs](https://github.com/mewhhaha/apecs-unity-tutorial-haskell)
+- [SpaceMar](https://gitlab.com/dpwiz/spacemar)
 - [(Your game here)](https://github.com/jonascarpay/apecs/pulls)
 
 ##### Packages
