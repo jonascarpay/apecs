@@ -20,6 +20,7 @@ apecs aims to be
 - [mallRL](https://github.com/nmaehlmann/mallRL) - a _grocery shopping roguelike_
 - [An implementation of the Unity tutorial project using apecs](https://github.com/mewhhaha/apecs-unity-tutorial-haskell)
 - [SpaceMar](https://gitlab.com/dpwiz/spacemar)
+- [Achtung die haskell](https://github.com/mewhhaha/achtung-die-haskell)
 - [(Your game here)](https://github.com/jonascarpay/apecs/pulls)
 
 ##### Packages
