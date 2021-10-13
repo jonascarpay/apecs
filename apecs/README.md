@@ -13,7 +13,7 @@ apecs aims to be
 
 ### Links
 - [documentation on hackage](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
-- [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md) and other [examples](../examples/)
+- [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md) and other [examples](https://github.com/jonascarpay/apecs/tree/master/examples)
 
 ##### Games/articles
 - [An Introduction to Developing Games in Haskell with Apecs](https://aas.sh/blog/making-a-game-with-haskell-and-apecs/)
