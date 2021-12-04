@@ -91,13 +91,18 @@ tupleInstances n = do
 
       -- s, ety, w arguments
       sNs = [ mkName $ "s_" ++ show i | i <- [0..n-1]]
-      sPat = ConP tupleName (VarP <$> sNs)
       sEs = VarE <$> sNs
       etyN = mkName "ety"
       etyE = VarE etyN
       etyPat = VarP etyN
       wNs = [ mkName $ "w_" ++ show i | i <- [0..n-1]]
+#if MIN_VERSION_template_haskell(2,18,0)
+      sPat = ConP tupleName [] (VarP <$> sNs)
+      wPat = ConP tupleName [] (VarP <$> wNs)
+#else
+      sPat = ConP tupleName (VarP <$> sNs)
       wPat = ConP tupleName (VarP <$> wNs)
+#endif
       wEs = VarE <$> wNs
 
       getN     = mkName "ExplGet"
@@ -130,8 +135,13 @@ tupleInstances n = do
 
       explExistsAnd va vb =
         AppE (AppE (VarE '(>>=)) va)
+#if MIN_VERSION_template_haskell(2,18,0)
+          (LamCaseE [ Match (ConP 'False [] []) (NormalB$ AppE (VarE 'return) (ConE 'False)) []
+                    , Match (ConP 'True [] []) (NormalB vb) []
+#else
           (LamCaseE [ Match (ConP 'False []) (NormalB$ AppE (VarE 'return) (ConE 'False)) []
                     , Match (ConP 'True []) (NormalB vb) []
+#endif
                     ])
 
       explMembersFold va vb = AppE (VarE '(>>=)) va `AppE` AppE (VarE 'U.filterM) vb
