@@ -1,3 +1,7 @@
+## [0.9.4]
+### Changed
+- (#86) Add support for GHC 9.2 and Template Haskell 2.18
+
 ## [0.9.3]
 ### Added
 - `newEntity_ = void . newEntity`

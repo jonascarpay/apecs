@@ -1,5 +1,5 @@
 name:               apecs
-version:            0.9.3
+version:            0.9.4
 homepage:           https://github.com/jonascarpay/apecs#readme
 license:            BSD3
 license-file:       LICENSE
@@ -13,8 +13,8 @@ description:
   apecs is a fast, type-driven Entity-Component-System library for game programming.
 
 extra-source-files:
-  README.md
   CHANGELOG.md
+  README.md
 
 source-repository head
   type:     git
