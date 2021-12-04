@@ -9,33 +9,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/install-nix-action@v16
+      - uses: cachix/cachix-action@v10
         with:
           name: jmc
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - name: Build dependencies
-        run: nix build -L '(import ./pkgs.nix).hsPkgs.shellFor {}'
+        run: nix build -L --impure --expr '(import ./pkgs.nix).hsPkgs.shellFor {}'
       - name: Build apecs
         run: nix build -L -f pkgs.nix hsPkgs.apecs.checks
       - name: Build all local packages
-        run: nix build -L
+        run: nix build -L -f default.nix
       - name: Build dev enviroment
         run: nix build -L -f shell.nix
 
   stack-build:
-    name: Stack ${{ matrix.resolver }} on ${{ matrix.os }} (${{ matrix.required }})
+    name: Stack ${{ matrix.resolver }} on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        resolver: [ lts-16, lts-15, lts-14 ]
-        os: [ macos-latest, ubuntu-latest ]
-        required: [ required ]
+        os: [ ubuntu-latest, macos-10.15 ]
+        resolver: [ lts-18, lts-17, lts-16, lts-15, lts-14 ]
         include:
-          - resolver: nightly
-            os: ubuntu-latest
-            required: optional
-    continue-on-error: ${{ matrix.required == 'optional' }}
+          - os: macos-latest
+            resolver: lts-17
+          - os: macos-latest
+            resolver: lts-18
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -49,25 +48,22 @@ jobs:
             ~/.stack
             .stack-work
           key: stack-${{ matrix.os }}-${{ matrix.resolver }}-${{ hashFiles('**/*.cabal', 'stack.yaml') }}
-      - run: sudo apt-get install freeglut3-dev
+      - run: sudo apt-get update && sudo apt-get install freeglut3-dev
         if: matrix.os == 'ubuntu-latest'
       - run: stack build --only-dependencies --resolver ${{ matrix.resolver }}
       - run: stack build --resolver ${{ matrix.resolver }}
       - run: stack test --resolver ${{ matrix.resolver }}
 
   cabal-build:
-    name: Cabal GHC ${{ matrix.ghc }} on ${{ matrix.os }} (${{ matrix.required }})
+    name: Cabal GHC ${{ matrix.ghc }} on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        ghc: [ '8.6.5', '8.8.3', '8.10.2' ]
-        os: [ ubuntu-latest, macos-latest ]
-        required: [ required ]
+        ghc: [ '8.6.5', '8.8.3', '8.10.7' ]
+        os: [ ubuntu-latest, macos-10.15 ]
         include:
-          - ghc: latest
-            os: ubuntu-latest
-            required: optional
-    continue-on-error: ${{ matrix.required == 'optional' }}
+          - os: macos-latest
+            ghc: '8.10.7'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -80,8 +76,33 @@ jobs:
             ~/.cabal
             dist-newstyle
           key: cabal-cache-${{ matrix.os }}-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal') }}
-      - run: sudo apt-get install freeglut3-dev
+      - run: sudo apt-get update && sudo apt-get install -y freeglut3-dev
         if: matrix.os == 'ubuntu-latest'
       - run: cabal new-build all --only-dependencies
       - run: cabal new-build all
       - run: cabal new-test all --test-show-details=direct
+
+  cabal-build-ghc9:
+    name: apecs, apecs-physics GHC ${{ matrix.ghc }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc: [ '9.0.1', '9.2.1' ]
+        os: [ ubuntu-latest, macos-10.15, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.ghc }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cabal
+            dist-newstyle
+          key: cabal-cache-${{ matrix.os }}-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal') }}
+      - run: sudo apt-get update && sudo apt-get install -y freeglut3-dev
+        if: matrix.os == 'ubuntu-latest'
+      - run: cabal new-build all --only-dependencies --project-file=cabal-ghc9.project
+      - run: cabal new-build all --project-file=cabal-ghc9.project
+      - run: cabal new-test all --test-show-details=direct --project-file=cabal-ghc9.project
