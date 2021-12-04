@@ -155,6 +155,6 @@ addPostStepCallback (toEnum -> k) systemCallback= do
     let fn = castFunPtrToPtr funPtr
     [C.block| void {
       int *data = 0;
-      cpSpaceAddPostStepCallback($(cpSpace *space), $(void*fn),$(int k), &data);
+      cpSpaceAddPostStepCallback($(cpSpace *space), $(void*fn),(void*) (uintptr_t) $(int k), &data);
     } |]
   pure ()
