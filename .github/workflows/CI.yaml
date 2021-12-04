@@ -9,17 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/install-nix-action@v16
+      - uses: cachix/cachix-action@v10
         with:
           name: jmc
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - name: Build dependencies
-        run: nix build -L '(import ./pkgs.nix).hsPkgs.shellFor {}'
+        run: nix build -L --impure --expr '(import ./pkgs.nix).hsPkgs.shellFor {}'
       - name: Build apecs
         run: nix build -L -f pkgs.nix hsPkgs.apecs.checks
       - name: Build all local packages
-        run: nix build -L
+        run: nix build -L -f default.nix
       - name: Build dev enviroment
         run: nix build -L -f shell.nix
 
