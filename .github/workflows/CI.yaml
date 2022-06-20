@@ -29,12 +29,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-10.15 ]
-        resolver: [ lts-18, lts-17, lts-16, lts-15, lts-14 ]
+        resolver: [ nightly, lts-19, lts-18, lts-17, lts-16, lts-15, lts-14 ]
         include:
           - os: macos-latest
             resolver: lts-17
           - os: macos-latest
             resolver: lts-18
+          - os: macos-latest
+            resolver: lts-19
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -59,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ghc: [ '8.6.5', '8.8.3', '8.10.7' ]
+        ghc: [ '8.6.5', '8.8.4', '8.10.7' ]
         os: [ ubuntu-latest, macos-10.15 ]
         include:
           - os: macos-latest
@@ -87,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ghc: [ '9.0.1', '9.2.1' ]
+        ghc: [ '9.0.2', '9.2.2' ]
         os: [ ubuntu-latest, macos-10.15, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
