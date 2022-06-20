@@ -10,6 +10,9 @@ resolver: lts-13.28
 #   - stm-hamt-1.2.0.4
 #   - primitive-extras-0.8
 
+extra-deps:
+  - vector-0.13.0.0
+
 packages:
   - apecs
   - apecs-physics
