@@ -33,6 +33,6 @@ library
     , stm               >=2.3   && <3
     , stm-containers    >=1.1   && <2
     , template-haskell  >=2.12  && <3
-    , vector            >=0.10  && <0.13
+    , vector            >=0.10  && <0.14
 
   ghc-options:      -Wall
