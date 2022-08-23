@@ -13,11 +13,10 @@ The examples directory contains a number of examples, each can be run with `stac
 ![Screenshot](helloworld.png)
 
 ```haskell
-makeWorld "World" [''Physics, ''BodyPicture, ''Camera]
+makeWorld "World" [''Physics, ''Camera]
 ```
 Generate a world.
 The `Physics` component adds a physics space to the world.
-The `BodyPicture` contains a gloss `Picture`, which the renderer will match to the `Body`'s position and orientation.
 The `Camera` component tracks a camera position and zoom factor.
 
 ```haskell
@@ -31,12 +30,12 @@ Note that the positive y-axis points upwards.
 
 ```haskell
   let ballShape = cCircle 0.5
-  newEntity ( DynamicBody
-            , Shape ballShape
+  ball <- newEntity ( DynamicBody
             , Position (V2 0 3)
             , Density 1
             , Elasticity 0.9
-            , BodyPicture . color red . toPicture $ ballShape )
+  )
+  ballEntity <- newEntity (Shape ball ballShape)
 ```
 Still in the initialize function, here we see our first object being instantiated.
 The type of ballShape is `Convex`, the apecs-physics format for shapes.
@@ -48,18 +47,13 @@ A `DynamicBody` is one of three types of bodies.
 It is a normal body, fully affected by physical forces.
 The elasticity of a collision is the product of the elasticities of the colliding shapes.
 
-The final line shows how to do rendering.
-`BodyPicture` expects a gloss `Picture`, in this case we derive one from `ballShape :: Convex` using `toPicture`.
-`color red` comes from gloss, and is just one of the many `Picture` manipulation functions.
-Alternatively, you can use a `Bitmap` to use actual sprites.
 
 ```haskell
   let lineShape = hLine 6
   newEntity ( StaticBody
             , Angle (-pi/20)
             , Shape lineShape
-            , Elasticity 0.9
-            , BodyPicture . color white . toPicture $ lineShape )
+            , Elasticity 0.9 )
 ```
 Static bodies are not affected by physics, and generally rarely move.
 They are equivalent to bodies with infinite mass and moment, and zero velocity.
@@ -85,8 +79,7 @@ initialize = do
 
   let sides = toEdges $ cRectangle 5
   tumbler <- newEntity ( KinematicBody
-                       , AngularVelocity (-1)
-                       , BodyPicture . color white . foldMap toPicture $ sides )
+                       , AngularVelocity (-1) )
 ```
 As previously stated, both Chipmunk and gloss exclusively have _convex_ polygon primitives.
 Our tumbler, however, is obiously not convex.
@@ -123,11 +116,10 @@ If you don't, you will get a runtime error about simulating zero-mass `DynamicBo
     r <- liftIO$ randomRIO (0.1, 0.2)
     let ballshape = cCircle r
     let c = (realToFrac x+2)/3
-    newEntity ( DynamicBody
+    ball <- newEntity ( DynamicBody
               , Position (V2 x y)
-              , Shape ballshape
-              , BodyPicture . color (makeColor 1 c c 1) . toPicture $ ballshape
               , Density 1 )
+    newEntity (Shape ball ballshape)
 
   return ()
 ```
@@ -144,7 +136,6 @@ Aside from demonstrating constraints, queries and interaction it also contains s
 ```haskell
 let rubber = (Friction 0.5, Elasticity 0.5, Density 1)
 newEntity ( DynamicBody
-          , someShape
           , rubber )
 ```
 Nesting tuples creates composable and reusable pieces of configuration (this is an apecs thing, not an apecs-physics thing).
