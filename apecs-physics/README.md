@@ -146,3 +146,10 @@ It also comes in the varieties `Constraint` and `ConstraintExtend`.
 
 Dragging an object with the mouse is also done using a constraint.
 The mouse position actually controls the position of a static body without shapes, and we use a PinJoint to attach whatever we are dragging to it.
+
+### Rendering
+A basic rendering system, `drawBody :: (Body, Transform, ShapeList) -> System m Picture` is provided for debugging and prototyping purposes. Inside your gloss draw function you can combine this with foldDrawM to draw every physics body. For example
+
+```hs
+draw = foldDrawM drawBody
+```
