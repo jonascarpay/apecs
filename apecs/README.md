@@ -16,11 +16,11 @@ apecs aims to be
 - [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md) and other [examples](https://github.com/jonascarpay/apecs/tree/master/examples)
 
 ##### Games/articles
-- [An Introduction to Developing Games in Haskell with Apecs](https://aas.sh/blog/making-a-game-with-haskell-and-apecs/)
-- [mallRL](https://github.com/nmaehlmann/mallRL) - a _grocery shopping roguelike_
-- [An implementation of the Unity tutorial project using apecs](https://github.com/mewhhaha/apecs-unity-tutorial-haskell)
-- [SpaceMar](https://gitlab.com/dpwiz/spacemar)
-- [Achtung die haskell](https://github.com/mewhhaha/achtung-die-haskell)
+- [Notakto](https://github.com/Ashe/Notakto/), and [associated blog post/apecs tutorial](https://aas.sh/blog/notakto-a-haskell-game-with-apecs-and-raylib/) by [@Ashe](https://github.com/Ashe)
+- [mallRL](https://github.com/nmaehlmann/mallRL) - a _grocery shopping roguelike_ by [@nmaehlmann](https://github.com/nmaehlmann)
+- [An implementation of the Unity tutorial project using apecs](https://github.com/mewhhaha/apecs-unity-tutorial-haskell) by [@mewhhaha](https://github.com/mewhhaha)
+- [SpaceMar](https://gitlab.com/dpwiz/spacemar) by [@dpwiz](https://gitlab.com/dpwiz)
+- [Achtung die haskell](https://github.com/mewhhaha/achtung-die-haskell) by [@mewhhaha](https://github.com/mewhhaha)
 - [(Your game here)](https://github.com/jonascarpay/apecs/pulls)
 
 ##### Packages
@@ -35,14 +35,14 @@ apecs aims to be
 
   [![Hackage](https://img.shields.io/hackage/v/apecs-physics.svg)](https://hackage.haskell.org/package/apecs-physics)
   [![Stackage](https://www.stackage.org/package/apecs-physics/badge/lts?label=lts)](https://www.stackage.org/package/apecs-physics)
-  [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics) 
+  [![Stackage](https://www.stackage.org/package/apecs-physics/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-physics)
   [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
 
 - [apecs-gloss](https://github.com/jonascarpay/apecs/tree/master/apecs-gloss) - Simple frontend for [gloss](http://hackage.haskell.org/package/gloss)-based rendering
 
-  [![Hackage](https://img.shields.io/hackage/v/apecs-gloss.svg)](https://hackage.haskell.org/package/apecs-gloss) 
-  [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-gloss) 
-  [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-gloss) 
+  [![Hackage](https://img.shields.io/hackage/v/apecs-gloss.svg)](https://hackage.haskell.org/package/apecs-gloss)
+  [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/lts?label=lts)](https://www.stackage.org/package/apecs-gloss)
+  [![Stackage](https://www.stackage.org/package/apecs-gloss/badge/nightly?label=nightly)](https://www.stackage.org/package/apecs-gloss)
   [![Build Status](https://travis-ci.org/jonascarpay/apecs.svg?branch=master)](https://travis-ci.org/jonascarpay/apecs)
 
 - [apecs-stm](https://github.com/jonascarpay/apecs/tree/master/apecs-stm) - STM-based stores for easy concurrency
