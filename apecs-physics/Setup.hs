@@ -7,6 +7,9 @@ import Distribution.PackageDescription.Parsec
 #else
 import Distribution.PackageDescription.Parse
 #endif
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(3,8,0)
+import Distribution.Simple.PackageDescription (readGenericPackageDescription)
+#endif
 
 
 main = do
