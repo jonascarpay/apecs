@@ -161,3 +161,13 @@ cfoldM_ sys a0 = do
   s :: Storage c <- getStore
   sl <- lift$ explMembers s
   U.foldM'_ (\a e -> lift (explGet s e) >>= sys a) a0 sl
+
+-- | Collect matching components into a list by using the specified test/process function.
+--   You can use this to preprocess data before returning.
+--   And you can do a test here that depends on data from multiple components.
+--   Pass "Just" to simply collect all the items.
+{-# INLINE collect #-}
+collect :: forall components w m a. (Get w m components, Members w m components)
+        => (components -> Maybe a)
+        -> SystemT w m [a]
+collect f = cfold (\acc -> maybe acc (: acc) . f) []
