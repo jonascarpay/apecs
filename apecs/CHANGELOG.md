@@ -1,3 +1,9 @@
+## [Unreleased]
+### Added
+- (#99) `collect`
+### Changed
+- (#84) Updated links to articles
+
 ## [0.9.4]
 ### Changed
 - (#86) Add support for GHC 9.2 and Template Haskell 2.18
