@@ -10,18 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: cachix/install-nix-action@v19
-      - uses: cachix/cachix-action@v10
-        with:
-          name: jmc
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - name: Build dependencies
-        run: nix build -L --impure --expr '(import ./pkgs.nix).hsPkgs.shellFor {}'
-      - name: Build apecs
-        run: nix build -L -f pkgs.nix hsPkgs.apecs.checks
-      - name: Build all local packages
-        run: nix build -L -f default.nix
-      - name: Build dev enviroment
-        run: nix build -L -f shell.nix
+      - name: Build examples
+        run: nix build -L
+      - name: Build shell
+        run: nix develop -L -c echo "All good"
 
   stack-build:
     name: Stack ${{ matrix.resolver }} on ${{ matrix.os }}
