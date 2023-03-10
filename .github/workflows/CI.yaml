@@ -53,6 +53,12 @@ jobs:
       matrix:
         ghc: [ '8.8.4', '8.10.7', '9.0.2', '9.2.7', '9.4.4' ]
         os: [ ubuntu-latest, macos-latest ]
+        exclude:
+          # GHC 8.8.4 is broken on MacOS, see
+          # https://github.com/jonascarpay/apecs/pull/101#issuecomment-1463759278
+          # https://gitlab.haskell.org/ghc/ghc/-/issues/18446
+          - os: macos-latest
+            ghc: '8.8.4'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
