@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.9.5]
 ### Added
 - (#99) `collect`
 ### Changed
