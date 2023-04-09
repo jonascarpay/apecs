@@ -14,6 +14,7 @@ apecs aims to be
 ### Links
 - [documentation on hackage](https://hackage.haskell.org/package/apecs/docs/Apecs.html)
 - [tutorial](https://github.com/jonascarpay/apecs/blob/master/examples/Shmup.md) and other [examples](https://github.com/jonascarpay/apecs/tree/master/examples)
+- community chat at [`#apecs` on the haskell gamedev discord](https://discord.gg/vxpWtBA) or [`#haskell-game:matrix.org`](https://matrix.to/#/#haskell-game:matrix.org)
 
 ##### Games/articles
 - [Notakto](https://github.com/Ashe/Notakto/), and [associated blog post/apecs tutorial](https://aas.sh/blog/notakto-a-haskell-game-with-apecs-and-raylib/) by [@Ashe](https://github.com/Ashe)
