@@ -10,7 +10,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 
 module Apecs.Stores
-  ( Map, Cache, Unique,
+  ( Map, Tags,
+    Cache, Unique,
     Global,
     Cachable,
     ReadOnly, setReadOnly, destroyReadOnly
@@ -22,6 +23,8 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
+import           Data.IntSet                 (IntSet)
+import qualified Data.IntSet                 as IntSet
 import           Data.IORef
 import           Data.Proxy
 import           Data.Typeable               (Typeable, typeRep)
@@ -29,6 +32,7 @@ import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           GHC.TypeLits
+import           Unsafe.Coerce               (unsafeCoerce)
 
 import           Apecs.Core
 
@@ -65,6 +69,71 @@ instance MonadIO m => ExplDestroy m (Map c) where
 instance MonadIO m => ExplMembers m (Map c) where
   {-# INLINE explMembers #-}
   explMembers (Map ref) = liftIO$ U.fromList . M.keys <$> readIORef ref
+
+-- | A collection for unit-like types («tags») based on 'Data.IntSet'.
+--
+-- The only types that can be stored are those that share representation with `()`:
+-- i.e. single constructor without parameters: @data Bullet = Bullet@.
+--
+-- A bit more compact than "Map", @O(log(n))@ for most operations, but "reading" is free.
+--
+-- @
+-- cmap $ \(Bullet, Position pos, Velocity vel) -> Position (pos + vel)
+-- @
+--
+-- @Bullet@ will be used for its members query, pre-filtering the rest of the components,
+-- but unlike "Map", the actual value would not use a lookup.
+newtype Tags c = Tags (IORef IntSet)
+
+type instance Elem (Tags c) = c
+
+instance (MonadIO m) => ExplInit m (Tags c) where
+  explInit =
+    liftIO . fmap Tags $
+      newIORef mempty
+
+instance (MonadIO m) => ExplGet m (Tags c) where
+  {-# INLINE explExists #-}
+  explExists (Tags ref) entityId =
+    liftIO .
+      fmap (IntSet.member entityId) $
+        readIORef ref
+
+  {-# INLINE explGet #-}
+  explGet _tags _entityId =
+    {-
+      XXX: Given that explGet is partial in other stores
+      the system should not call explGet without a checking first,
+      or obtaining an entity id from explMembers.
+      So, no need to re-check again and it is okay to produce
+      the tag ex nihilo.
+    -}
+    pure $ unsafeCoerce ()
+
+instance (MonadIO m) => ExplSet m (Tags c) where
+  {-# INLINE explSet #-}
+  explSet (Tags ref) entityId _x =
+    liftIO $
+      atomicModifyIORef' ref $ \tags ->
+        ( IntSet.insert entityId tags
+        , ()
+        )
+
+instance (MonadIO m) => ExplDestroy m (Tags c) where
+  {-# INLINE explDestroy #-}
+  explDestroy (Tags ref) entityId =
+    liftIO $
+      atomicModifyIORef' ref $ \tags ->
+        ( IntSet.delete entityId tags
+        , ()
+        )
+
+instance MonadIO m => ExplMembers m (Tags c) where
+  {-# INLINE explMembers #-}
+  explMembers (Tags ref) =
+    liftIO .
+      fmap (U.fromList . IntSet.toAscList) $
+        readIORef ref
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.

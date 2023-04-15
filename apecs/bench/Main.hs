@@ -23,15 +23,18 @@ instance Component ECSPos where type Storage ECSPos = Cache 10000 (Map ECSPos)
 newtype ECSVel = ECSVel (V2 Float) deriving (Eq, Show)
 instance Component ECSVel where type Storage ECSVel = Cache 1000 (Map ECSVel)
 
-makeWorld "PosVel" [''ECSPos, ''ECSVel]
+data ECSBullet = ECSBullet deriving (Eq, Show)
+instance Component ECSBullet where type Storage ECSBullet = Tags ECSBullet
+
+makeWorld "PosVel" [''ECSPos, ''ECSVel, ''ECSBullet]
 
 posVelInit :: System PosVel ()
 posVelInit = do
-  replicateM_ 1000 $ newEntity (ECSPos 0, ECSVel 1)
+  replicateM_ 1000 $ newEntity (ECSBullet, ECSPos 0, ECSVel 1)
   replicateM_ 9000 $ newEntity (ECSPos 0)
 
 posVelStep :: System PosVel ()
-posVelStep = cmap $ \(ECSVel v, ECSPos p) -> ECSPos (p+v)
+posVelStep = cmap $ \(ECSBullet, ECSVel v, ECSPos p) -> ECSPos (p+v)
 
 main :: IO ()
 main = C.defaultMainWith (C.defaultConfig {timeLimit = 10})
