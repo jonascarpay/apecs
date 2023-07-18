@@ -1,4 +1,4 @@
-resolver: lts-13.28
+resolver: lts-21.3
 
 # apecs-stm is not in stack because it makes CI a huge pain.  The issue is that
 # stm-containers and its dependencies are not on stackage.  It's by no means
