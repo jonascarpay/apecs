@@ -23,12 +23,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        resolver: [ nightly, lts-20, lts-19, lts-18 ]
+        resolver: [ lts-21, lts-20, lts-19, lts-18 ]
         include:
           - os: macos-latest
             resolver: lts-17
-          - os: macos-latest
-            resolver: lts-18
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -53,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ghc: [ '8.8.4', '8.10.7', '9.0.2', '9.2.7', '9.4.4' ]
+        ghc: [ '8.8.4', '8.10.7', '9.0.2', '9.2.8', '9.4.5' ]
         os: [ ubuntu-latest, macos-latest ]
         exclude:
           # GHC 8.8.4 is broken on MacOS, see
