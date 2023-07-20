@@ -1,3 +1,4 @@
+cabal-version:      2.0
 name:               apecs-physics
 version:            0.4.5
 synopsis:           2D physics for apecs
@@ -11,8 +12,7 @@ author:             Jonas Carpay
 maintainer:         jonascarpay@gmail.com
 copyright:          MIT
 category:           Web
-build-type:         Custom
-cabal-version:      >=1.10
+build-type:         Simple
 extra-source-files:
   CHANGELOG.md
   Chipmunk2D/include/chipmunk/*.h
@@ -22,11 +22,6 @@ extra-source-files:
 source-repository HEAD
   type:     git
   location: git://github.com/jonascarpay/apecs.git
-
-custom-setup
-  setup-depends:
-      base   >=4.9  && <5
-    , Cabal  >=1.14
 
 flag release
   description:
