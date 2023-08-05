@@ -18,7 +18,6 @@ module Apecs.Util (
 
 import           Control.Applicative  (liftA2)
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
 import           Data.Monoid
 import           Data.Semigroup
 import           System.Mem           (performMajorGC)
@@ -64,5 +63,5 @@ newEntity_ component = do
   set entity component
 
 -- | Explicitly invoke the garbage collector
-runGC :: System w ()
-runGC = lift performMajorGC
+runGC :: MonadIO m => SystemT w m ()
+runGC = liftIO performMajorGC

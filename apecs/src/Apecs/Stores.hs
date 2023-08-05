@@ -18,11 +18,9 @@ module Apecs.Stores
   ) where
 
 import           Control.Monad
-import           Control.Monad.IO.Class
-import           Control.Monad.Reader
+import           Control.Monad.State
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
-import           Data.IORef
 import           Data.Proxy
 import           Data.Typeable               (Typeable, typeRep)
 import qualified Data.Vector.Mutable         as VM
@@ -33,15 +31,15 @@ import           GHC.TypeLits
 import           Apecs.Core
 
 -- | A map based on 'Data.IntMap.Strict'. O(log(n)) for most operations.
-newtype Map c = Map (IORef (M.IntMap c))
+newtype Map c = Map (M.IntMap c)
 
 type instance Elem (Map c) = c
-instance MonadIO m => ExplInit m (Map c) where
-  explInit = liftIO$ Map <$> newIORef mempty
+instance Applicative m => ExplInit m (Map c) where
+  explInit = pure (Map mempty)
 
-instance (MonadIO m, Typeable c) => ExplGet m (Map c) where
-  explExists (Map ref) ety = liftIO$ M.member ety <$> readIORef ref
-  explGet    (Map ref) ety = liftIO$ flip fmap (M.lookup ety <$> readIORef ref) $ \case
+instance (Monad m, Typeable c) => ExplGet m (Map c) where
+  explExists (Map ref) ety = return (M.member ety ref)
+  explGet    (Map ref) ety = return $ case M.lookup ety ref of
     Just c -> c
     notFound -> error $ unwords
       [ "Reading non-existent Map component"
@@ -52,31 +50,29 @@ instance (MonadIO m, Typeable c) => ExplGet m (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
-instance MonadIO m => ExplSet m (Map c) where
+instance Monad m => ExplSet m (Map c) where
   {-# INLINE explSet #-}
-  explSet (Map ref) ety x = liftIO$
-    modifyIORef' ref (M.insert ety x)
+  explSet (Map ref) ety x = return $ Map $ M.insert ety x ref
 
-instance MonadIO m => ExplDestroy m (Map c) where
+instance Monad m => ExplDestroy m (Map c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Map ref) ety = liftIO$
-    readIORef ref >>= writeIORef ref . M.delete ety
+  explDestroy (Map ref) ety = return $ Map $ M.delete ety ref
 
-instance MonadIO m => ExplMembers m (Map c) where
+instance Monad m => ExplMembers m (Map c) where
   {-# INLINE explMembers #-}
-  explMembers (Map ref) = liftIO$ U.fromList . M.keys <$> readIORef ref
+  explMembers (Map ref) = return $ U.fromList $ M.keys ref
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
 --   Its main purpose is to be a 'Map' optimized for when only ever one component inhabits it.
-newtype Unique c = Unique (IORef (Maybe (Int, c)))
+newtype Unique c = Unique (Maybe (Int, c))
 type instance Elem (Unique c) = c
-instance MonadIO m => ExplInit m (Unique c) where
-  explInit = liftIO$ Unique <$> newIORef Nothing
+instance Monad m => ExplInit m (Unique c) where
+  explInit = pure (Unique Nothing)
 
-instance (MonadIO m, Typeable c) => ExplGet m (Unique c) where
+instance (Monad m, Typeable c) => ExplGet m (Unique c) where
   {-# INLINE explGet #-}
-  explGet (Unique ref) _ = liftIO$ flip fmap (readIORef ref) $ \case
+  explGet (Unique ref) _ = return $ case ref of
     Just (_, c)  -> c
     notFound -> error $ unwords
       [ "Reading non-existent Unique component"
@@ -84,20 +80,21 @@ instance (MonadIO m, Typeable c) => ExplGet m (Unique c) where
       ]
 
   {-# INLINE explExists #-}
-  explExists (Unique ref) ety = liftIO$ maybe False ((==ety) . fst) <$> readIORef ref
+  explExists (Unique ref) ety = return $ maybe False ((==ety) . fst) ref
 
-instance MonadIO m => ExplSet m (Unique c) where
+instance Monad m => ExplSet m (Unique c) where
   {-# INLINE explSet #-}
-  explSet (Unique ref) ety c = liftIO$ writeIORef ref (Just (ety, c))
+  explSet _ ety c = return $ Unique $ Just (ety, c)
 
-instance MonadIO m => ExplDestroy m (Unique c) where
+instance Monad m => ExplDestroy m (Unique c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Unique ref) ety = liftIO$ readIORef ref >>=
-    mapM_ (flip when (writeIORef ref Nothing) . (==ety) . fst)
+  explDestroy u@(Unique ref) ety = return $ case ref of
+    Just (ety', _) | ety' == ety -> Unique Nothing
+    _ -> u
 
-instance MonadIO m => ExplMembers m (Unique c) where
+instance Monad m => ExplMembers m (Unique c) where
   {-# INLINE explMembers #-}
-  explMembers (Unique ref) = liftIO$ flip fmap (readIORef ref) $ \case
+  explMembers (Unique ref) = return $ case ref of
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
 
@@ -109,21 +106,21 @@ instance MonadIO m => ExplMembers m (Unique c) where
 --   The convenience entity 'global' is defined as -1, and can be used to make operations on a global more explicit, i.e. 'Time t <- get global'.
 --
 --   You also can read and write Globals during a 'cmap' over other components.
-newtype Global c = Global (IORef c)
+newtype Global c = Global c
 type instance Elem (Global c) = c
-instance (Monoid c, MonadIO m) => ExplInit m (Global c) where
+instance (Monoid c, Monad m) => ExplInit m (Global c) where
   {-# INLINE explInit #-}
-  explInit = liftIO$ Global <$> newIORef mempty
+  explInit = return $ Global mempty
 
-instance MonadIO m => ExplGet m (Global c) where
+instance Monad m => ExplGet m (Global c) where
   {-# INLINE explGet #-}
-  explGet (Global ref) _ = liftIO$ readIORef ref
+  explGet (Global ref) _ = return ref
   {-# INLINE explExists #-}
   explExists _ _ = return True
 
-instance MonadIO m => ExplSet m (Global c) where
+instance Monad m => ExplSet m (Global c) where
   {-# INLINE explSet #-}
-  explSet (Global ref) _ c = liftIO$ writeIORef ref c
+  explSet _ _ c = return $ Global c
 
 -- | Class of stores that behave like a regular map, and can therefore safely be cached.
 --   This prevents stores like `Unique` and 'Global', which do /not/ behave like simple maps, from being cached.
@@ -180,14 +177,18 @@ instance (MonadIO m, ExplGet m s) => ExplGet m (Cache n s) where
 
 instance (MonadIO m, ExplSet m s) => ExplSet m (Cache n s) where
   {-# INLINE explSet #-}
-  explSet (Cache mask tags cache s) ety x = do
+  explSet c@(Cache mask tags cache s) ety x = do
     let index = ety .&. mask
     tag <- liftIO$ UM.unsafeRead tags index
-    when (tag /= (-2) && tag /= ety) $ do
-      cached <- liftIO$ VM.unsafeRead cache index
-      explSet s tag cached
+    c' <- if (tag /= (-2) && tag /= ety)
+      then do
+        cached <- liftIO$ VM.unsafeRead cache index
+        s' <- explSet s tag cached
+        return $ Cache mask tags cache s'
+      else return c
     liftIO$ UM.unsafeWrite tags  index ety
     liftIO$ VM.unsafeWrite cache index x
+    return c'
 
 instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
   {-# INLINE explDestroy #-}
@@ -197,7 +198,8 @@ instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Cache n s) where
     when (tag == ety) $ liftIO $ do
       UM.unsafeWrite tags  index (-2)
       VM.unsafeWrite cache index cacheMiss
-    explDestroy s ety
+    s' <- explDestroy s ety
+    return (Cache mask tags cache s')
 
 instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
   {-# INLINE explMembers #-}
@@ -233,8 +235,9 @@ setReadOnly :: forall w m s c.
   , ExplSet m s
   ) => Entity -> c -> SystemT w m ()
 setReadOnly (Entity ety) c = do
-  ReadOnly s <- getStore
-  lift $ explSet s ety c
+  ReadOnly s :: ReadOnly s <- getStore
+  s' <- lift $ explSet s ety c
+  setStore $ ReadOnly s'
 
 destroyReadOnly :: forall w m s c.
   ( Has w m c
@@ -244,4 +247,5 @@ destroyReadOnly :: forall w m s c.
   ) => Entity -> Proxy c -> SystemT w m ()
 destroyReadOnly (Entity ety) _ = do
   ReadOnly s :: Storage c <- getStore
-  lift $ explDestroy s ety
+  s' <- lift $ explDestroy s ety
+  setStore $ ReadOnly s'

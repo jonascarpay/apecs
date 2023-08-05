@@ -17,6 +17,7 @@ import Data.Functor.Identity
 
 import           Apecs.Core
 import qualified Apecs.THTuples as T
+import Data.Coerce (coerce)
 
 -- | Identity component. @Identity c@ is equivalent to @c@, so mostly useless.
 instance Component c => Component (Identity c) where
@@ -25,6 +26,7 @@ instance Component c => Component (Identity c) where
 instance Has w m c => Has w m (Identity c) where
   {-# INLINE getStore #-}
   getStore = Identity <$> getStore
+  setStore (Identity s) = setStore s
 
 type instance Elem (Identity s) = Identity (Elem s)
 
@@ -36,13 +38,13 @@ instance ExplGet m s => ExplGet m (Identity s) where
 
 instance ExplSet m s => ExplSet m (Identity s) where
   {-# INLINE explSet #-}
-  explSet (Identity s) e (Identity x) = explSet s e x
+  explSet (Identity s) e (Identity x) = coerce <$> explSet s e x
 instance ExplMembers m s => ExplMembers m (Identity s) where
   {-# INLINE explMembers #-}
   explMembers (Identity s) = explMembers s
 instance ExplDestroy m s => ExplDestroy m (Identity s) where
   {-# INLINE explDestroy #-}
-  explDestroy (Identity s) = explDestroy s
+  explDestroy (Identity s) = fmap coerce . explDestroy s
 
 T.makeInstances [2..8]
 
@@ -60,6 +62,8 @@ instance Component c => Component (Not c) where
 instance (Has w m c) => Has w m (Not c) where
   {-# INLINE getStore #-}
   getStore = NotStore <$> getStore
+  {-# INLINE setStore #-}
+  setStore (NotStore s) = setStore s
 
 type instance Elem (NotStore s) = Not (Elem s)
 
@@ -71,7 +75,7 @@ instance ExplGet m s => ExplGet m (NotStore s) where
 
 instance ExplDestroy m s => ExplSet m (NotStore s) where
   {-# INLINE explSet #-}
-  explSet (NotStore sa) ety _ = explDestroy sa ety
+  explSet (NotStore sa) ety _ = coerce <$> explDestroy sa ety
 
 -- | Pseudostore used to produce values of type @Maybe a@.
 --   Will always return @True@ for @explExists@.
@@ -83,6 +87,8 @@ instance Component c => Component (Maybe c) where
 instance (Has w m c) => Has w m (Maybe c) where
   {-# INLINE getStore #-}
   getStore = MaybeStore <$> getStore
+  {-# INLINE setStore #-}
+  setStore (MaybeStore s) = setStore s
 
 type instance Elem (MaybeStore s) = Maybe (Elem s)
 
@@ -96,8 +102,8 @@ instance ExplGet m s => ExplGet m (MaybeStore s) where
 
 instance (ExplDestroy m s, ExplSet m s) => ExplSet m (MaybeStore s) where
   {-# INLINE explSet #-}
-  explSet (MaybeStore sa) ety Nothing  = explDestroy sa ety
-  explSet (MaybeStore sa) ety (Just x) = explSet sa ety x
+  explSet (MaybeStore sa) ety Nothing  = coerce <$> explDestroy sa ety
+  explSet (MaybeStore sa) ety (Just x) = coerce <$> explSet sa ety x
 
 -- | Used for 'Either', a logical disjunction between two components.
 --   As expected, Either is used to model error values.
@@ -110,6 +116,10 @@ instance (Component ca, Component cb) => Component (Either ca cb) where
 instance (Has w m ca, Has w m cb) => Has w m (Either ca cb) where
   {-# INLINE getStore #-}
   getStore = EitherStore <$> getStore <*> getStore
+  {-# INLINE setStore #-}
+  setStore (EitherStore sa sb) = do
+    setStore sa
+    setStore sb
 
 type instance Elem (EitherStore sa sb) = Either (Elem sa) (Elem sb)
 
@@ -127,19 +137,23 @@ instance (ExplGet m sa, ExplGet m sb) => ExplGet m (EitherStore sa sb) where
 
 instance (ExplSet m sa, ExplSet m sb) => ExplSet m (EitherStore sa sb) where
   {-# INLINE explSet #-}
-  explSet (EitherStore _ sb) ety (Right b) = explSet sb ety b
-  explSet (EitherStore sa _) ety (Left a)  = explSet sa ety a
+  explSet (EitherStore sa sb) ety (Right b) = (\sb' -> EitherStore sa sb') <$> explSet sb ety b
+  explSet (EitherStore sa sb) ety (Left a)  = (\sa' -> EitherStore sa' sb) <$> explSet sa ety a
 
 instance (ExplDestroy m sa, ExplDestroy m sb)
        => ExplDestroy m (EitherStore sa sb) where
   {-# INLINE explDestroy #-}
-  explDestroy (EitherStore sa sb) ety =
-    explDestroy sa ety >> explDestroy sb ety
+  explDestroy (EitherStore sa sb) ety = do
+    sa' <- explDestroy sa ety
+    sb' <- explDestroy sb ety
+    return $ EitherStore sa' sb'
 
 -- Unit instances ()
 instance Monad m => Has w m () where
   {-# INLINE getStore #-}
   getStore = return ()
+  {-# INLINE setStore #-}
+  setStore _ = return ()
 instance Component () where
   type Storage () = ()
 type instance Elem () = ()
@@ -171,6 +185,8 @@ instance Component c => Component (Filter c) where
 instance Has w m c => Has w m (Filter c) where
   {-# INLINE getStore #-}
   getStore = FilterStore <$> getStore
+  {-# INLINE setStore #-}
+  setStore (FilterStore s) = setStore s
 
 type instance Elem (FilterStore s) = Filter (Elem s)
 
@@ -194,6 +210,8 @@ instance Component Entity where
 instance Monad m => Has w m Entity where
   {-# INLINE getStore #-}
   getStore = return EntityStore
+  {-# INLINE setStore #-}
+  setStore _ = return ()
 
 type instance Elem EntityStore = Entity
 instance Monad m => ExplGet m EntityStore where

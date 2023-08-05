@@ -10,11 +10,13 @@ module Apecs.TH
   ) where
 
 import           Control.Monad
+import           Control.Monad.State (modify)
 import           Language.Haskell.TH
 
 import           Apecs.Core
 import           Apecs.Stores
 import           Apecs.Util          (EntityCounter)
+import Control.Monad.Identity (Identity(runIdentity))
 
 genName :: String -> Q Name
 genName s = mkName . show <$> newName s
@@ -41,17 +43,51 @@ makeWorldNoEC worldName cTypes = do
           [ FunD (mkName "getStore") [Clause []
               (NormalB$ ConE sys `AppE` (VarE (mkName "asks") `AppE` VarE n))
             [] ]
+          , FunD (mkName "setStore") [let sN = mkName "s" in Clause [VarP sN]
+              -- modify (\w -> w { n = s })
+              (NormalB$ AppE
+                (VarE 'modify)
+                (let wN = mkName "w" in LamE [VarP wN] (RecUpdE (VarE wN) [(n, VarE sN)]))
+              )
+            [] ]
           ]
 
-      initWorldName = mkName $ "init" ++ worldName
-      initSig = SigD initWorldName (AppT (ConT (mkName "IO")) (ConT wld))
-      initDecl = FunD initWorldName [Clause []
-        (NormalB$ iterate (\wE -> AppE (AppE (VarE $ mkName "<*>") wE) (VarE $ mkName "explInit")) (AppE (VarE $ mkName "return") (ConE wld)) !! length records)
+
+
+
+      -- initMyWorldM :: forall m . (ExplInit m FieldA, ExplInit m FieldB, ...) => m MyWorld
+      initSig' functionName typeVars monadT f = SigD functionName
+        (let explInitT = ConT ''ExplInit
+          in ForallT
+            typeVars
+            (ConT ''Monad `AppT` monadT : [explInitT `AppT` monadT `AppT` rT | (_, _, rT) <- records])
+            (f (ConT wld))
+        )
+      -- initMyWorldM = return MyWorld <*> explInit <*> ... <*> explInit
+      initDecl' functionName f = FunD functionName [Clause []
+        (NormalB$ f $ iterate (\wE -> AppE (AppE (VarE $ mkName "<*>") wE) (VarE $ mkName "explInit")) (AppE (VarE $ mkName "return") (ConE wld)) !! length records)
         [] ]
+
+
+
+      initWorldMName = mkName $ "init" ++ worldName ++ "M"
+      initMSig = let mN = mkName "m" in initSig' initWorldMName [PlainTV mN] (VarT mN) (AppT (VarT mN))
+      initMDecl = initDecl' initWorldMName id
+
+      initWorldName = mkName $ "init" ++ worldName
+      initSig = initSig' initWorldName [] (ConT ''Identity) id
+      initDecl = initDecl' initWorldName (AppE (VarE 'runIdentity))
 
       hasDecl = makeInstance <$> cTypesNames
 
-  return $ wldDecl : initSig : initDecl : hasDecl
+
+  return
+    $ wldDecl
+    : initMSig
+    : initMDecl
+    : initSig
+    : initDecl
+    : hasDecl
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]

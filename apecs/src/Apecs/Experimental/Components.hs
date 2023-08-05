@@ -28,9 +28,11 @@ type instance Elem (RedirectStore s) = Redirect (Elem s)
 
 instance Has w m c => Has w m (Redirect c) where
   getStore = RedirectStore <$> getStore
+  setStore (RedirectStore s) = setStore s
 
 instance (ExplSet m s) => ExplSet m (RedirectStore s) where
-  explSet (RedirectStore s) _ (Redirect (Entity ety) c) = explSet s ety c
+  explSet (RedirectStore s) _ (Redirect (Entity ety) c)
+    = RedirectStore <$> explSet s ety c
 
 
 -- | Pseudocomponent that can be read like any other component, but will only
@@ -45,6 +47,7 @@ type instance Elem (HeadStore s) = Head (Elem s)
 
 instance Has w m c => Has w m (Head c) where
   getStore = HeadStore <$> getStore
+  setStore (HeadStore s) = setStore s
 
 instance (ExplGet m s) => ExplGet m (HeadStore s) where
   explExists (HeadStore s) ety = explExists s ety

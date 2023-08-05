@@ -12,6 +12,7 @@ instance (Component a, Component b) => Component (a, b) where
 
 instance (Has w a, Has w b) => Has w (a,b) where
   getStore = liftM2 (,) getStore getStore
+  setStore (a, b) = setStore a >> setStore b
 
 type instance Elem (a,b) = (Elem a, Elem b)
 
@@ -35,7 +36,8 @@ makeInstances is = concat <$> traverse tupleInstances is
 
 tupleInstances :: Int -> Q [Dec]
 tupleInstances n = do
-  let vars = [ VarT . mkName $ "t_" ++ show i | i <- [0..n-1]]
+  let varNs = [ mkName $ "t_" ++ show i | i <- [0..n-1]]
+      vars = VarT <$> varNs
       m = VarT $ mkName "m"
 
       -- [''a,''b] -> ''(a,b)
@@ -70,15 +72,35 @@ tupleInstances n = do
       getStoreE = VarE getStoreN
       apN = mkName "<*>"
       apE = VarE apN
+      setStoreN = mkName "setStore"
+      setStoreE = VarE setStoreN
       hasI = InstanceD Nothing (hasT <$> vars) (hasT varTuple)
         [ FunD getStoreN
           [Clause [] (NormalB$ liftAll tuplE (replicate n getStoreE )) [] ]
         , PragmaD$ InlineP getStoreN Inline FunLike AllPhases
+        , FunD setStoreN
+          [Clause
+            [TupP (VarP <$> varNs)]
+            (NormalB $ DoE [NoBindS (AppE setStoreE (VarE varN)) | varN <- varNs])
+            []
+          ]
+        , PragmaD$ InlineP setStoreN Inline FunLike AllPhases
         ]
 
       liftAll f mas = foldl (\a x -> AppE (AppE apE a) x) (AppE (VarE (mkName "pure")) f) mas
       sequenceAll :: [Exp] -> Exp
-      sequenceAll = foldl1 (\a x -> AppE (AppE (VarE$ mkName ">>") a) x)
+      sequenceAll es = DoE $
+        [BindS (VarP name) e | (name, e) <- namedEs]
+        ++ [NoBindS $ AppE
+              (VarE (mkName "return"))
+#if MIN_VERSION_template_haskell(2,16,0)
+              (TupE (Just . VarE . fst <$> namedEs))
+#else
+              (TupE (VarE . fst <$> namedEs))
+#endif
+          ]
+        where
+          namedEs = zip (mkName . ("t_" ++) . show <$> [(1 :: Int)..]) es
 
       -- Elem
       elemN = mkName "Elem"

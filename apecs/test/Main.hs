@@ -12,6 +12,8 @@
 {-# OPTIONS_GHC -w #-}
 
 import           Control.Monad
+import           Control.Monad.IO.Class
+import           Data.Functor.Identity
 import qualified Data.IntSet                 as S
 import           Data.IORef
 import           Data.List                   (sort)
@@ -33,8 +35,8 @@ type Vec = (Double, Double)
 instance Arbitrary Entity where
   arbitrary = Entity . getNonNegative <$> arbitrary
 
-assertSys :: IO w -> System w Bool -> Property
-assertSys initW sys = monadicIO $ run (initW >>= runSystem sys) >>= assert
+assertSys :: IO w -> SystemT w IO Bool -> Property
+assertSys initW sys = monadicIO $ run (initW >>= runSystemM sys) >>= (assert . fst)
 
 genericSetGet :: forall w c.
   ( ExplGet IO (Storage c)
@@ -94,19 +96,19 @@ newtype MapInt = MapInt Int deriving (Eq, Show, Arbitrary)
 instance Component MapInt where type Storage MapInt = Map MapInt
 makeWorld "Simple" [''MapInt]
 
-prop_setGetMap = genericSetGet initSimple (undefined :: MapInt)
-prop_setSetMap = genericSetSet initSimple (undefined :: MapInt)
+prop_setGetMap = genericSetGet initSimpleM (undefined :: MapInt)
+prop_setSetMap = genericSetSet initSimpleM (undefined :: MapInt)
 
 -- Tests whether this is also true for caches
 newtype CacheInt = CacheInt Int deriving (Eq, Show, Arbitrary)
 instance Component CacheInt where type Storage CacheInt = Cache 2 (Map CacheInt)
 makeWorld "Cached" [''CacheInt]
 
-prop_setGetCache = genericSetGet initCached (undefined :: CacheInt)
-prop_setSetCache = genericSetSet initCached (undefined :: CacheInt)
+prop_setGetCache = genericSetGet initCachedM (undefined :: CacheInt)
+prop_setSetCache = genericSetSet initCachedM (undefined :: CacheInt)
 
 prop_cacheUnique :: [CacheInt] -> [Entity] -> [(Entity, CacheInt)] -> Property
-prop_cacheUnique eInit eDel eSet = assertSys initCached $ do
+prop_cacheUnique eInit eDel eSet = assertSys initCachedM $ do
   mapM newEntity eInit
   mapM (flip set (Not @CacheInt)) eDel
   mapM (uncurry set) eSet
@@ -123,8 +125,8 @@ instance Component T3 where type Storage T3 = Map T3
 
 makeWorld "Tuples" [''T1, ''T2, ''T3]
 
-prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
-prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
+prop_setGetTuple = genericSetGet initTuplesM (undefined :: (T1,T2,T3))
+prop_setSetTuple = genericSetSet initTuplesM (undefined :: (T1,T2,T3))
 
 -- Tests Reactive store properties
 newtype TestEnum = TestEnum Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
@@ -132,10 +134,10 @@ instance Component TestEnum where type Storage TestEnum = Reactive (EnumMap Test
 
 makeWorld "ReactiveWld" [''TestEnum]
 
-prop_setGetReactive = genericSetGet initReactiveWld (undefined :: TestEnum)
-prop_setSetReactive = genericSetSet initReactiveWld (undefined :: TestEnum)
+prop_setGetReactive = genericSetGet initReactiveWldM (undefined :: TestEnum)
+prop_setSetReactive = genericSetSet initReactiveWldM (undefined :: TestEnum)
 prop_lookupValid :: [(Entity, TestEnum)] -> [Entity] -> Property
-prop_lookupValid writes deletes = assertSys initReactiveWld $ do
+prop_lookupValid writes deletes = assertSys initReactiveWldM $ do
   forM_ writes  $ uncurry set
   forM_ deletes $ flip destroy (Proxy @TestEnum)
 
@@ -157,7 +159,7 @@ instance Component StackInt where type Storage StackInt = Pushdown Map StackInt
 
 makeWorld "StackWld" [''StackInt]
 
-prop_setGetStack = genericSetSet initStackWld (undefined :: StackInt)
+prop_setGetStack = genericSetSet initStackWldM (undefined :: StackInt)
 
 return []
 main = $quickCheckAll
