@@ -1,3 +1,7 @@
+## [0.4.6]
+### Changed
+- (#113) Ineffectual custom build removed from Setup.hs
+
 ## [0.4.5]
 ### Changed
 - (#78) Chipmunk bumped to `v7.0.3`, fixes the `sysctl.h` deprecation reported in #77
