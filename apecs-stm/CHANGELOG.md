@@ -1,3 +1,9 @@
+## [0.2]
+### Removed
+- Removed custom `EntityCounter`, `newEntity`, and `makeWorld`.
+### Changed
+- (#118) Use `makeWorld`, `EntityCounter` and entity functions from core.
+
 ## [0.1.5]
 ### Changed
 - Bumped the minimum apecs version to 0.9.3, since we need `makeMapComponentsFor`
