@@ -14,11 +14,10 @@
 import           Control.Monad
 import qualified Data.IntSet                 as S
 import           Data.IORef
-import           Data.List                   (sort)
+import           Data.List                   ((\\), nub, sort)
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
-import           Data.List (nub)
 
 import           Apecs
 import           Apecs.Core
@@ -150,6 +149,30 @@ prop_lookupValid writes deletes = assertSys initReactiveWld $ do
          && sort rf == sort ef
          && all (`notElem` ef) et
          )
+
+-- Tests Reactive component counting
+newtype TestCount = TestCount Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
+instance Component TestCount where type Storage TestCount = Reactive (ComponentCounter TestCount) (Map TestCount)
+
+makeWorld "ReactiveCountWld" [''TestCount]
+
+prop_setGetReactiveCount = genericSetGet initReactiveCountWld (undefined :: TestCount)
+prop_setSetReactiveCount = genericSetSet initReactiveCountWld (undefined :: TestCount)
+prop_reactiveCounts :: [(Entity, TestCount)] -> [Entity] -> Property
+prop_reactiveCounts writes deletes = assertSys initReactiveCountWld $ do
+  forM_ writes  $ uncurry set
+  forM_ deletes $ flip destroy (Proxy @TestCount)
+
+  count <- withReactive $ readComponentCount @TestCount
+
+  return $ count == ComponentCount
+    { componentCountCurrent = length existingEnts
+    , componentCountMax = length writeEnts
+    }
+  where
+  existingEnts = writeEnts \\ deleteEnts
+  writeEnts = nub $ sort $ fst <$> writes
+  deleteEnts = nub $ sort deletes
 
 -- Tests Pushdown
 newtype StackInt = StackInt Int deriving (Eq, Show, Arbitrary)
