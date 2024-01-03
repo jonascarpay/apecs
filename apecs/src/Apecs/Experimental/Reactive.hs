@@ -8,7 +8,7 @@ Adds the @Reactive r s@ store, which when wrapped around store @s@, will call th
 @Show c => Reactive (Printer c) (Map c)@ will print a message every time a @c@ value is set.
 
 @Enum c => Reactive (EnumMap c) (Map c)@ allows you to look up entities by component value.
-Use e.g. @rget >>= mapLookup True@ to retrieve a list of entities that have a @True@ component.
+Use e.g. @withReactive $ enumLookup True@ to retrieve a list of entities that have a @True@ component.
 
 -}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -107,7 +107,7 @@ instance (MonadIO m, Show c) => Reacts m (Printer c) where
   react _ _ _ _ = return ()
 
 -- | Allows you to look up entities by component value.
---   Use e.g. @withReactive $ mapLookup True@ to retrieve a list of entities that have a @True@ component.
+--   Use e.g. @withReactive $ enumLookup True@ to retrieve a list of entities that have a @True@ component.
 --   Based on an @IntMap IntSet@ internally.
 newtype EnumMap c = EnumMap (IORef (IM.IntMap S.IntSet))
 
