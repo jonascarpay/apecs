@@ -20,6 +20,7 @@ Use e.g. @rget >>= mapLookup True@ to retrieve a list of entities that have a @T
 
 module Apecs.Experimental.Reactive
   ( Reacts (..), Reactive, withReactive
+  , Printer
   , EnumMap, enumLookup
   , OrdMap, ordLookup
   , IxMap, ixLookup
