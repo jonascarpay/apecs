@@ -10,6 +10,11 @@ Adds the @Reactive r s@ store, which when wrapped around store @s@, will call th
 @Enum c => Reactive (EnumMap c) (Map c)@ allows you to look up entities by component value.
 Use e.g. @withReactive $ enumLookup True@ to retrieve a list of entities that have a @True@ component.
 
+@Reactive (ComponentCounter c) (Map c)@ tracks the current and max counts of entities with a particular
+component. Among other things, the max count can be useful in deciding on @Cache@ sizing and the current
+count can be useful for debugging entity lifecycles. To retrieve the counts, use
+@withReactive readComponentCount@.
+
 -}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -24,6 +29,7 @@ module Apecs.Experimental.Reactive
   , EnumMap, enumLookup
   , OrdMap, ordLookup
   , IxMap, ixLookup
+  , ComponentCounter, readComponentCount, ComponentCount(..)
   ) where
 
 import           Control.Monad
@@ -181,3 +187,58 @@ instance (MonadIO m, Ix c, Bounded c) => Reacts m (IxMap c) where
 ixLookup :: (MonadIO m, Ix c) => c -> IxMap c -> m [Entity]
 ixLookup c = \(IxMap ref) -> do
   liftIO $ fmap Entity . S.toList <$> A.readArray ref c
+
+-- | Tracks current and max counts of entities with a particular 'Component'.
+--
+-- Note that if this is used in conjunction with a @Global@ store, produced
+-- counts will always be 0.
+newtype ComponentCounter c = ComponentCounter (IORef (ComponentCount c))
+
+type instance Elem (ComponentCounter c) = c
+
+-- | A snapshot of the current and max counts of entities with a particular
+-- 'Component'.
+--
+-- Produced via 'readComponentCount'.
+data ComponentCount c = ComponentCount
+  { componentCountCurrent :: !Int
+    -- ^ Represents how many entities existed with the 'Component' assigned at
+    -- the time the snapshot was produced.
+  , componentCountMax :: !Int
+    -- ^ Represents the max number of entities with the 'Component' assigned
+    -- that coexisted, as observed at any point between system initialization
+    -- and the time the snapshot was produced.
+  } deriving (Eq, Show)
+
+instance MonadIO m => Reacts m (ComponentCounter c) where
+  {-# INLINE rempty #-}
+  rempty = liftIO $ ComponentCounter <$> newIORef ComponentCount
+    { componentCountCurrent = 0
+    , componentCountMax = 0
+    }
+
+  {-# INLINE react #-}
+  react _ent mOld mNew (ComponentCounter ref) =
+    case (mOld, mNew) of
+      (Nothing, Just {}) -> go 1
+      (Just {}, Nothing) -> go (-1)
+      _ignored -> pure ()
+    where
+    go :: Int -> m ()
+    go i =
+      liftIO $ atomicModifyIORef' ref $ \cc ->
+        let cur = componentCountCurrent cc + i
+         in ( cc
+                { componentCountCurrent = cur
+                , componentCountMax = max cur $ componentCountMax cc
+                }
+            , ()
+            )
+
+{-# INLINE readComponentCount #-}
+readComponentCount
+  :: forall c m
+   . MonadIO m
+  => ComponentCounter c
+  -> m (ComponentCount c)
+readComponentCount (ComponentCounter ref) = liftIO $ readIORef ref
