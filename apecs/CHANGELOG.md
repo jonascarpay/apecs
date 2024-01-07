@@ -1,3 +1,12 @@
+## [0.9.6]
+### Changed
+- (#117) Fix TH symbol leaking, fixing (#116)
+- (#121) Properly `Printer` from Apecs.Experimental.Reactive
+- (#121) Fix haddocks for `Reactive`
+### Added
+- (#121) `ComponentCounter`
+- (#123) SystemT `MonadUnliftIO` instance
+
 ## [0.9.5]
 ### Added
 - (#99) `collect`
