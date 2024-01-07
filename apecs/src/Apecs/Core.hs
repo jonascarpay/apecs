@@ -13,6 +13,7 @@ module Apecs.Core where
 
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
+import           Control.Monad.IO.Unlift
 import           Control.Monad.Reader
 import qualified Data.Vector.Unboxed  as U
 
@@ -28,7 +29,7 @@ newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show, Enum)
 --   * Allow type-based lookup of a component's store through @getStore@.
 --
 --   * Lift side effects into their host Monad.
-newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO, MonadThrow, MonadCatch, MonadMask)
+newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadUnliftIO)
 type System w a = SystemT w IO a
 
 deriving instance Monad m => MonadReader w (SystemT w m)
