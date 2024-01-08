@@ -60,7 +60,7 @@ instance MonadIO m => ExplSet m (Map c) where
 instance MonadIO m => ExplDestroy m (Map c) where
   {-# INLINE explDestroy #-}
   explDestroy (Map ref) ety = liftIO$
-    readIORef ref >>= writeIORef ref . M.delete ety
+    modifyIORef' ref (M.delete ety)
 
 instance MonadIO m => ExplMembers m (Map c) where
   {-# INLINE explMembers #-}
