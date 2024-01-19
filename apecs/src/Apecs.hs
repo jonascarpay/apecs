@@ -15,7 +15,7 @@ module Apecs (
     get, set, ($=),
     destroy, exists,
     modify, ($~),
-    cmap,  cmapM,  cmapM_,
+    cmap, cmapIf, cmapM, cmapM_,
     cfold, cfoldM, cfoldM_, collect,
 
   -- * Other
