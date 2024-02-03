@@ -266,6 +266,50 @@ instance MonadIO m => ExplGet m (Space Force) where
     Just (BodyRecord b _ _ _) <- M.lookup ety <$> readIORef bMap
     Force <$> getForce b
 
+-- LocalForce
+applyForceAtLocalPoint :: Ptr Body -> Vec -> BVec -> IO ()
+applyForceAtLocalPoint bodyPtr force bPos  = [C.block| void {
+  const cpVect frc = { $(double fx), $(double fy) };
+  const cpVect pos = { $(double px), $(double py) };
+  cpBodyApplyForceAtLocalPoint($(cpBody* bodyPtr), frc, pos);
+  } |]
+  where
+  V2 (realToFrac -> fx) (realToFrac -> fy) = force
+  V2 (realToFrac -> px) (realToFrac -> py) = bPos
+
+instance Component LocalForce where
+  type Storage LocalForce = Space LocalForce
+
+instance (MonadIO m, Has w m Physics) => Has w m LocalForce where
+  getStore = (cast :: Space Physics -> Space LocalForce) <$> getStore
+
+instance MonadIO m => ExplSet m (Space LocalForce) where
+  explSet (Space bMap _ _ _ _) ety (LocalForce frc bPos) = liftIO $ do
+    rd <- M.lookup ety <$> readIORef bMap
+    forM_ rd$ \(BodyRecord b _ _ _) -> applyForceAtLocalPoint b frc bPos
+
+-- WorldForce
+applyForceAtWorldPoint :: Ptr Body -> Vec -> WVec -> IO ()
+applyForceAtWorldPoint bodyPtr force wPos  = [C.block| void {
+  const cpVect frc = { $(double fx), $(double fy) };
+  const cpVect pos = { $(double px), $(double py) };
+  cpBodyApplyForceAtWorldPoint($(cpBody* bodyPtr), frc, pos);
+  } |]
+  where
+  V2 (realToFrac -> fx) (realToFrac -> fy) = force
+  V2 (realToFrac -> px) (realToFrac -> py) = wPos
+
+instance Component WorldForce where
+  type Storage WorldForce = Space WorldForce
+
+instance (MonadIO m, Has w m Physics) => Has w m WorldForce where
+  getStore = (cast :: Space Physics -> Space WorldForce) <$> getStore
+
+instance MonadIO m => ExplSet m (Space WorldForce) where
+  explSet (Space bMap _ _ _ _) ety (WorldForce frc wPos) = liftIO $ do
+    rd <- M.lookup ety <$> readIORef bMap
+    forM_ rd$ \(BodyRecord b _ _ _) -> applyForceAtWorldPoint b frc wPos
+
 -- BodyMass
 getBodyMass :: Ptr Body -> IO Double
 getBodyMass bodyPtr = do
