@@ -12,7 +12,7 @@ module Apecs.Physics (
 
   -- * Body
   -- $BODY
-  Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..),
+  Body (..), Position (..), Velocity (..), Angle (..), AngularVelocity (..), Force (..), LocalForce(..), WorldForce(..),
   BodyMass (..), Moment (..), CenterOfGravity (..), Torque (..), ShapeList (..), ConstraintList (..),
 
   -- * Shape

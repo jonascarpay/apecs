@@ -69,11 +69,31 @@ data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 newtype Position        = Position WVec
 -- | A subcomponent of @Body@ representing where it is going in world coordinates
 newtype Velocity        = Velocity WVec
--- | A component used to apply a force to a @Body@.
+-- | A component used to /set/ a force on a @Body@.
 -- The force is applied to the body's center of gravity.
--- This component is reset to @ Vec 0 0 @ after every stimulation step, 
--- so it is mainly used to apply a force as opposed to being read.
+-- This component is reset to @ Vec 0 0 @ after every simulation step,
+-- so it is mainly used to set a "lump-sum" force as opposed to being read.
+--
+-- Setting the force on a body via this component is /not/ additive. If you
+-- need to add multiple forces to a body within a single step of your game
+-- logic, use 'LocalForce' or 'WorldForce' instead.
 newtype Force           = Force Vec
+-- | A component used to /add/ a local force to a @Body@ as if applied from the
+-- provided body-local point.
+--
+-- Applying a force to a body via this component is additive. You may use this
+-- component (and 'WorldForce') to add multiple forces to a body between
+-- simulation steps. This component may not be read, but you may read the
+-- 'Force' component to get the total force on the body.
+data LocalForce         = LocalForce !Vec !BVec
+-- | A component used to /add/ a force to a @Body@ as if applied from the provided
+-- world point.
+--
+-- Applying a force to a body via this component is additive. You may use this
+-- component (and 'LocalForce') to add multiple forces to a body between
+-- simulation steps. This component may not be read, but you may read the
+-- 'Force' component to get the total force on the body.
+data WorldForce         = WorldForce !Vec !WVec
 -- | A component used to apply a torque to a @Body@.
 -- The torque is applied to the entire body at once.
 -- This component is reset to @ 0 @ after every simulation step, so it
@@ -105,7 +125,7 @@ data Convex = Convex [BVec] Double deriving (Eq, Show)
 
 -- | If a body is a 'Sensor', it exists only to trigger collision responses.
 -- It won't phyiscally interact with other bodies in any way, but it __will__
--- cause collision handlers to run. 
+-- cause collision handlers to run.
 newtype Sensor          = Sensor          Bool       deriving (Eq, Show)
 -- | The elasticity of a shape. Higher elasticities will create more
 -- elastic collisions, IE, will be bouncier.
@@ -116,14 +136,14 @@ newtype Elasticity      = Elasticity      Double     deriving (Eq, Show)
 -- being accelerated, but it's generally easier to understand it as being how "heavy" something is.
 --
 -- The physics engine lets you set this, and it will calculate the 'Density' and other components
--- for you. 
+-- for you.
 --
 -- See <https://en.wikipedia.org/wiki/Mass> for more information.
 newtype Mass            = Mass            Double     deriving (Eq, Show)
 -- | The density of a shape is a measure of how much mass an object has in a given volume.
--- 
+--
 -- The physics engine lets you set this, and it will calculate the 'Mass' and other components for you.
--- 
+--
 -- See <https://en.wikipedia.org/wiki/Density> for more information.
 newtype Density         = Density         Double     deriving (Eq, Show)
 -- | The friction of an object is a measure of how much it resists movement.
