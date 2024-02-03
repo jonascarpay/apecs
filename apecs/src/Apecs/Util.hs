@@ -64,5 +64,5 @@ newEntity_ component = do
   set entity component
 
 -- | Explicitly invoke the garbage collector
-runGC :: System w ()
-runGC = lift performMajorGC
+runGC :: MonadIO m => SystemT w m ()
+runGC = liftIO performMajorGC
