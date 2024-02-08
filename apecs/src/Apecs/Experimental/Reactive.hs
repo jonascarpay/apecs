@@ -22,6 +22,7 @@ count can be useful for debugging entity lifecycles. To retrieve the counts, use
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
 module Apecs.Experimental.Reactive
   ( Reacts (..), Reactive, withReactive
