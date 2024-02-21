@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
@@ -11,16 +12,20 @@
 
 {-# OPTIONS_GHC -w #-}
 
+import qualified Control.Exception           as E
 import           Control.Monad
+import qualified Data.Foldable               as F
 import qualified Data.IntSet                 as S
 import           Data.IORef
-import           Data.List                   ((\\), nub, sort)
+import           Data.List                   ((\\), delete, nub, sort)
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
+import           Text.Printf                 (printf)
 
 import           Apecs
 import           Apecs.Core
+import           Apecs.Experimental.Children
 import           Apecs.Experimental.Reactive
 import           Apecs.Experimental.Stores
 import           Apecs.Stores
@@ -181,6 +186,98 @@ instance Component StackInt where type Storage StackInt = Pushdown Map StackInt
 makeWorld "StackWld" [''StackInt]
 
 prop_setGetStack = genericSetSet initStackWld (undefined :: StackInt)
+
+-- Tests Child
+type ChildT2 = Child T2
+makeWorld "ChildTest" [''T1, ''ChildT2]
+
+prop_setGetChild = genericSetGet initChildTest (undefined :: (T1, Child T2))
+prop_setSetChild = genericSetSet initChildTest (undefined :: (T1, Child T2))
+-- | This instance is only for the generic tests. It hard-codes each generated
+-- @Child T2@ component value with the global entity as the parent.
+instance Arbitrary (Child T2) where
+  arbitrary = Child <$> pure global <*> arbitrary
+
+data ChildrenEx = ChildrenEx String deriving (Show)
+instance E.Exception ChildrenEx
+prop_children :: NonEmptyList (T1, NonEmptyList T2) -> Property
+prop_children (NonEmpty writes) = assertSys initChildTest $ do
+  forM_ writes $ \(t1, NonEmpty t2s) -> do
+    -- Create a parent entity with the T1 component value.
+    parent <- newEntity t1
+    -- Create child entities with the T2 component values.
+    children <- fmap mconcat $ forM t2s $ \t2 -> do
+      child <- newEntity $ Child parent t2
+      pure [child]
+    -- For each child entity, check that we can fetch it, its parent is
+    -- correct, and its component value is good.
+    forM_ children $ \child -> do
+      Child p t2 :: Child T2 <- get child
+      unless (p == parent) $ do
+        liftIO $ E.throwIO $ ChildrenEx $
+          printf "Child entity %d's parent of %d does not match set parent of %d"
+            (unEntity child)
+            (unEntity p)
+            (unEntity parent)
+      unless (t2 `elem` t2s) $ do
+        liftIO $ E.throwIO $ ChildrenEx $
+          printf
+            "Child entity %d's component value of %s is not present in the input %s"
+            (unEntity child)
+            (show t2)
+            (show t2s)
+    -- Fetch the child entity list from the parent entity and check its validity.
+    ChildList children' :: ChildList T2 <- get parent
+    unless (sort children == sort (F.toList children')) $ do
+      liftIO $ E.throwIO $ ChildrenEx $
+        printf
+          "Mismatch between fetched child list (%s) and created child entities (%s)"
+          (show $ sort $ F.toList children')
+          (show $ sort children)
+    -- Reparent the first child entity in this group to be under the global entity.
+    let child1 = head children
+    modify child1 $ \(ChildValue t2) -> Child @T2 global t2
+    -- Check that the first child entity's parent was actually updated.
+    Child child1Parent child1T2 :: Child T2 <- get child1
+    unless (child1Parent == global) $ do
+      liftIO $ E.throwIO $ ChildrenEx $
+        printf
+          "Reparented child entity %d should have been under global entity but is under %d"
+          (unEntity child1)
+          (unEntity child1Parent)
+    -- Check that the original parent no longer sees the reparented child as
+    -- its own child.
+    get parent >>= \case
+      Nothing -> pure () -- Parent only had 1 child, and this child just reparented.
+      Just (ChildList children'' :: ChildList T2) -> do
+        unless (sort (delete child1 children) == sort (F.toList children'')) $ do
+          liftIO $ E.throwIO $ ChildrenEx $
+            printf
+              "Mismatch between fetched child list (%s) and modified child entities (%s)"
+              (show $ sort $ F.toList children'')
+              (show $ sort children)
+
+  -- Check that the global entity's children have component values aligning
+  -- with the first T2 value in each group of the input list, as the first
+  -- child of each group was previously reparented to be under the global
+  -- entity.
+  ChildList children :: ChildList T2 <- get global
+  forM_ (zip (sort $ F.toList children) $ fmap (head . getNonEmpty . snd) writes) $ \(child, expT2) -> do
+    ChildValue t2 :: ChildValue T2 <- get child
+    unless (t2 == expT2) $ do
+      liftIO $ E.throwIO $ ChildrenEx $
+        "Child component value mismatch within those entities reparented under the global entity"
+
+  -- Check that a cascading destroy works.
+  destroy global $ Proxy @(ChildList T2)
+  get global >>= \case
+    Nothing -> pure () -- Expected case - there's no child list as they were all just destroyed.
+    Just (ChildList children' :: ChildList T2) -> do
+      liftIO $ E.throwIO $ ChildrenEx $
+        printf "Left over child entities (%s) after cascade destroy on the global entity"
+          (show $ F.toList children')
+
+  return True
 
 return []
 main = $quickCheckAll

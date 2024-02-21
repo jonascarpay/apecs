@@ -68,3 +68,12 @@ executable constraints
     , gloss
 
   default-language: Haskell2010
+
+executable children
+  main-is:          Children.hs
+  build-depends:
+      apecs
+    , base    >=4.9 && <5
+    , linear
+
+  default-language: Haskell2010
