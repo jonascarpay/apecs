@@ -27,6 +27,7 @@ library
     Apecs.Components
     Apecs.Core
     Apecs.Experimental.Components
+    Apecs.Experimental.Children
     Apecs.Experimental.Reactive
     Apecs.Experimental.Stores
     Apecs.Experimental.Util
