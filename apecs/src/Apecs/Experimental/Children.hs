@@ -11,7 +11,6 @@ This module is experimental, and its API might change between point releases. Us
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE StandaloneKindSignatures   #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -33,7 +32,6 @@ import Data.Foldable (for_)
 import Data.IORef (IORef)
 import Data.IntMap.Strict (IntMap)
 import Data.IntSet (IntSet)
-import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Type.Reflection (TypeRep, Typeable, typeRep)
 
@@ -74,7 +72,6 @@ import qualified Data.Vector.Unboxed as U
 -- result in runtime errors. Raw use of 'Apecs.System.get' is inherently
 -- dangerous and its risk is not specific to the behavior provided by
 -- this module.
-type Child :: Type -> Type
 data Child c = Child !Entity !c deriving (Eq, Show)
 instance Component c => Component (Child c) where
   type Storage (Child c) = Children (Storage c)
@@ -86,7 +83,6 @@ instance Component c => Component (Child c) where
 -- treated as a child component, they declare their component when building
 -- their world as type @Child Foo@. This will cause the @Children@ store wrapper
 -- to be used via the @Storage@/@Elem@ type relation.
-type Children :: Type -> Type
 data Children s = Children
   { childrenParentToChildren :: !(IORef (IntMap IntSet))
   , childrenChildToParent :: !(IORef (IntMap Int))
@@ -180,12 +176,10 @@ instance (MonadIO m, ExplDestroy m s) => ExplDestroy m (Children s) where
 --
 -- For best performance, you should prefer 'ChildValue' over 'Child' if your
 -- system is iterating over children and does not need the parent entities.
-type ChildValue :: Type -> Type
 newtype ChildValue c = ChildValue c deriving (Eq, Show)
 instance Component c => Component (ChildValue c) where
   type Storage (ChildValue c) = ChildValueStore (Storage c)
 
-type ChildValueStore :: Type -> Type
 newtype ChildValueStore s = ChildValueStore (Children s)
 type instance Elem (ChildValueStore s) = ChildValue (Elem s)
 
@@ -225,12 +219,10 @@ instance ExplGet m s => ExplGet m (ChildValueStore s) where
 -- > ChildList children :: ChildList Hitbox <- get player1
 -- > for_ children \child -> do
 -- >   destroy child $ Proxy @ComponentsToDestroy
-type ChildList :: Type -> Type
 newtype ChildList c = ChildList (NonEmpty Entity) deriving (Eq, Show)
 instance Component c => Component (ChildList c) where
   type Storage (ChildList c) = ChildListStore (Storage c)
 
-type ChildListStore :: Type -> Type
 newtype ChildListStore s = ChildListStore (Children s)
 type instance Elem (ChildListStore s) = ChildList (Elem s)
 
