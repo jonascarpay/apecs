@@ -1,7 +1,38 @@
 {-|
 Stability: experimental
 
-This module is experimental, and its API might change between point releases. Use at your own risk.
+This module is experimental, and its API might change between point releases.
+Use at your own risk.
+
+The default relation between an entity and a component value is one to zero
+or one. The entity may or may not have a value for the component, but if the
+component value exists, it belongs to an entity. This module enables setting
+multiple "child" component values rooted under the same "parent" entity,
+providing a one to many relation: the parent entity has zero or more child
+values of the component type. Concretely, these component values are of type
+'Child' @c@, belong to their own separate entities, and are explicitly linked
+to the parent entity.
+
+Ad-hoc child relationships may be established without using this module by
+including a parent 'Entity' in your component's type, but this is limiting in
+regards to traversing the relationship. Systems concerned with the relationship
+may only start from the child entities' component(s) and then fetch the parent
+entity's component(s). By expressing the relationship using this module, you get
+support for iteration over the parent-child relationship in whichever way is
+more convenient for your systems, i.e. you can map over child entities using the
+'Child' component then fetch the child entity's parent component(s) as needed,
+or you can map over the parent entities' 'ChildList' component then fetch the
+child entities' component(s) as needed.
+
+Some example use cases for this module:
+
+- Parent entity has a position defined in world space and child entities have
+data relative to the parent's position e.g. hitboxes, sprite animations, etc.
+- Parent entity is a leader and child entities are squad members e.g. a
+necromancer can summon skeletons
+
+For an introduction to using this module, see the [associated
+example](https://github.com/jonascarpay/apecs/tree/master/examples/Children.hs).
 -}
 
 {-# LANGUAGE FlexibleContexts           #-}
@@ -16,12 +47,9 @@ This module is experimental, and its API might change between point releases. Us
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Apecs.Experimental.Children
-  ( -- * Synopsis
-    -- $synopsis
-
-    -- ** Component
+  ( -- * Component
     Child(..)
-    -- ** Pseudocomponents
+    -- * Pseudocomponents
   , ChildValue(..)
   , ChildList(..)
   ) where
@@ -217,7 +245,7 @@ instance ExplGet m s => ExplGet m (ChildValueStore s) where
 -- all components on the children explicitly, e.g.:
 --
 -- > ChildList children :: ChildList Hitbox <- get player1
--- > for_ children \child -> do
+-- > for_ children $ \child -> do
 -- >   destroy child $ Proxy @ComponentsToDestroy
 newtype ChildList c = ChildList (NonEmpty Entity) deriving (Eq, Show)
 instance Component c => Component (ChildList c) where
@@ -278,17 +306,3 @@ parentNotFound tyRep ety =
     , "for child entity"
     , show ety
     ]
-
--- $synopsis
---
--- For an introduction to using this module, see the [associated
--- example](https://github.com/jonascarpay/apecs/tree/master/examples/Children.hs).
---
--- The default relation between an entity and a component value is one to zero
--- or one. The entity may or may not have a value for the component, but if the
--- component value exists, it belongs to an entity. This module enables setting
--- multiple "child" component values rooted under the same "parent" entity,
--- providing a one to many relation: the parent entity has zero or more child
--- values of the component type. Concretely, these component values are of type
--- 'Child' @c@, belong to their own separate entities, and are explicitly linked
--- to the parent entity.
