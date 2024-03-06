@@ -39,23 +39,20 @@ import           Apecs.Stores
 import           Apecs.System
 import           Apecs.TH
 import           Apecs.Util
-
 -- $performance
---
--- As seen above, @apecs@ includes a small set of combinators that enable
--- mapping/folding over components. Consider a simple 2D rendering system built
--- on top of `cmapM_`:
---
+-- 
+-- When using 'cmap' or 'cfold' over a tuple of components, keep in mind the ordering of the tuple can have performance implications!
+-- For tuples, the way the 'cmap' and 'cfold' work under the hood is by iterating over the component in the first position, and then for each entity that has that component, checking whether the entity also has the components in the remaining positions.
+-- Therefore, the first component will typically be the most determining factor for performance, and a good rule of thumb is to, __when iterating over a tuple, put the rarest component in first position__.
+-- 
+-- Let's take a look at an example.
+-- Consider a simple 2D rendering system built on top of `cmapM_`:
+-- 
 -- @
 -- 'cmapM_' '$' \\(Sprite sprite, Visible) -> do
 --   renderSprite sprite
 -- @
---
--- This will call 'renderSprite' for all entities that have both a @Sprite@
--- component and a @Visible@ component. The @Visible@ component here is a tag
--- assigned by some other system that indicates which entities are visible to
--- the game's camera.
---
+-- 
 -- While this rendering system works, it could be made more efficient by
 -- leveraging knowledge of how the library handles reading of tupled components.
 -- The usage of 'cmapM_' here (or any of the other map/fold functions) will
@@ -63,26 +60,15 @@ import           Apecs.Util
 -- these entities that do not have a @Visible@ component. Depending on the game,
 -- it is reasonable to assume that there are more sprites active in the game's
 -- world than sprites that are visible to the game's camera.
---
+-- 
 -- Swapping the component ordering in the tuple is likely to be more efficient:
---
+-- 
 -- @
 -- 'cmapM_' '$' \\(Visible, Sprite sprite) -> do
 --   renderSprite sprite
 -- @
---
+-- 
 -- Now the system iterates over just those entities that are visible to the
 -- game's camera and filters out any that do not have a @Sprite@ component.
---
--- __ When using the map or fold functions over composite components, aim    __
--- __ for placing the component that rules out the most entities the fastest __
--- __ into the first slot of the tuple. The ordering of the remaining        __
--- __ components in the tuple is irrelevant.                                 __
---
--- Note that it is not guaranteed that the component with the smallest positive
--- cardinality will rule out the most entities the fastest, as the speed of
--- iteration/filtering is driven by the data structures used by each component's
--- underlying store. You can use the notion of "smallest cardinality first" as a
--- starting point for component ordering, but if you need to eke out more
--- performance from the library, you will want to benchmark and consider the
--- underlying store types in the context of your game.
+-- 
+-- While putting the rarest component first is an excellent rule of thumb, to get the best possible performance, always consider how maps and folds are executed under the hood, and how you can order your components to optimize that process.
