@@ -1,3 +1,21 @@
+## [0.9.6]
+### Changed
+- (#110) Relax upper bound on `mtl`: 2.3 -> 2.4
+- (#117) Fix TH symbol leaking, fixing (#116)
+- (#121) Properly export `Printer` from `Apecs.Experimental.Reactive`
+- (#121) Fix haddocks for `Apecs.Experimental.Reactive`
+- (#125) Force `IntMap` in `ExplDestroy` instance for `Map`
+- (#128) Use `SystemT` instead of `System` in `runGC` type signature
+- (#131) Enable `-XTypeOperators` to prevent GHC warnings
+### Added
+- (#121) `ComponentCounter`
+- (#123) `SystemT` `MonadUnliftIO` instance
+- (#126) Export `cmapIf` from main `Apecs` module
+- (#130) Docs for performance considerations when reading composite components 
+- (#132) `Apecs.Experimental.Children`
+### Removed
+- (#112) Custom setup for C sources
+
 ## [0.9.5]
 ### Added
 - (#99) `collect`
