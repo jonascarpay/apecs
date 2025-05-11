@@ -6,8 +6,8 @@ module Apecs.STM.Prelude
   , module Apecs
   ) where
 
-import           Apecs     hiding (Global, Map, System, Unique,
-                            makeWorldAndComponents)
+import           Apecs     hiding (EntityCounter, Global, Map, System, Unique,
+                            makeWorld, makeWorldAndComponents, newEntity)
 import           Apecs.STM
 
 type System w a = SystemT w STM a

@@ -16,8 +16,10 @@ module Apecs.STM
     Map (..)
   , Unique (..)
   , Global (..)
+    -- * EntityCounter
+  , EntityCounter (..)
+  , nextEntity, newEntity, makeWorld, makeWorldAndComponents
     -- * STM conveniences
-  , makeWorldAndComponents
   , atomically, retry, check, forkSys, threadDelay, STM
   ) where
 
@@ -27,15 +29,18 @@ import qualified Control.Concurrent.STM      as S
 import           Control.Concurrent.STM.TVar as S
 import           Control.Monad
 import           Data.Maybe
+import           Data.Monoid                 (Sum (..))
+import           Data.Semigroup
 import           Data.Typeable (Typeable, typeRep)
 import qualified Data.Vector.Unboxed         as U
 import           Language.Haskell.TH
 import qualified ListT                       as L
 import qualified StmContainers.Map           as M
 
-import           Apecs                       (ask, lift, liftIO, runSystem)
+import           Apecs                       (ask, get, global, lift, liftIO,
+                                              runSystem, set)
 import           Apecs.Core
-import           Apecs.TH                    (makeWorld, makeMapComponentsFor)
+import           Apecs.TH                    (makeWorldNoEC, makeMapComponentsFor)
 
 newtype Map c = Map (M.Map Int c)
 type instance Elem (Map c) = c
@@ -158,7 +163,29 @@ instance ExplSet IO (Global c) where
   {-# INLINE explSet #-}
   explSet m e x = S.atomically $ explSet m e x
 
--- | Like @makeWorldAndComponents@ from @Apecs@, but uses the STM 'Map'
+newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
+
+instance Component EntityCounter where
+  type Storage EntityCounter = Global EntityCounter
+
+{-# INLINE nextEntity #-}
+nextEntity :: (Get w m EntityCounter, Set w m EntityCounter) => SystemT w m Entity
+nextEntity = do EntityCounter n <- get global
+                set global (EntityCounter $ n+1)
+                return (Entity . getSum $ n)
+
+{-# INLINE newEntity #-}
+newEntity :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
+          => c -> SystemT w m Entity
+newEntity c = do ety <- nextEntity
+                 set ety c
+                 return ety
+
+-- | Like @makeWorld@ from @Apecs@, but uses the STM @EntityCounter@
+makeWorld :: String -> [Name] -> Q [Dec]
+makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])
+
+-- | Like @makeWorldAndComponents@ from @Apecs@, but uses the STM @EntityCounter@ and the STM @Map@
 makeWorldAndComponents :: String -> [Name] -> Q [Dec]
 makeWorldAndComponents worldName cTypes = do
   wdecls <- makeWorld worldName cTypes
