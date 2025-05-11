@@ -18,7 +18,7 @@ module Apecs.STM
   , Global (..)
     -- * EntityCounter
   , EntityCounter (..)
-  , nextEntity, newEntity, makeWorld, makeWorldAndComponents
+  , nextEntity, newEntity, newEntity_, makeWorld, makeWorldAndComponents
     -- * STM conveniences
   , atomically, retry, check, forkSys, threadDelay, STM
   ) where
@@ -180,6 +180,12 @@ newEntity :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
 newEntity c = do ety <- nextEntity
                  set ety c
                  return ety
+
+{-# INLINE newEntity_ #-}
+newEntity_ :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
+          => c -> SystemT w m ()
+newEntity_ c = do ety <- nextEntity
+                  set ety c
 
 -- | Like @makeWorld@ from @Apecs@, but uses the STM @EntityCounter@
 makeWorld :: String -> [Name] -> Q [Dec]

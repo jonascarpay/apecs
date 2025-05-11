@@ -1,3 +1,10 @@
+## [0.3]
+
+Reverting the 0.2 changes around `EntityCounter` and taking the codebase back to the 0.1.5 state.
+
+### Added
+- `newEntity_`, an STM counterpart of IO `newEntity_`.
+
 ## [0.2]
 ### Removed
 - Removed custom `EntityCounter`, `newEntity`, and `makeWorld`.
