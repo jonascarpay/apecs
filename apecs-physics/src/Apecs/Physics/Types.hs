@@ -123,7 +123,7 @@ data Shape = Shape Entity Convex
 --   Consists of a list of vertices, and a radius.
 data Convex = Convex [BVec] Double deriving (Eq, Show)
 
--- | If a body is a 'Sensor', it exists only to trigger collision responses.
+-- | If a shape is a 'Sensor', it exists only to trigger collision responses.
 -- It won't phyiscally interact with other bodies in any way, but it __will__
 -- cause collision handlers to run.
 newtype Sensor          = Sensor          Bool       deriving (Eq, Show)
