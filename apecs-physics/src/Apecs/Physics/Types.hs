@@ -38,15 +38,16 @@ phycsCtx = baseCtx <> funCtx <> ctx
 
 phycsTypesTable :: Map.Map C.TypeSpecifier TH.TypeQ
 phycsTypesTable = Map.fromList
-  [ (C.TypeName "cpArbiter",          [t| Collision        |])
-  , (C.TypeName "cpBody",             [t| Body             |])
-  , (C.TypeName "cpCollisionHandler", [t| CollisionHandler |])
-  , (C.TypeName "cpConstraint",       [t| Constraint       |])
-  , (C.TypeName "cpDataPointer",      [t| C.CUInt          |])
-  , (C.TypeName "cpShape",            [t| Shape            |])
-  , (C.TypeName "cpPointQueryInfo",   [t| PointQueryResult |])
-  , (C.TypeName "cpVect",             [t| V2 C.CDouble     |])
-  , (C.TypeName "cpSpace",            [t| FrnSpace         |])
+  [ (C.TypeName "cpArbiter",          [t| Collision          |])
+  , (C.TypeName "cpBody",             [t| Body               |])
+  , (C.TypeName "cpCollisionHandler", [t| CollisionHandler   |])
+  , (C.TypeName "cpConstraint",       [t| Constraint         |])
+  , (C.TypeName "cpDataPointer",      [t| C.CUInt            |])
+  , (C.TypeName "cpShape",            [t| Shape              |])
+  , (C.TypeName "cpPointQueryInfo",   [t| PointQueryResult   |])
+  , (C.TypeName "cpSegmentQueryInfo", [t| SegmentQueryResult |])
+  , (C.TypeName "cpVect",             [t| V2 C.CDouble       |])
+  , (C.TypeName "cpSpace",            [t| FrnSpace           |])
   ]
 
 -- | Uninhabited, should be added to the world as a component to add a physics space.
@@ -312,17 +313,6 @@ data CollisionProperties = CollisionProperties
   , collisionSurfaceVelocity :: Vec
   } deriving (Eq, Show)
 
-data SegmentQueryResult = SegmentQueryResult
-  { sqShape        :: Entity
-  -- ^ What entity did this query connect with?
-  , sqImpactPoint  :: Vec
-  -- ^ The point that the segment impacted with the shape
-  , sqImpactNormal :: Vec
-  -- ^ The normal of the surface that the segment hit
-  , sqImpactAlpha  :: Double
-  -- ^ The normalized distance along the query segment in the range `[0, 1]`.
-  -- Multiply it by the length of the segment to get the distance away the shape is.
-  } deriving (Eq, Show)
 
 data PointQueryResult = PointQueryResult
   { pqShape    :: Entity
@@ -335,4 +325,16 @@ data PointQueryResult = PointQueryResult
   -- ^ The gradient of the distance function.
   -- This should be similar to 'pqPoint'/'pqDistance' but accurate even for
   -- very small distances.
+  } deriving (Eq, Show)
+
+data SegmentQueryResult = SegmentQueryResult
+  { sqShape        :: Entity
+  -- ^ What entity did this query connect with?
+  , sqImpactPoint  :: Vec
+  -- ^ The point that the segment impacted with the shape
+  , sqImpactNormal :: Vec
+  -- ^ The normal of the surface that the segment hit
+  , sqImpactAlpha  :: Double
+  -- ^ The normalized distance along the query segment in the range `[0, 1]`.
+  -- Multiply it by the length of the segment to get the distance away the shape is.
   } deriving (Eq, Show)
