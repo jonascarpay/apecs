@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeOperators         #-}
 
 module Apecs.Stores
-  ( Map, Cache, Unique,
+  ( Map, MapWith, UMap, UMapWith, SMapWith, SMap, Cache, Unique,
     Global,
     Cachable,
     ReadOnly, setReadOnly, destroyReadOnly
@@ -22,28 +22,35 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Bits                   (shiftL, (.&.))
-import qualified Data.IntMap.Strict          as M
 import           Data.IORef
 import           Data.Proxy
+import qualified Data.SparseSet.Mutable      as SS
+import qualified Data.SparseSet.Unboxed.Mutable as USS
+import qualified Data.SparseSet.Storable.Mutable as SSS
 import           Data.Typeable               (Typeable, typeRep)
+import qualified Data.Vector.Generic         as GV
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import           Foreign                     (Storable)
 import           GHC.TypeLits
 
 import           Apecs.Core
 
--- | A map based on 'Data.IntMap.Strict'. O(log(n)) for most operations.
-newtype Map c = Map (IORef (M.IntMap c))
+-- | A map based on 'Data.SparseSet.Unboxed.Mutable'. O(1) for most operations.
+newtype MapWith (n :: Nat) c = MapWith (SS.IOMutableSparseSet c)
+type Map c = MapWith 16 c
 
-type instance Elem (Map c) = c
-instance MonadIO m => ExplInit m (Map c) where
-  explInit = liftIO$ Map <$> newIORef mempty
+type instance Elem (MapWith n c) = c
+instance (MonadIO m, KnownNat n) => ExplInit m (MapWith n c) where
+  explInit = 
+    let cap = fromIntegral $ natVal @n Proxy
+    in liftIO$ MapWith <$> SS.withCapacity cap (cap * 2)
 
-instance (MonadIO m, Typeable c) => ExplGet m (Map c) where
-  explExists (Map ref) ety = liftIO$ M.member ety <$> readIORef ref
-  explGet    (Map ref) ety = liftIO$ flip fmap (M.lookup ety <$> readIORef ref) $ \case
-    Just c -> c
+instance (MonadIO m, Typeable c) => ExplGet m (MapWith n c) where
+  explExists (MapWith ref) ety = liftIO$ SS.contains ref ety
+  explGet    (MapWith ref) ety = liftIO$ SS.lookup ref ety >>= \case
+    Just c -> pure c
     notFound -> error $ unwords
       [ "Reading non-existent Map component"
       , show (typeRep notFound)
@@ -53,19 +60,94 @@ instance (MonadIO m, Typeable c) => ExplGet m (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
 
-instance MonadIO m => ExplSet m (Map c) where
+instance MonadIO m => ExplSet m (MapWith n c) where
   {-# INLINE explSet #-}
-  explSet (Map ref) ety x = liftIO$
-    modifyIORef' ref (M.insert ety x)
+  explSet (MapWith ref) ety x = liftIO$
+    SS.insert ref ety x
 
-instance MonadIO m => ExplDestroy m (Map c) where
+instance MonadIO m => ExplDestroy m (MapWith n c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Map ref) ety = liftIO$
-    modifyIORef' ref (M.delete ety)
+  explDestroy (MapWith ref) ety = liftIO$
+    void $ SS.delete ref ety
 
-instance MonadIO m => ExplMembers m (Map c) where
+instance MonadIO m => ExplMembers m (MapWith n c) where
   {-# INLINE explMembers #-}
-  explMembers (Map ref) = liftIO$ U.fromList . M.keys <$> readIORef ref
+  explMembers (MapWith ref) = liftIO$ GV.convert <$> SS.members ref
+
+-- | A map based on 'Data.SparseSet.Unboxed.Mutable'. O(1) for most operations.
+newtype UMapWith (n :: Nat) c = UMapWith (USS.IOMutableSparseSet c)
+type UMap c = UMapWith 16 c
+
+type instance Elem (UMapWith n c) = c
+instance (MonadIO m, KnownNat n, U.Unbox c) => ExplInit m (UMapWith n c) where
+  explInit = 
+    let cap = fromIntegral $ natVal @n Proxy
+    in liftIO$ UMapWith <$> USS.withCapacity cap (cap * 2)
+
+instance (MonadIO m, Typeable c, U.Unbox c) => ExplGet m (UMapWith n c) where
+  explExists (UMapWith ref) ety = liftIO$ USS.contains ref ety
+  explGet    (UMapWith ref) ety = liftIO$ USS.lookup ref ety >>= \case
+    Just c -> pure c
+    notFound -> error $ unwords
+      [ "Reading non-existent UMap component"
+      , show (typeRep notFound)
+      , "for entity"
+      , show ety
+      ]
+  {-# INLINE explExists #-}
+  {-# INLINE explGet #-}
+
+instance (MonadIO m, U.Unbox c) => ExplSet m (UMapWith n c) where
+  {-# INLINE explSet #-}
+  explSet (UMapWith ref) ety x = liftIO$
+    USS.insert ref ety x
+
+instance (MonadIO m, U.Unbox c) => ExplDestroy m (UMapWith n c) where
+  {-# INLINE explDestroy #-}
+  explDestroy (UMapWith ref) ety = liftIO$
+    void $ USS.delete ref ety
+
+instance MonadIO m => ExplMembers m (UMapWith n c) where
+  {-# INLINE explMembers #-}
+  explMembers (UMapWith ref) = liftIO$ GV.convert <$> USS.members ref
+
+-- | A map based on 'Data.SparseSet.Storable.Mutable'. O(1) for most operations.
+newtype SMapWith (n :: Nat) c = SMapWith (SSS.IOMutableSparseSet c)
+type SMap c = SMapWith 16 c
+
+type instance Elem (SMapWith n c) = c
+instance (MonadIO m, KnownNat n, Storable c) => ExplInit m (SMapWith n c) where
+  explInit = 
+    let cap = fromIntegral $ natVal @n Proxy
+    in liftIO$ SMapWith <$> SSS.withCapacity cap (cap * 2)
+
+instance (MonadIO m, Typeable c, Storable c) => ExplGet m (SMapWith n c) where
+  explExists (SMapWith ref) ety = liftIO$ SSS.contains ref ety
+  explGet    (SMapWith ref) ety = liftIO$ SSS.lookup ref ety >>= \case
+    Just c -> pure c
+    notFound -> error $ unwords
+      [ "Reading non-existent SMap component"
+      , show (typeRep notFound)
+      , "for entity"
+      , show ety
+      ]
+  {-# INLINE explExists #-}
+  {-# INLINE explGet #-}
+
+instance (MonadIO m, Storable c) => ExplSet m (SMapWith n c) where
+  {-# INLINE explSet #-}
+  explSet (SMapWith ref) ety x = liftIO$
+    SSS.insert ref ety x
+
+instance (MonadIO m, Storable c) => ExplDestroy m (SMapWith n c) where
+  {-# INLINE explDestroy #-}
+  explDestroy (SMapWith ref) ety = liftIO$
+    void $ SSS.delete ref ety
+
+instance MonadIO m => ExplMembers m (SMapWith n c) where
+  {-# INLINE explMembers #-}
+  explMembers (SMapWith ref) = liftIO$ GV.convert <$> SSS.members ref
+
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
@@ -129,7 +211,11 @@ instance MonadIO m => ExplSet m (Global c) where
 -- | Class of stores that behave like a regular map, and can therefore safely be cached.
 --   This prevents stores like `Unique` and 'Global', which do /not/ behave like simple maps, from being cached.
 class Cachable s
-instance Cachable (Map s)
+-- |
+-- __Note on Caching:__ This instance is provided for backward-compatibility,
+-- but is considered obsolete. The `Cache` wrapper provides no significant
+-- performance benefit for the sparse-set based `MapWith` store.
+instance KnownNat n => Cachable (MapWith n s)
 instance (KnownNat n, Cachable s) => Cachable (Cache n s)
 
 -- | A cache around another store.

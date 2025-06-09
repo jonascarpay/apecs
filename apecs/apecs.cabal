@@ -39,14 +39,15 @@ library
   other-modules:    Apecs.THTuples
   default-language: Haskell2010
   build-depends:
-      array             >=0.4    && <0.6
-    , base              >=4.9    && <5
-    , containers        >=0.5    && <0.8
-    , exceptions        >=0.10.0 && <0.11
-    , mtl               >=2.2    && <2.4
-    , template-haskell  >=2.12   && <3
-    , unliftio-core     >=0.2.0.1 && <0.3
-    , vector            >=0.11   && <0.14
+      array             >=0.4      && <0.6
+    , base              >=4.9      && <5
+    , containers        >=0.5      && <0.8
+    , exceptions        >=0.10.0   && <0.11
+    , heph-sparse-set   >=0.1      && <0.2
+    , mtl               >=2.2      && <2.4
+    , template-haskell  >=2.12     && <3
+    , unliftio-core     >=0.2.0.1  && <0.3
+    , vector            >=0.12.3.0 && <0.14
 
   ghc-options:      -Wall
 
@@ -56,11 +57,11 @@ test-suite apecs-test
   hs-source-dirs:   test
   build-depends:
       apecs
-    , base        >=4.9  && <5
-    , containers  >=0.5  && <0.8
-    , linear      >=1.20 && <2
-    , QuickCheck  >=2.10 && <3
-    , vector      >=0.10 && <0.14
+    , base        >=4.9      && <5
+    , containers  >=0.5      && <0.8
+    , linear      >=1.20     && <2
+    , QuickCheck  >=2.10     && <3
+    , vector      >=0.12.3.0 && <0.14
 
   default-language: Haskell2010
   ghc-options:      -Wall
@@ -71,13 +72,13 @@ benchmark apecs-bench
   main-is:          Main.hs
   build-depends:
       apecs
-    , base       >=4.9  && <5
-    , criterion  >=1.3  && <2
-    , linear     >=1.20 && <2
+    , base       >=4.9      && <5
+    , criterion  >=1.3      && <2
+    , linear     >=1.20     && <2
+    , vector     >=0.12.3.0 && <0.14
 
   default-language: Haskell2010
   ghc-options:
     -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
-    -funfolding-keeness-factor1000
 
 -- -fllvm

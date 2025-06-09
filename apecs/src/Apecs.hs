@@ -8,7 +8,7 @@ module Apecs (
     Get, Set, Destroy, Members,
 
   -- * Stores
-    Map, Unique, Global, Cache,
+    Map, MapWith, UMap, UMapWith, SMap, SMapWith, Unique, Global, Cache,
     explInit,
 
   -- * Systems
