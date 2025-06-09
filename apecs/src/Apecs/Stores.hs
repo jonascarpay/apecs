@@ -21,18 +21,18 @@ module Apecs.Stores
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import           Data.Bits                   (shiftL, (.&.))
+import           Data.Bits                       (shiftL, (.&.))
 import           Data.IORef
 import           Data.Proxy
-import qualified Data.SparseSet.Mutable      as SS
-import qualified Data.SparseSet.Unboxed.Mutable as USS
+import qualified Data.SparseSet.Mutable          as SS
 import qualified Data.SparseSet.Storable.Mutable as SSS
-import           Data.Typeable               (Typeable, typeRep)
-import qualified Data.Vector.Generic         as GV
-import qualified Data.Vector.Mutable         as VM
-import qualified Data.Vector.Unboxed         as U
-import qualified Data.Vector.Unboxed.Mutable as UM
-import           Foreign                     (Storable)
+import qualified Data.SparseSet.Unboxed.Mutable  as USS
+import           Data.Typeable                   (Typeable, typeRep)
+import qualified Data.Vector.Generic             as GV
+import qualified Data.Vector.Mutable             as VM
+import qualified Data.Vector.Unboxed             as U
+import qualified Data.Vector.Unboxed.Mutable     as UM
+import           Foreign                         (Storable)
 import           GHC.TypeLits
 
 import           Apecs.Core
@@ -43,7 +43,7 @@ import           Apecs.Core
 newtype MapWith (n :: Nat) c = MapWith (SS.IOMutableSparseSet c)
 
 -- | A map based on 'Data.SparseSet.Mutable'. O(1) for most operations.
---   
+--
 -- This is a type alias for @'MapWith' 16@.
 --
 -- For component types that will have many instances, it is recommended to use 'MapWith'
@@ -52,7 +52,7 @@ type Map c = MapWith 16 c
 
 type instance Elem (MapWith n c) = c
 instance (MonadIO m, KnownNat n) => ExplInit m (MapWith n c) where
-  explInit = 
+  explInit =
     let cap = fromIntegral $ natVal @n Proxy
     in liftIO$ MapWith <$> SS.withCapacity cap (cap * 2)
 
@@ -87,8 +87,8 @@ instance MonadIO m => ExplMembers m (MapWith n c) where
 newtype UMapWith (n :: Nat) c = UMapWith (USS.IOMutableSparseSet c)
 
 -- | A map based on 'Data.SparseSet.Unboxed.Mutable' for unboxed components. O(1) for most operations.
--- Requires an `Unbox` instance for the component type. 
--- 
+-- Requires an `Unbox` instance for the component type.
+--
 -- Offers higher performance than the standard `Map` by reducing memory indirection.
 --
 -- This is a type alias for @'UMapWith' 16@.
@@ -96,7 +96,7 @@ type UMap c = UMapWith 16 c
 
 type instance Elem (UMapWith n c) = c
 instance (MonadIO m, KnownNat n, U.Unbox c) => ExplInit m (UMapWith n c) where
-  explInit = 
+  explInit =
     let cap = fromIntegral $ natVal @n Proxy
     in liftIO$ UMapWith <$> USS.withCapacity cap (cap * 2)
 
@@ -132,7 +132,7 @@ newtype SMapWith (n :: Nat) c = SMapWith (SSS.IOMutableSparseSet c)
 
 -- | A map based on 'Data.SparseSet.Storable.Mutable' for storable components. O(1) for most operations.
 --
--- Requires a `Storable` instance for the component type. 
+-- Requires a `Storable` instance for the component type.
 --
 -- Offers the highest performance by using a contiguous, packed memory layout.
 --
@@ -141,7 +141,7 @@ type SMap c = SMapWith 16 c
 
 type instance Elem (SMapWith n c) = c
 instance (MonadIO m, KnownNat n, Storable c) => ExplInit m (SMapWith n c) where
-  explInit = 
+  explInit =
     let cap = fromIntegral $ natVal @n Proxy
     in liftIO$ SMapWith <$> SSS.withCapacity cap (cap * 2)
 

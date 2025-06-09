@@ -2,8 +2,8 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeApplications           #-}
@@ -17,7 +17,7 @@ import           Control.Monad
 import qualified Data.Foldable               as F
 import qualified Data.IntSet                 as S
 import           Data.IORef
-import           Data.List                   ((\\), delete, nub, sort)
+import           Data.List                   (delete, nub, sort, (\\))
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic

@@ -30,7 +30,7 @@ module Apecs (
 ) where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Reader (ask, asks, lift)
+import           Control.Monad.Reader   (ask, asks, lift)
 import           Data.Proxy
 
 import           Apecs.Components
@@ -81,7 +81,7 @@ import           Apecs.Util
 -- get the best possible performance, always consider how maps and folds are
 -- executed under the hood, and how you can order your components to optimize
 -- that process.
--- 
+--
 -- === Storage Strategies
 --
 -- Apecs offers several storage options for components, allowing you to tune for
@@ -100,7 +100,7 @@ import           Apecs.Util
 --
 -- * 'Cache': Previously, the `Cache` was the primary tool for achieving high
 --   performance. With the new sparse-set backend for `Map`, `UMap`, and `SMap`,
---   the `Cache` is no longer necessary for these stores and is considered 
+--   the `Cache` is no longer necessary for these stores and is considered
 --   obsolete for this purpose. It remains available for use with custom stores
 --   that may have different performance characteristics.
 

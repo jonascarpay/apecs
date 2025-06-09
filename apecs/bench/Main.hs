@@ -1,28 +1,28 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE Strict                #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NumericUnderscores         #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE Strict                     #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 
 module Main (main) where
 
 import           Control.Monad
 import           Criterion
-import qualified Criterion.Main  as C
-import           Foreign.Storable (Storable)
-import           Linear
-import           Data.Typeable (Typeable, showsTypeRep, typeRep)
+import qualified Criterion.Main              as C
+import           Data.Typeable               (Typeable, showsTypeRep, typeRep)
 import qualified Data.Vector.Generic         as VG
 import qualified Data.Vector.Generic.Mutable as VGM
 import qualified Data.Vector.Unboxed         as VU
+import           Foreign.Storable            (Storable)
+import           Linear
 
 import           Apecs
 
@@ -129,7 +129,7 @@ sPosVelStep :: System SPosVel ()
 sPosVelStep = cmap $ \(SECSVel v, SECSPos p) -> SECSPos (p+v)
 
 benchWith :: forall w. (Typeable w) => IO w -> (Int -> System w ()) -> System w () -> Benchmark
-benchWith initWorld initEntities stepEntities = 
+benchWith initWorld initEntities stepEntities =
   let gName = showsTypeRep (typeRep (Proxy :: Proxy w)) ""
       n = 10_000
    in bgroup gName
