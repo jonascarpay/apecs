@@ -181,7 +181,7 @@ prop_reactiveCounts writes deletes = assertSys initReactiveCountWld $ do
 
 -- Tests Pushdown
 newtype StackInt = StackInt Int deriving (Eq, Show, Arbitrary)
-instance Component StackInt where type Storage StackInt = Pushdown Map StackInt
+instance Component StackInt where type Storage StackInt = Pushdown (MapWith 16) StackInt
 
 makeWorld "StackWld" [''StackInt]
 
