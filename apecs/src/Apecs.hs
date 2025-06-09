@@ -81,3 +81,26 @@ import           Apecs.Util
 -- get the best possible performance, always consider how maps and folds are
 -- executed under the hood, and how you can order your components to optimize
 -- that process.
+-- 
+-- === Storage Strategies
+--
+-- Apecs offers several storage options for components, allowing you to tune for
+-- performance.
+--
+-- * 'Map' (Default): The default store is now a high-performance sparse set
+--   providing O(1) (amortized constant time) for nearly all operations. It is
+--   suitable for the vast majority of component types.
+--
+-- * 'UMap' and 'SMap': For performance-critical components, you can achieve
+--   even greater speed by using these specialized stores. If your component can
+--   be given an instance of 'Data.Vector.Unboxed.Unbox', use 'UMap'. If it has
+--   a 'Foreign.Storable.Storable' instance, use 'SMap'. These stores lay out
+--   data in contiguous memory blocks, which significantly improves cache
+--   performance.
+--
+-- * 'Cache': Previously, the `Cache` was the primary tool for achieving high
+--   performance. With the new sparse-set backend for `Map`, `UMap`, and `SMap`,
+--   the `Cache` is no longer necessary for these stores and is considered 
+--   obsolete for this purpose. It remains available for use with custom stores
+--   that may have different performance characteristics.
+

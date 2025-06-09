@@ -1,3 +1,29 @@
+## [0.10.0]
+### Breaking Changes
+- Dropped support for GHC <8.10.4
+- The lower bound for the `vector` library has been increased to `0.12.3.0`.
+
+### Changed
+- Replaced the core `Map` store's `IntMap`-based backend with a sparse-set
+  implementation. This improves the performance of `set`, `get`, `exists`, and
+  `destroy` operations from O(log n) to O(1).
+- The `Map` type is now an alias for `MapWith 16`. For component types with many
+  members, consider using `MapWith` to set a larger initial capacity and avoid
+  runtime allocations.
+- Removed the `Cachable` instance for `Map`. The new sparse-set backend is as
+  fast as the previous `Cache (Map ...)` strategy, making the `Cache` wrapper
+  redundant for this store.
+- The `Cachable` instance for `Map` is now considered obsolete. The new backend
+  is as fast as the previous `Cache (Map ...)` strategy.
+
+### Added
+- Added `MapWith`, `UMapWith`, and `SMapWith` stores, which allow specifying an
+  initial capacity to pre-allocate memory.
+- Added `UMap` for `Unbox`-able components and `SMap` for `Storable` components.
+  These stores offer the highest performance by reducing memory indirection and
+  improving data locality.
+
+
 ## [0.9.6]
 ### Changed
 - (#110) Relax upper bound on `mtl`: 2.3 -> 2.4

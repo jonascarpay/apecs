@@ -37,8 +37,17 @@ import           GHC.TypeLits
 
 import           Apecs.Core
 
--- | A map based on 'Data.SparseSet.Unboxed.Mutable'. O(1) for most operations.
+-- | A map based on 'Data.SparseSet.Mutable' with a user-specified initial capacity.
+--
+-- The type-level integer @n@ is an initial capacity hint.
 newtype MapWith (n :: Nat) c = MapWith (SS.IOMutableSparseSet c)
+
+-- | A map based on 'Data.SparseSet.Mutable'. O(1) for most operations.
+--   
+-- This is a type alias for @'MapWith' 16@.
+--
+-- For component types that will have many instances, it is recommended to use 'MapWith'
+-- to provide a larger initial capacity hint.
 type Map c = MapWith 16 c
 
 type instance Elem (MapWith n c) = c
@@ -74,8 +83,15 @@ instance MonadIO m => ExplMembers m (MapWith n c) where
   {-# INLINE explMembers #-}
   explMembers (MapWith ref) = liftIO$ GV.convert <$> SS.members ref
 
--- | A map based on 'Data.SparseSet.Unboxed.Mutable'. O(1) for most operations.
+-- | An unboxed map with a user-specified initial capacity.
 newtype UMapWith (n :: Nat) c = UMapWith (USS.IOMutableSparseSet c)
+
+-- | A map based on 'Data.SparseSet.Unboxed.Mutable' for unboxed components. O(1) for most operations.
+-- Requires an `Unbox` instance for the component type. 
+-- 
+-- Offers higher performance than the standard `Map` by reducing memory indirection.
+--
+-- This is a type alias for @'UMapWith' 16@.
 type UMap c = UMapWith 16 c
 
 type instance Elem (UMapWith n c) = c
@@ -111,8 +127,16 @@ instance MonadIO m => ExplMembers m (UMapWith n c) where
   {-# INLINE explMembers #-}
   explMembers (UMapWith ref) = liftIO$ GV.convert <$> USS.members ref
 
--- | A map based on 'Data.SparseSet.Storable.Mutable'. O(1) for most operations.
+-- | A storable map with a user-specified initial capacity.
 newtype SMapWith (n :: Nat) c = SMapWith (SSS.IOMutableSparseSet c)
+
+-- | A map based on 'Data.SparseSet.Storable.Mutable' for storable components. O(1) for most operations.
+--
+-- Requires a `Storable` instance for the component type. 
+--
+-- Offers the highest performance by using a contiguous, packed memory layout.
+--
+-- This is a type alias for @'SMapWith' 16@.
 type SMap c = SMapWith 16 c
 
 type instance Elem (SMapWith n c) = c
