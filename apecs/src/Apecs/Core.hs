@@ -31,7 +31,7 @@ newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show, Enum)
 --
 --   * Lift side effects into their host Monad.
 newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadUnliftIO)
-type System w a = SystemT w IO a
+type System w = SystemT w IO
 
 deriving instance Monad m => MonadReader w (SystemT w m)
 
