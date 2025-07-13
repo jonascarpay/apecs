@@ -1,3 +1,4 @@
+{-# LANGUAGE QuasiQuotes     #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies    #-}
 
@@ -11,6 +12,7 @@ module Apecs.TH
 
 import           Control.Monad
 import           Control.Monad.Reader (asks)
+import           Data.Traversable     (for)
 import           Language.Haskell.TH
 
 import           Apecs.Core
@@ -26,33 +28,36 @@ makeWorldNoEC :: String -> [Name] -> Q [Dec]
 makeWorldNoEC worldName cTypes = do
   cTypesNames <- forM cTypes $ \t -> do
     rec <- genName "rec"
-    return (ConT t, rec)
+    return (conT t, rec)
 
-  let wld = mkName worldName
-      has = ''Has
-      sys = 'SystemT
-      m = VarT $ mkName "m"
-      wldDecl = DataD [] wld [] Nothing [RecC wld records] []
-
-      makeRecord (t,n) = (n, Bang NoSourceUnpackedness SourceStrict, ConT ''Storage `AppT` t)
-      records = makeRecord <$> cTypesNames
-
-      makeInstance (t,n) =
-        InstanceD Nothing [ConT ''Monad `AppT` m] (ConT has `AppT` ConT wld `AppT` m `AppT` t)
-          [ FunD 'getStore [Clause []
-              (NormalB$ ConE sys `AppE` (VarE 'asks `AppE` VarE n))
-            [] ]
-          ]
-
+  let world         = mkName worldName
       initWorldName = mkName $ "init" ++ worldName
-      initSig = SigD initWorldName (AppT (ConT ''IO) (ConT wld))
-      initDecl = FunD initWorldName [Clause []
-        (NormalB$ iterate (\wE -> AppE (AppE (VarE '(<*>)) wE) (VarE 'explInit)) (AppE (VarE 'return) (ConE wld)) !! length records)
-        [] ]
-
-      hasDecl = makeInstance <$> cTypesNames
-
-  return $ wldDecl : initSig : initDecl : hasDecl
+  -- Data type decl
+  data_decl <- do
+    let records = [ varBangType nm
+                $ bangType (bang noSourceUnpackedness sourceStrict)
+                $ [t| Storage $ty |]
+                | (ty,nm) <- cTypesNames
+                ]
+    dataD (pure []) world [] Nothing [recC world records] []
+  -- World initialization
+  init_world <- do
+    sig  <- sigD initWorldName [t| IO $(conT world) |]
+    decl <- funD initWorldName
+      [ clause []
+        (normalB $ foldl (\e _ -> [| $e <*> explInit |])
+                         [| pure $(conE world) |]
+                         cTypes
+        )
+        []
+      ]
+    pure [sig, decl]
+  -- Has instances
+  instances <- for cTypesNames $ \(t,n) -> 
+    [d| instance Monad m => Has $(conT world) m $t where
+          getStore = SystemT (asks $(varE n))
+      |]
+  pure $ data_decl : concat (init_world : instances)
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]
