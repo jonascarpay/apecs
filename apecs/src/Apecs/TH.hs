@@ -10,7 +10,6 @@ module Apecs.TH
   , makeMapComponentsFor
   ) where
 
-import           Control.Monad
 import           Control.Monad.Reader (asks)
 import           Data.Traversable     (for)
 import           Language.Haskell.TH
@@ -19,27 +18,19 @@ import           Apecs.Core
 import           Apecs.Stores
 import           Apecs.Util           (EntityCounter)
 
-genName :: String -> Q Name
-genName s = mkName . show <$> newName s
-
 -- | Same as 'makeWorld', but does not include an 'EntityCounter'
 --   You don't typically want to use this, but it's exposed in case you know what you're doing.
 makeWorldNoEC :: String -> [Name] -> Q [Dec]
 makeWorldNoEC worldName cTypes = do
-  cTypesNames <- forM cTypes $ \t -> do
-    rec <- genName "rec"
-    return (conT t, rec)
-
   let world         = mkName worldName
       initWorldName = mkName $ "init" ++ worldName
   -- Data type decl
   data_decl <- do
-    let records = [ varBangType nm
-                $ bangType (bang noSourceUnpackedness sourceStrict)
-                $ [t| Storage $ty |]
-                | (ty,nm) <- cTypesNames
-                ]
-    dataD (pure []) world [] Nothing [recC world records] []
+    let fields = [ bangType (bang noSourceUnpackedness sourceStrict)
+                     [t| Storage $(conT ty) |]
+                 | ty <- cTypes
+                 ]
+    dataD (pure []) world [] Nothing [normalC world fields] []
   -- World initialization
   init_world <- do
     sig  <- sigD initWorldName [t| IO $(conT world) |]
@@ -47,17 +38,23 @@ makeWorldNoEC worldName cTypes = do
       [ clause []
         (normalB $ foldl (\e _ -> [| $e <*> explInit |])
                          [| pure $(conE world) |]
-                         cTypes
-        )
+                         cTypes)
         []
       ]
     pure [sig, decl]
   -- Has instances
-  instances <- for cTypesNames $ \(t,n) -> 
-    [d| instance Monad m => Has $(conT world) m $t where
-          getStore = SystemT (asks $(varE n))
+  instances <- for (enumerate cTypes) $ \(i,t) -> do
+    x <- newName "x"
+    let pat = conP world [ if j==i then varP x else wildP
+                         | (j,_) <- enumerate cTypes
+                         ]
+    [d| instance Monad m => Has $(conT world) m $(conT t) where
+          getStore = let field $pat = $(varE x) in SystemT (asks field)
       |]
   pure $ data_decl : concat (init_world : instances)
+  where
+    enumerate :: [a] -> [(Int,a)]
+    enumerate = zip [0..]
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]
