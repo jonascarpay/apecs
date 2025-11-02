@@ -5,15 +5,18 @@ resolver: lts-21.3
 # impossible or even difficult to build apecs-stm with stack, we used to do it
 # on CI, but it was very fragile.  So, if you want to build apecs-stm with
 # stack, for now, you'll have to add these dependencies manually:
-# extra-deps:
+extra-deps:
 #   - stm-containers-1.2
 #   - stm-hamt-1.2.0.4
 #   - primitive-extras-0.8
+  - brillo-1.13.3
+  - brillo-rendering-1.13.3
 
 packages:
   - apecs
   - apecs-physics
   - apecs-gloss
+  - apecs-brillo
   - examples
 
 nix:
