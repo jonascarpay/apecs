@@ -10,6 +10,7 @@ module Apecs.TH
   , makeMapComponentsFor
   ) where
 
+import           Control.Monad        (filterM)
 import           Control.Monad.Reader (asks)
 import           Data.Traversable     (for)
 import           Language.Haskell.TH
@@ -51,10 +52,29 @@ makeWorldNoEC worldName cTypes = do
     [d| instance Monad m => Has $(conT world) m $(conT t) where
           getStore = let field $pat = $(varE x) in SystemT (asks field)
       |]
-  pure $ data_decl : concat (init_world : instances)
+
+  -- Destructible type synonym
+  destructible_decl <- do
+    let name = mkName $ worldName ++ "Destructible"
+    let destructible ty
+          | nameBase ty == "EntityCounter" = pure False
+          | otherwise = isInstance ''ExplDestroy [ConT ''IO, AppT (ConT ''Storage) (ConT ty)]
+    destroyableTypes <- filterM destructible cTypes
+    let getType ty = ConT ty
+    tySynD name [] (pure $ mkTupleT $ getType <$> destroyableTypes)
+
+  pure $ data_decl : destructible_decl : concat (init_world : instances)
   where
     enumerate :: [a] -> [(Int,a)]
     enumerate = zip [0..]
+
+    mkTupleT :: [Type] -> Type
+    mkTupleT [] = ConT ''()
+    mkTupleT [t] = t
+    mkTupleT ts
+      | len <= 8 = foldl AppT (TupleT len) ts
+      | otherwise = foldl AppT (TupleT 8) (take 7 ts ++ [mkTupleT (drop 7 ts)])
+      where len = length ts
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]

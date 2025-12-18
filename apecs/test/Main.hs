@@ -101,6 +101,11 @@ makeWorld "Simple" [''MapInt]
 prop_setGetMap = genericSetGet initSimple (undefined :: MapInt)
 prop_setSetMap = genericSetSet initSimple (undefined :: MapInt)
 
+prop_destroyAll ety = assertSys initSimple $ do
+  set ety (MapInt 1)
+  destroy ety (Proxy @SimpleDestructible)
+  not <$> exists ety (Proxy @MapInt)
+
 -- Tests whether this is also true for caches
 newtype CacheInt = CacheInt Int deriving (Eq, Show, Arbitrary)
 instance Component CacheInt where type Storage CacheInt = Cache 2 (Map CacheInt)
