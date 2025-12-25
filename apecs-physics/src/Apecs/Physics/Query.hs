@@ -16,7 +16,7 @@
 module Apecs.Physics.Query where
 
 import           Apecs
-import           Control.Monad.IO.Class (liftIO, MonadIO)
+import           Control.Monad.IO.Class (MonadIO)
 import           Foreign.C.Types
 import           Foreign.ForeignPtr    (withForeignPtr)
 import           Foreign.Marshal.Alloc

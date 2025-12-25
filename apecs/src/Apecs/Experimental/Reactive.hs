@@ -35,7 +35,7 @@ module Apecs.Experimental.Reactive
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
+import           Control.Monad.Trans.Class (lift)
 import qualified Data.Array.IO        as A
 import qualified Data.IntMap.Strict   as IM
 import qualified Data.IntSet          as S

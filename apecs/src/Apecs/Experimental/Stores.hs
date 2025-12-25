@@ -20,7 +20,7 @@ module Apecs.Experimental.Stores
   ( Pushdown(..), Stack(..)
   ) where
 
-import Control.Monad.Reader
+import Control.Monad.Trans.Reader
 import Data.Proxy
 import Data.Semigroup
 
