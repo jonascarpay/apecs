@@ -18,7 +18,7 @@ module Apecs.Util (
 
 import           Control.Applicative  (liftA2)
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
+import           Control.Monad.Trans.Class (lift)
 import           Data.Monoid
 import           Data.Semigroup
 import           System.Mem           (performMajorGC)

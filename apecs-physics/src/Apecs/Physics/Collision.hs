@@ -22,7 +22,7 @@ module Apecs.Physics.Collision
 import           Apecs
 import           Apecs.Core
 import           Control.Monad
-import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Control.Monad.IO.Class (MonadIO)
 import qualified Data.IntMap         as M
 import           Data.IORef
 import qualified Data.Vector.Unboxed as U

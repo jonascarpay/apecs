@@ -16,7 +16,7 @@ module Apecs.Physics.Space where
 
 import           Apecs
 import           Apecs.Core
-import           Control.Monad.IO.Class (liftIO, MonadIO)
+import           Control.Monad.IO.Class (MonadIO)
 import           Data.IORef
 import           Foreign.Concurrent
 import           Foreign.ForeignPtr  (withForeignPtr)
