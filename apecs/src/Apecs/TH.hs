@@ -11,7 +11,7 @@ module Apecs.TH
   ) where
 
 import           Control.Monad        (filterM)
-import           Control.Monad.Reader (asks)
+import           Control.Monad.Trans.Reader (asks)
 import           Data.Traversable     (for)
 import           Language.Haskell.TH
 
@@ -50,7 +50,7 @@ makeWorldNoEC worldName cTypes = do
                          | (j,_) <- enumerate cTypes
                          ]
     [d| instance Monad m => Has $(conT world) m $(conT t) where
-          getStore = let field $pat = $(varE x) in SystemT (asks field)
+          getStore = let field $pat = $(varE x) in asks field
       |]
 
   -- Destructible type synonym

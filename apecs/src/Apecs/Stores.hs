@@ -20,7 +20,7 @@ module Apecs.Stores
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
+import           Control.Monad.Trans.Class   (lift)
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
 import           Data.IORef

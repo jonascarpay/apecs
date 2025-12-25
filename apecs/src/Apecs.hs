@@ -4,7 +4,7 @@ It selectively re-exports the user-facing functions from the submodules.
 -}
 module Apecs (
   -- * Core types
-    SystemT(..), System, Component(..), Entity(..), Has(..), Not(..),
+    SystemT, System, Component(..), Entity(..), Has(..), Not(..),
     Get, Set, Destroy, Members,
 
   -- * Stores
@@ -30,7 +30,8 @@ module Apecs (
 ) where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Reader (ask, asks, lift)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Reader (ask, asks)
 import           Data.Proxy
 
 import           Apecs.Components

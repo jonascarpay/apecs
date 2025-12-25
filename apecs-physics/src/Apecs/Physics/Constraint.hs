@@ -20,7 +20,7 @@ module Apecs.Physics.Constraint
 import           Apecs
 import           Apecs.Core
 import           Control.Monad
-import           Control.Monad.IO.Class (liftIO, MonadIO)
+import           Control.Monad.IO.Class (MonadIO)
 import qualified Data.IntMap         as M
 import qualified Data.IntSet         as S
 import           Data.IORef
