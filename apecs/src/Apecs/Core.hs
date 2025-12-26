@@ -12,10 +12,7 @@
 
 module Apecs.Core where
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
-import           Control.Monad.IO.Unlift
-import           Control.Monad.Reader
+import           Control.Monad.Trans.Reader
 import qualified Data.Vector.Unboxed  as U
 
 -- | An Entity is just an integer, used to index into a component store.
@@ -30,10 +27,8 @@ newtype Entity = Entity {unEntity :: Int} deriving (Num, Eq, Ord, Show, Enum)
 --   * Allow type-based lookup of a component's store through @getStore@.
 --
 --   * Lift side effects into their host Monad.
-newtype SystemT w m a = SystemT {unSystem :: ReaderT w m a} deriving (Functor, Monad, Applicative, MonadTrans, MonadIO, MonadThrow, MonadCatch, MonadMask, MonadUnliftIO)
+type SystemT w m = ReaderT w m
 type System w = SystemT w IO
-
-deriving instance Monad m => MonadReader w (SystemT w m)
 
 -- | A component is defined by specifying how it is stored.
 --   The constraint ensures that stores and components are mapped one-to-one.

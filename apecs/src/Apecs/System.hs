@@ -7,7 +7,8 @@
 module Apecs.System where
 
 import           Control.Monad
-import           Control.Monad.Reader
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Reader
 import           Data.Proxy
 import qualified Data.Vector.Unboxed  as U
 
@@ -17,7 +18,7 @@ import Apecs.Core
 -- | Run a system in a game world
 {-# INLINE runSystem #-}
 runSystem :: SystemT w m a -> w -> m a
-runSystem sys = runReaderT (unSystem sys)
+runSystem = runReaderT
 
 -- | Run a system in a game world
 {-# INLINE runWith #-}
