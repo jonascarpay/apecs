@@ -24,9 +24,13 @@ jobs:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
         resolver: [ lts-21, lts-20, lts-19, lts-18 ]
-        include:
+        exclude:
+          # macos-latest is now ARM64, and older GHC versions lack native aarch64
+          # generators and fail to find correct LLVM versions on this runner
           - os: macos-latest
-            resolver: lts-17
+            resolver: lts-19
+          - os: macos-latest
+            resolver: lts-18
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -59,6 +63,12 @@ jobs:
           # https://gitlab.haskell.org/ghc/ghc/-/issues/18446
           - os: macos-latest
             ghc: '8.8.4'
+          # macos-latest is now ARM64, and older GHC versions lack native aarch64
+          # generators and fail to find correct LLVM versions on this runner
+          - os: macos-latest
+            ghc: '8.10.7'
+          - os: macos-latest
+            ghc: '9.0.2'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
