@@ -8,7 +8,7 @@ module Apecs.TH
   , makeWorldAndComponents
   , makeMapComponents
   , makeMapComponentsFor
-  , makeTypeSynonym
+  , makeInstanceTuples
   ) where
 
 import           Control.Monad        (filterM)
@@ -55,15 +55,15 @@ makeWorldNoEC worldName cTypes = do
       |]
 
   -- Destructible type synonym
-  destructible_decl <- makeTypeSynonym (worldName ++ "Destructible") ''ExplDestroy cTypes
+  destructible_decl <- makeInstanceTuples (worldName ++ "Destructible") ''ExplDestroy cTypes
 
   pure $ data_decl : destructible_decl ++ concat (init_world : instances)
   where
     enumerate :: [a] -> [(Int,a)]
     enumerate = zip [0..]
 
-makeTypeSynonym :: String -> Name -> [Name] -> Q [Dec]
-makeTypeSynonym synName cls cTypes = do
+makeInstanceTuples :: String -> Name -> [Name] -> Q [Dec]
+makeInstanceTuples synName cls cTypes = do
   let destructible ty
         | nameBase ty == "EntityCounter" = pure False
         | otherwise = isInstance cls [ConT ''IO, AppT (ConT ''Storage) (ConT ty)]
