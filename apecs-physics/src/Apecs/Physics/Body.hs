@@ -22,6 +22,7 @@ import           Control.Monad.IO.Class (MonadIO)
 import qualified Data.IntMap         as M
 import qualified Data.IntSet         as S
 import           Data.IORef
+import qualified Data.IntSet         as IS
 import qualified Data.Vector.Unboxed as U
 import           Foreign.ForeignPtr  (withForeignPtr)
 import           Foreign.Ptr
@@ -87,6 +88,7 @@ instance MonadIO m => ExplDestroy m (Space Body) where
 
 instance MonadIO m => ExplMembers m (Space Body) where
   explMembers (Space bMap _ _ _ _) = liftIO $ U.fromList . M.keys <$> readIORef bMap
+  explMemberSet (Space bMap _ _ _ _) = liftIO $ M.keysSet <$> readIORef bMap
 
 instance MonadIO m => ExplGet m (Space Body) where
   explExists (Space bMap _ _ _ _) ety = liftIO $ M.member ety <$> readIORef bMap

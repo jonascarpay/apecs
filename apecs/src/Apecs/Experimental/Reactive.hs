@@ -96,6 +96,8 @@ instance ExplGet m s => ExplGet m (Reactive r s) where
 instance ExplMembers m s => ExplMembers m (Reactive r s) where
   {-# INLINE explMembers #-}
   explMembers (Reactive _ s) = explMembers s
+  {-# INLINE explMemberSet #-}
+  explMemberSet (Reactive _ s) = explMemberSet s
 
 -- | Prints a message to stdout every time a component is updated.
 data Printer c = Printer

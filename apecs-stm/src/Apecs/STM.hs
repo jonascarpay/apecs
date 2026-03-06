@@ -32,6 +32,7 @@ import           Data.Maybe
 import           Data.Monoid                 (Sum (..))
 import           Data.Semigroup
 import           Data.Typeable (Typeable, typeRep)
+import qualified Data.IntSet                 as IS
 import qualified Data.Vector.Unboxed         as U
 import           Language.Haskell.TH
 import qualified ListT                       as L
@@ -69,6 +70,8 @@ instance ExplDestroy STM (Map c) where
 instance ExplMembers STM (Map c) where
   {-# INLINE explMembers #-}
   explMembers (Map m) = U.unfoldrM L.uncons $ fst <$> M.listT m
+  {-# INLINE explMemberSet #-}
+  explMemberSet (Map m) = IS.fromList . U.toList <$> explMembers (Map m)
 
 instance ExplInit IO (Map c) where
   {-# INLINE explInit #-}
@@ -87,6 +90,8 @@ instance ExplDestroy IO (Map c) where
 instance ExplMembers IO (Map c) where
   {-# INLINE explMembers #-}
   explMembers m = S.atomically $ explMembers m
+  {-# INLINE explMemberSet #-}
+  explMemberSet m = S.atomically $ explMemberSet m
 
 newtype Unique c = Unique (TVar (Maybe (Int, c)))
 type instance Elem (Unique c) = c
@@ -118,6 +123,10 @@ instance ExplMembers STM (Unique c) where
   explMembers (Unique ref) = flip fmap (readTVar ref) $ \case
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
+  {-# INLINE explMemberSet #-}
+  explMemberSet (Unique ref) = flip fmap (readTVar ref) $ \case
+    Nothing -> mempty
+    Just (ety, _) -> IS.singleton ety
 
 instance ExplInit IO (Unique c) where
   {-# INLINE explInit #-}
@@ -136,6 +145,8 @@ instance ExplDestroy IO (Unique c) where
 instance ExplMembers IO (Unique c) where
   {-# INLINE explMembers #-}
   explMembers m = S.atomically $ explMembers m
+  {-# INLINE explMemberSet #-}
+  explMemberSet m = S.atomically $ explMemberSet m
 
 newtype Global c = Global (TVar c)
 type instance Elem (Global c) = c

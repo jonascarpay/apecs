@@ -136,6 +136,9 @@ instance (MonadIO m, ExplMembers m s) => ExplMembers m (Children s) where
   {-# INLINE explMembers #-}
   explMembers :: Children s -> m (U.Vector Int)
   explMembers (Children _ _ s) = explMembers s
+  {-# INLINE explMemberSet #-}
+  explMemberSet :: Children s -> m IntSet
+  explMemberSet (Children _ _ s) = explMemberSet s
 
 instance (MonadIO m, ExplGet m s, Typeable (Elem s)) => ExplGet m (Children s) where
   {-# INLINE explGet #-}
@@ -220,6 +223,9 @@ instance ExplMembers m s => ExplMembers m (ChildValueStore s) where
   {-# INLINE explMembers #-}
   explMembers :: ChildValueStore s -> m (U.Vector Int)
   explMembers (ChildValueStore (Children _ _ s)) = explMembers s
+  {-# INLINE explMemberSet #-}
+  explMemberSet :: ChildValueStore s -> m IntSet
+  explMemberSet (ChildValueStore (Children _ _ s)) = explMemberSet s
 
 instance ExplGet m s => ExplGet m (ChildValueStore s) where
   {-# INLINE explExists #-}
@@ -264,6 +270,10 @@ instance MonadIO m => ExplMembers m (ChildListStore s) where
   explMembers :: ChildListStore s -> m (U.Vector Int)
   explMembers (ChildListStore (Children parentToChildren _ _)) = do
     liftIO $ U.fromList . M.keys <$> IORef.readIORef parentToChildren
+  {-# INLINE explMemberSet #-}
+  explMemberSet :: ChildListStore s -> m IntSet
+  explMemberSet (ChildListStore (Children parentToChildren _ _)) =
+    liftIO $ M.keysSet <$> IORef.readIORef parentToChildren
 
 instance (MonadIO m, Typeable (Elem s)) => ExplGet m (ChildListStore s) where
   {-# INLINE explExists #-}
