@@ -14,6 +14,8 @@
 module Apecs.Components where
 
 import Data.Functor.Identity
+import qualified Data.IntSet          as IS
+import qualified Data.Vector.Unboxed  as U
 
 import           Apecs.Core
 import qualified Apecs.THTuples as T
@@ -40,6 +42,8 @@ instance ExplSet m s => ExplSet m (Identity s) where
 instance ExplMembers m s => ExplMembers m (Identity s) where
   {-# INLINE explMembers #-}
   explMembers (Identity s) = explMembers s
+  {-# INLINE explMemberSet #-}
+  explMemberSet (Identity s) = explMemberSet s
 instance ExplDestroy m s => ExplDestroy m (Identity s) where
   {-# INLINE explDestroy #-}
   explDestroy (Identity s) = explDestroy s
@@ -136,6 +140,12 @@ instance (ExplDestroy m sa, ExplDestroy m sb)
   explDestroy (EitherStore sa sb) ety =
     explDestroy sa ety >> explDestroy sb ety
 
+instance (ExplMembers m sa, ExplMembers m sb) => ExplMembers m (EitherStore sa sb) where
+  {-# INLINE explMemberSet #-}
+  explMemberSet (EitherStore sa sb) = IS.union <$> explMemberSet sa <*> explMemberSet sb
+  {-# INLINE explMembers #-}
+  explMembers s = U.fromList . IS.toList <$> explMemberSet s
+
 -- Unit instances ()
 instance Monad m => Has w m () where
   {-# INLINE getStore #-}
@@ -183,6 +193,8 @@ instance ExplGet m s => ExplGet m (FilterStore s) where
 instance ExplMembers m s => ExplMembers m (FilterStore s) where
   {-# INLINE explMembers #-}
   explMembers (FilterStore s) = explMembers s
+  {-# INLINE explMemberSet #-}
+  explMemberSet (FilterStore s) = explMemberSet s
 
 -- | Pseudostore used to produce components of type 'Entity'.
 -- Always returns @True@ for @explExists@, and echoes back the entity argument for @explGet@.

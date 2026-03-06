@@ -19,6 +19,7 @@ import           Data.Bits
 import qualified Data.IntMap          as M
 import qualified Data.IntSet          as S
 import           Data.IORef
+import qualified Data.IntSet          as IS
 import           Data.Monoid          ((<>))
 import qualified Data.Vector.Storable as V
 import qualified Data.Vector.Unboxed  as U
@@ -62,6 +63,7 @@ instance (MonadIO m, Has w m Physics) => Has w m Shape where
 
 instance MonadIO m => ExplMembers m (Space Shape) where
   explMembers (Space _ sMap _ _ _) = liftIO $ U.fromList . M.keys <$> readIORef sMap
+  explMemberSet (Space _ sMap _ _ _) = liftIO $ M.keysSet <$> readIORef sMap
 
 instance MonadIO m => ExplDestroy m (Space Shape) where
   explDestroy (Space bMap sMap _ _ spc) sEty = liftIO $ do

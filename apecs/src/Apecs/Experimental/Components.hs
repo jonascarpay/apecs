@@ -13,6 +13,7 @@ module Apecs.Experimental.Components
   , Head (..)
   ) where
 
+import qualified Data.IntSet as IS
 import qualified Data.Vector.Unboxed as U
 
 import Apecs.Core
@@ -52,3 +53,6 @@ instance (ExplGet m s) => ExplGet m (HeadStore s) where
 
 instance (ExplMembers m s) => ExplMembers m (HeadStore s) where
   explMembers (HeadStore s) = U.take 1 <$> explMembers s
+  explMemberSet (HeadStore s) = do
+    members <- explMembers s
+    pure $ if U.null members then mempty else IS.singleton (U.head members)

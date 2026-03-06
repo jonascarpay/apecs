@@ -84,6 +84,7 @@ instance
   , Elem (s (Stack c)) ~ Stack c
   ) => ExplMembers m (Pushdown s c) where
     explMembers (Pushdown s) = explMembers s
+    explMemberSet (Pushdown s) = explMemberSet s
 
 instance (Storage c ~ Pushdown s c, Component c) => Component (Stack c) where
   type Storage (Stack c) = StackStore (Storage c)
@@ -120,3 +121,4 @@ instance
   , ExplMembers m (s (Stack c))
   ) => ExplMembers m (StackStore (Pushdown s c)) where
   explMembers (StackStore (Pushdown s)) = explMembers s
+  explMemberSet (StackStore (Pushdown s)) = explMemberSet s
