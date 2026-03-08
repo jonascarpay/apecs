@@ -9,6 +9,10 @@ module Apecs.TH
   , makeMapComponents
   , makeMapComponentsFor
   , makeInstanceTuples
+  , makeInstanceEithers
+  , makeInstanceFold
+  , mkTupleT
+  , mkEitherT
   ) where
 
 import           Control.Monad        (filterM)
@@ -62,15 +66,21 @@ makeWorldNoEC worldName cTypes = do
     enumerate :: [a] -> [(Int,a)]
     enumerate = zip [0..]
 
-makeInstanceTuples :: String -> Name -> [Name] -> Q [Dec]
-makeInstanceTuples synName cls cTypes = do
+makeInstanceFold :: ([Type] -> Type) -> String -> Name -> [Name] -> Q [Dec]
+makeInstanceFold foldT synName cls cTypes = do
   let destructible ty
         | nameBase ty == "EntityCounter" = pure False
         | otherwise = isInstance cls [ConT ''IO, AppT (ConT ''Storage) (ConT ty)]
   destroyableTypes <- filterM destructible cTypes
   let getType ty = ConT ty
-  decl <- tySynD (mkName synName) [] (pure $ mkTupleT $ getType <$> destroyableTypes)
+  decl <- tySynD (mkName synName) [] (pure $ foldT $ getType <$> destroyableTypes)
   return [decl]
+
+makeInstanceTuples :: String -> Name -> [Name] -> Q [Dec]
+makeInstanceTuples = makeInstanceFold mkTupleT
+
+makeInstanceEithers :: String -> Name -> [Name] -> Q [Dec]
+makeInstanceEithers = makeInstanceFold mkEitherT
 
 mkTupleT :: [Type] -> Type
 mkTupleT [] = ConT ''()
@@ -79,6 +89,11 @@ mkTupleT ts
   | len <= 8 = foldl AppT (TupleT len) ts
   | otherwise = foldl AppT (TupleT 8) (take 7 ts ++ [mkTupleT (drop 7 ts)])
   where len = length ts
+
+mkEitherT :: [Type] -> Type
+mkEitherT [] = ConT ''()
+mkEitherT [t] = t
+mkEitherT (t:ts) = AppT (AppT (ConT ''Either) t) (mkEitherT ts)
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]
