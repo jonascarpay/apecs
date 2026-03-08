@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP             #-}
 {-# LANGUAGE QuasiQuotes     #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies    #-}
@@ -58,23 +59,46 @@ makeWorldNoEC worldName cTypes = do
           getStore = let field $pat = $(varE x) in asks field
       |]
 
-  -- Destructible type synonym
+  -- World-wide collections for particular types
   destructible_decl <- makeInstanceTuples (worldName ++ "Destructible") ''ExplDestroy cTypes
+  enumerable_decl <- makeInstanceEithers (worldName ++ "Enumerable") ''ExplMembers cTypes
 
-  pure $ data_decl : destructible_decl ++ concat (init_world : instances)
+  pure $ data_decl : destructible_decl ++ enumerable_decl ++ concat (init_world : instances)
   where
     enumerate :: [a] -> [(Int,a)]
     enumerate = zip [0..]
 
 makeInstanceFold :: ([Type] -> Type) -> String -> Name -> [Name] -> Q [Dec]
 makeInstanceFold foldT synName cls cTypes = do
-  let destructible ty
-        | nameBase ty == "EntityCounter" = pure False
-        | otherwise = isInstance cls [ConT ''IO, AppT (ConT ''Storage) (ConT ty)]
-  destroyableTypes <- filterM destructible cTypes
+  matchingTypes <- filterM (hasInstance cls) cTypes
   let getType ty = ConT ty
-  decl <- tySynD (mkName synName) [] (pure $ foldT $ getType <$> destroyableTypes)
+  decl <- tySynD (mkName synName) [] (pure $ foldT $ getType <$> matchingTypes)
   return [decl]
+
+hasInstance :: Name -> Name -> Q Bool
+hasInstance cls ty = do
+  storageT <- resolveStorageType ty
+  case storageT of
+    Just (AppT (ConT store) _stored)
+      | nameBase store == "ReadOnly" -> pure False
+      | nameBase store == "Global" -> pure False
+    Just resolved -> isInstance cls [ConT ''IO, resolved]
+    Nothing       -> pure False
+
+-- | Resolve the @Storage@ type family for a component type.
+--
+-- On GHC < 9.2, @isInstance@ does not reduce type family applications,
+-- so we need to resolve @Storage ty@ before passing it to @isInstance@.
+resolveStorageType :: Name -> Q (Maybe Type)
+resolveStorageType ty = do
+  insts <- reifyInstances ''Storage [ConT ty]
+  pure $ case insts of
+#if MIN_VERSION_template_haskell(2,15,0)
+    [TySynInstD (TySynEqn _ _ rhs)] -> Just rhs
+#else
+    [TySynInstD _ (TySynEqn _ rhs)] -> Just rhs
+#endif
+    _ -> Nothing
 
 makeInstanceTuples :: String -> Name -> [Name] -> Q [Dec]
 makeInstanceTuples = makeInstanceFold mkTupleT
