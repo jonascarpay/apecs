@@ -9,8 +9,6 @@ module Apecs.TH
   , makeWorldAndComponents
   , makeMapComponents
   , makeMapComponentsFor
-  , makeInstanceTuples
-  , makeInstanceEithers
   , makeInstanceFold
   , mkTupleT
   , mkEitherT
@@ -60,30 +58,45 @@ makeWorldNoEC worldName cTypes = do
       |]
 
   -- World-wide collections for particular types
-  destructible_decl <- makeInstanceTuples (worldName ++ "Destructible") ''ExplDestroy cTypes
-  enumerable_decl <- makeInstanceEithers (worldName ++ "Enumerable") ''ExplMembers cTypes
+  destructible <- filterM (hasInstance ''ExplDestroy $ \c -> [ConT ''IO, c]) cTypes
+  destructible_decl <- makeInstanceFold mkTupleT (worldName ++ "Destructible") destructible
 
-  pure $ data_decl : destructible_decl ++ enumerable_decl ++ concat (init_world : instances)
+  enumerable <- filterM (hasInstance ''ExplMembers $ \c -> [ConT ''IO, c]) cTypes
+  enumerable_decl <- makeInstanceFold mkEitherT (worldName ++ "Enumerable") enumerable
+
+  pure $ data_decl : destructible_decl : enumerable_decl : concat (init_world : instances)
   where
     enumerate :: [a] -> [(Int,a)]
     enumerate = zip [0..]
 
-makeInstanceFold :: ([Type] -> Type) -> String -> Name -> [Name] -> Q [Dec]
-makeInstanceFold foldT synName cls cTypes = do
-  matchingTypes <- filterM (hasInstance cls) cTypes
-  let getType ty = ConT ty
-  decl <- tySynD (mkName synName) [] (pure $ foldT $ getType <$> matchingTypes)
-  return [decl]
+mkTupleT :: [Type] -> Type
+mkTupleT [] = ConT ''()
+mkTupleT [t] = t
+mkTupleT ts
+  | len <= 8 = foldl AppT (TupleT len) ts
+  | otherwise = foldl AppT (TupleT 8) (take 7 ts ++ [mkTupleT (drop 7 ts)])
+  where
+    len = length ts
 
-hasInstance :: Name -> Name -> Q Bool
-hasInstance cls ty = do
+mkEitherT :: [Type] -> Type
+mkEitherT [] = ConT ''()
+mkEitherT [t] = t
+mkEitherT (t : ts) = AppT (AppT (ConT ''Either) t) (mkEitherT ts)
+
+makeInstanceFold :: ([Type] -> Type) -> String -> [Name] -> Q Dec
+makeInstanceFold foldT synName cTypes =
+  tySynD (mkName synName) [] . pure $
+    foldT $ map ConT cTypes
+
+hasInstance :: Name -> (Type -> [Type]) -> Name -> Q Bool
+hasInstance cls withResolved ty = do
   storageT <- resolveStorageType ty
   case storageT of
     Just (AppT (ConT store) _stored)
       | nameBase store == "ReadOnly" -> pure False
       | nameBase store == "Global" -> pure False
-    Just resolved -> isInstance cls [ConT ''IO, resolved]
-    Nothing       -> pure False
+    Just resolved -> isInstance cls $ withResolved resolved
+    Nothing -> pure False
 
 -- | Resolve the @Storage@ type family for a component type.
 --
@@ -99,25 +112,6 @@ resolveStorageType ty = do
     [TySynInstD _ (TySynEqn _ rhs)] -> Just rhs
 #endif
     _ -> Nothing
-
-makeInstanceTuples :: String -> Name -> [Name] -> Q [Dec]
-makeInstanceTuples = makeInstanceFold mkTupleT
-
-makeInstanceEithers :: String -> Name -> [Name] -> Q [Dec]
-makeInstanceEithers = makeInstanceFold mkEitherT
-
-mkTupleT :: [Type] -> Type
-mkTupleT [] = ConT ''()
-mkTupleT [t] = t
-mkTupleT ts
-  | len <= 8 = foldl AppT (TupleT len) ts
-  | otherwise = foldl AppT (TupleT 8) (take 7 ts ++ [mkTupleT (drop 7 ts)])
-  where len = length ts
-
-mkEitherT :: [Type] -> Type
-mkEitherT [] = ConT ''()
-mkEitherT [t] = t
-mkEitherT (t:ts) = AppT (AppT (ConT ''Either) t) (mkEitherT ts)
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]
