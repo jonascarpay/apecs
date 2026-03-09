@@ -29,6 +29,7 @@ import           Apecs.Experimental.Children
 import           Apecs.Experimental.Reactive
 import           Apecs.Experimental.Stores
 import           Apecs.Stores
+import           Apecs.TH
 import           Apecs.Util
 
 type Vec = (Double, Double)
@@ -137,6 +138,9 @@ instance Component G1 where type Storage G1 = Global G1
 
 -- Tests Enumerable class
 makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+-- Generate a (T1, T2, T3) tuple in a contrived way
+-- (that allows processing component lists when placed in external file)
+pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
 
 worldEntityIds :: System WorldEnumerable S.IntSet
 worldEntityIds = do
@@ -150,6 +154,10 @@ prop_enumerable dels t12s t3s = assertSys initWorldEnumerable $ do
 
   let expectedBefore = S.fromList (map (unEntity . fst) t12s ++ map (unEntity . fst) t3s)
   actualBefore <- worldEntityIds
+
+  everything <- forM (S.toList actualBefore) (get . Entity)
+  let it = show @[Maybify WorldEnumerableShowable] everything
+  guard (length it > 0)
 
   forM_ dels $ \e -> destroy e (Proxy @WorldEnumerableDestructible)
 
