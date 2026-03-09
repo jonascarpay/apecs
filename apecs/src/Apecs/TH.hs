@@ -9,7 +9,9 @@ module Apecs.TH
   , makeWorldAndComponents
   , makeMapComponents
   , makeMapComponentsFor
+  , hasStoreInstance
   , makeInstanceFold
+  , mkFoldT
   , mkTupleT
   , mkEitherT
   ) where
@@ -58,10 +60,12 @@ makeWorldNoEC worldName cTypes = do
       |]
 
   -- World-wide collections for particular types
-  destructible <- filterM (hasInstance ''ExplDestroy $ \c -> [ConT ''IO, c]) cTypes
+  let skip = ["Global", "ReadOnly"]
+  let m = ConT ''IO
+  destructible <- filterM (hasStoreInstance skip ''ExplDestroy m) cTypes
   destructible_decl <- makeInstanceFold mkTupleT (worldName ++ "Destructible") destructible
 
-  enumerable <- filterM (hasInstance ''ExplMembers $ \c -> [ConT ''IO, c]) cTypes
+  enumerable <- filterM (hasStoreInstance skip ''ExplMembers m) cTypes
   enumerable_decl <- makeInstanceFold mkEitherT (worldName ++ "Enumerable") enumerable
 
   pure $ data_decl : destructible_decl : enumerable_decl : concat (init_world : instances)
@@ -79,23 +83,33 @@ mkTupleT ts
     len = length ts
 
 mkEitherT :: [Type] -> Type
-mkEitherT [] = ConT ''()
-mkEitherT [t] = t
-mkEitherT (t : ts) = AppT (AppT (ConT ''Either) t) (mkEitherT ts)
+mkEitherT = mkFoldT ''Either ''()
+
+mkFoldT :: Name -> Name -> [Type] -> Type
+mkFoldT _con nil [] = ConT nil
+mkFoldT _con _nil [t] = t
+mkFoldT con nil (t : ts) = AppT (AppT (ConT con) t) (mkFoldT con nil ts)
 
 makeInstanceFold :: ([Type] -> Type) -> String -> [Name] -> Q Dec
 makeInstanceFold foldT synName cTypes =
   tySynD (mkName synName) [] . pure $
     foldT $ map ConT cTypes
 
-hasInstance :: Name -> (Type -> [Type]) -> Name -> Q Bool
-hasInstance cls withResolved ty = do
-  storageT <- resolveStorageType ty
+-- | Resolve storage type and check for an instance like @ExplThis m (Map Position)@
+--
+-- Can be used to pre-filter component lists for 'makeInstanceFold'.
+hasStoreInstance
+  :: [String] -- ^ Skip those stores
+  -> Name -- ^ Class name (ExplThis)
+  -> Type -- ^ @m@ var like @ConT ''IO@
+  -> Name -- ^ component type name
+  -> Q Bool
+hasStoreInstance skip cls mType cType = do
+  storageT <- resolveStorageType cType
   case storageT of
     Just (AppT (ConT store) _stored)
-      | nameBase store == "ReadOnly" -> pure False
-      | nameBase store == "Global" -> pure False
-    Just resolved -> isInstance cls $ withResolved resolved
+      | nameBase store `elem` skip -> pure False
+    Just resolved -> isInstance cls [mType, resolved]
     Nothing -> pure False
 
 -- | Resolve the @Storage@ type family for a component type.
