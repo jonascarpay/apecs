@@ -7,6 +7,7 @@
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TupleSections              #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -19,6 +20,7 @@ import qualified Data.Foldable               as F
 import qualified Data.IntSet                 as S
 import           Data.IORef
 import           Data.List                   ((\\), delete, nub, sort)
+import qualified Data.Map.Strict             as M
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -139,11 +141,10 @@ instance Component G1 where type Storage G1 = Global G1
 
 -- Tests Enumerable class
 makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+makeTaggedComponents "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 -- Generate a (T1, T2, T3) tuple in a contrived way
 -- (that allows processing component lists when placed in external file)
 pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
-makeComponentTags "WorldTags" [''G1, ''T1, ''T2, ''T3]
-makeComponentSum "WorldSum" [''G1, ''T1, ''T2, ''T3]
 
 worldEntityIds :: System WorldEnumerable S.IntSet
 worldEntityIds = do
@@ -167,6 +168,27 @@ prop_enumerable dels t12s t3s = assertSys initWorldEnumerable $ do
   let expectedAfter = expectedBefore `S.difference` S.fromList (map unEntity dels)
   actualAfter <- worldEntityIds
   return (expectedBefore == actualBefore && expectedAfter == actualAfter)
+
+prop_tags :: [Entity] -> [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_tags dels t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  entities <- worldEntityIds
+
+  eav <- fmap M.fromList . forM (map Entity $ S.toList entities) $ \e -> do
+    tagged <- forM [minBound .. maxBound] $ \t -> fmap (t,) <$> case t of
+      TG1 -> fmap SG1 <$> get e
+      TT1 -> fmap ST1 <$> get e
+      TT2 -> fmap ST2 <$> get e
+      TT3 -> fmap ST3 <$> get e
+    pure (e, M.fromList [ (t, v) | Just (t, v) <- tagged ])
+
+  let it = show (eav :: M.Map Entity (M.Map WorldEnumerableTag WorldEnumerableSum))
+  guard (length it > 0)
+  liftIO $ putStrLn it
+
+  pure True
 
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
@@ -319,12 +341,6 @@ prop_children (NonEmpty writes) = assertSys initChildTest $ do
           (show $ F.toList children')
 
   return True
-
-prop_worldSum :: Property
-prop_worldSum = once $ property $
-  let _g1 = WorldSumG1 (G1 ())
-      _t1 = WorldSumT1 (T1 2)
-  in True
 
 return []
 main = $quickCheckAll

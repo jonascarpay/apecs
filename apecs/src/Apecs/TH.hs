@@ -7,6 +7,7 @@ module Apecs.TH
   ( makeWorld
   , makeWorldNoEC
   , makeWorldAndComponents
+  , makeTaggedComponents
   , makeMapComponents
   , makeMapComponentsFor
   , makeComponentTags
@@ -21,7 +22,6 @@ module Apecs.TH
 import           Control.Monad        (filterM)
 import           Control.Monad.Trans.Reader (asks)
 import           Data.Traversable     (for)
-import           GHC.Generics         (Generic)
 import           Language.Haskell.TH
 
 import           Apecs.Core
@@ -176,16 +176,24 @@ makeWorld :: String -> [Name] -> Q [Dec]
 makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])
 
 -- | Creates an Enum of component tags
-makeComponentTags :: String -> [Name] -> Q [Dec]
-makeComponentTags tagName cTypes = do
-  let dataName = mkName tagName
-      cons = map (\c -> NormalC (mkName ("T" ++ nameBase c)) []) cTypes
-      derivs = [ DerivClause Nothing (map ConT [''Eq, ''Ord, ''Show, ''Enum, ''Bounded, ''Generic]) ]
-  return [DataD [] dataName [] Nothing cons derivs]
+makeComponentTags :: String -> String -> [Name] -> Q [Dec]
+makeComponentTags typeName consPrefix cTypes = do
+  let
+    cons = map (\c -> NormalC (mkName $ consPrefix ++ nameBase c) []) cTypes
+    derivs = [ DerivClause Nothing (map ConT [''Eq, ''Ord, ''Show, ''Enum, ''Bounded]) ]
+  pure [DataD [] (mkName typeName) [] Nothing cons derivs]
 
 -- | Creates a sum type of components
-makeComponentSum :: String -> [Name] -> Q [Dec]
-makeComponentSum tagName cTypes = do
-  let dataName = mkName tagName
-      cons = map (\c -> NormalC (mkName (tagName ++ nameBase c)) [(Bang NoSourceUnpackedness NoSourceStrictness, ConT c)]) cTypes
-  return [DataD [] dataName [] Nothing cons []]
+makeComponentSum :: String -> String -> [Name] -> Q [Dec]
+makeComponentSum typeName consPrefix cTypes = do
+  let
+    cons = map (\c -> NormalC (mkName $ consPrefix ++ nameBase c) [(Bang NoSourceUnpackedness NoSourceStrictness, ConT c)]) cTypes
+    derivs = [ DerivClause Nothing (map ConT [''Show]) ]
+  pure [DataD [] (mkName typeName) [] Nothing cons derivs]
+
+-- | Calls 'makeComponentTags' and 'makeComponentSum' using the world name.
+makeTaggedComponents :: String -> [Name] -> Q [Dec]
+makeTaggedComponents worldName cTypes = do
+  tags <- makeComponentTags (worldName ++ "Tag") "T" cTypes
+  sums <- makeComponentSum (worldName ++ "Sum") "S" cTypes
+  pure $ tags ++ sums
