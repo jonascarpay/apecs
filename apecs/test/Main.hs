@@ -34,6 +34,7 @@ import           Apecs.Experimental.Reactive
 import           Apecs.Experimental.Stores
 import           Apecs.Stores
 import           Apecs.TH
+import           Apecs.TH.Tags
 import           Apecs.Util
 
 type Vec = (Double, Double)
