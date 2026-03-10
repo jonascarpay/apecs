@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP             #-}
 {-# LANGUAGE QuasiQuotes     #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies    #-}
@@ -8,7 +9,11 @@ module Apecs.TH
   , makeWorldAndComponents
   , makeMapComponents
   , makeMapComponentsFor
-  , makeInstanceTuples
+  , hasStoreInstance
+  , makeInstanceFold
+  , mkFoldT
+  , mkTupleT
+  , mkEitherT
   ) where
 
 import           Control.Monad        (filterM)
@@ -54,23 +59,19 @@ makeWorldNoEC worldName cTypes = do
           getStore = let field $pat = $(varE x) in asks field
       |]
 
-  -- Destructible type synonym
-  destructible_decl <- makeInstanceTuples (worldName ++ "Destructible") ''ExplDestroy cTypes
+  -- World-wide collections for particular types
+  let skip = ["Global", "ReadOnly"]
+  let m = ConT ''IO
+  destructible <- filterM (hasStoreInstance skip ''ExplDestroy m) cTypes
+  destructible_decl <- makeInstanceFold mkTupleT (worldName ++ "Destructible") destructible
 
-  pure $ data_decl : destructible_decl ++ concat (init_world : instances)
+  enumerable <- filterM (hasStoreInstance skip ''ExplMembers m) cTypes
+  enumerable_decl <- makeInstanceFold mkEitherT (worldName ++ "Enumerable") enumerable
+
+  pure $ data_decl : destructible_decl : enumerable_decl : concat (init_world : instances)
   where
     enumerate :: [a] -> [(Int,a)]
     enumerate = zip [0..]
-
-makeInstanceTuples :: String -> Name -> [Name] -> Q [Dec]
-makeInstanceTuples synName cls cTypes = do
-  let destructible ty
-        | nameBase ty == "EntityCounter" = pure False
-        | otherwise = isInstance cls [ConT ''IO, AppT (ConT ''Storage) (ConT ty)]
-  destroyableTypes <- filterM destructible cTypes
-  let getType ty = ConT ty
-  decl <- tySynD (mkName synName) [] (pure $ mkTupleT $ getType <$> destroyableTypes)
-  return [decl]
 
 mkTupleT :: [Type] -> Type
 mkTupleT [] = ConT ''()
@@ -78,7 +79,53 @@ mkTupleT [t] = t
 mkTupleT ts
   | len <= 8 = foldl AppT (TupleT len) ts
   | otherwise = foldl AppT (TupleT 8) (take 7 ts ++ [mkTupleT (drop 7 ts)])
-  where len = length ts
+  where
+    len = length ts
+
+mkEitherT :: [Type] -> Type
+mkEitherT = mkFoldT ''Either ''()
+
+mkFoldT :: Name -> Name -> [Type] -> Type
+mkFoldT _con nil [] = ConT nil
+mkFoldT _con _nil [t] = t
+mkFoldT con nil (t : ts) = AppT (AppT (ConT con) t) (mkFoldT con nil ts)
+
+makeInstanceFold :: ([Type] -> Type) -> String -> [Name] -> Q Dec
+makeInstanceFold foldT synName cTypes =
+  tySynD (mkName synName) [] . pure $
+    foldT $ map ConT cTypes
+
+-- | Resolve storage type and check for an instance like @ExplThis m (Map Position)@
+--
+-- Can be used to pre-filter component lists for 'makeInstanceFold'.
+hasStoreInstance
+  :: [String] -- ^ Skip those stores
+  -> Name -- ^ Class name (ExplThis)
+  -> Type -- ^ @m@ var like @ConT ''IO@
+  -> Name -- ^ component type name
+  -> Q Bool
+hasStoreInstance skip cls mType cType = do
+  storageT <- resolveStorageType cType
+  case storageT of
+    Just (AppT (ConT store) _stored)
+      | nameBase store `elem` skip -> pure False
+    Just resolved -> isInstance cls [mType, resolved]
+    Nothing -> pure False
+
+-- | Resolve the @Storage@ type family for a component type.
+--
+-- On GHC < 9.2, @isInstance@ does not reduce type family applications,
+-- so we need to resolve @Storage ty@ before passing it to @isInstance@.
+resolveStorageType :: Name -> Q (Maybe Type)
+resolveStorageType ty = do
+  insts <- reifyInstances ''Storage [ConT ty]
+  pure $ case insts of
+#if MIN_VERSION_template_haskell(2,15,0)
+    [TySynInstD (TySynEqn _ _ rhs)] -> Just rhs
+#else
+    [TySynInstD _ (TySynEqn _ rhs)] -> Just rhs
+#endif
+    _ -> Nothing
 
 -- | Creates 'Component' instances with 'Map' stores
 makeMapComponents :: [Name] -> Q [Dec]

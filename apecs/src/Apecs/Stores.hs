@@ -23,6 +23,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class   (lift)
 import           Data.Bits                   (shiftL, (.&.))
 import qualified Data.IntMap.Strict          as M
+import qualified Data.IntSet                 as IS
 import           Data.IORef
 import           Data.Proxy
 import           Data.Typeable               (Typeable, typeRep)
@@ -66,6 +67,8 @@ instance MonadIO m => ExplDestroy m (Map c) where
 instance MonadIO m => ExplMembers m (Map c) where
   {-# INLINE explMembers #-}
   explMembers (Map ref) = liftIO$ U.fromList . M.keys <$> readIORef ref
+  {-# INLINE explMemberSet #-}
+  explMemberSet (Map ref) = liftIO$ M.keysSet <$> readIORef ref
 
 -- | A Unique contains zero or one component.
 --   Writing to it overwrites both the previous component and its owner.
@@ -101,6 +104,10 @@ instance MonadIO m => ExplMembers m (Unique c) where
   explMembers (Unique ref) = liftIO$ flip fmap (readIORef ref) $ \case
     Nothing -> mempty
     Just (ety, _) -> U.singleton ety
+  {-# INLINE explMemberSet #-}
+  explMemberSet (Unique ref) = liftIO$ flip fmap (readIORef ref) $ \case
+    Nothing -> mempty
+    Just (ety, _) -> IS.singleton ety
 
 -- | A 'Global' contains exactly one component.
 --   The initial value is 'mempty' from the component's 'Monoid' instance.
@@ -226,6 +233,8 @@ instance ExplGet m s => ExplGet m (ReadOnly s) where
 instance ExplMembers m s => ExplMembers m (ReadOnly s) where
   {-# INLINE explMembers #-}
   explMembers (ReadOnly s) = explMembers s
+  {-# INLINE explMemberSet #-}
+  explMemberSet (ReadOnly s) = explMemberSet s
 
 setReadOnly :: forall w m s c.
   ( Has w m c

@@ -29,6 +29,7 @@ import           Apecs.Experimental.Children
 import           Apecs.Experimental.Reactive
 import           Apecs.Experimental.Stores
 import           Apecs.Stores
+import           Apecs.TH
 import           Apecs.Util
 
 type Vec = (Double, Double)
@@ -131,6 +132,38 @@ instance Component T2 where type Storage T2 = Map T2
 instance Component T3 where type Storage T3 = Map T3
 
 makeWorld "Tuples" [''T1, ''T2, ''T3]
+
+newtype G1 = G1 () deriving (Eq, Show, Arbitrary, Semigroup, Monoid)
+instance Component G1 where type Storage G1 = Global G1
+
+-- Tests Enumerable class
+makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+-- Generate a (T1, T2, T3) tuple in a contrived way
+-- (that allows processing component lists when placed in external file)
+pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
+
+worldEntityIds :: System WorldEnumerable S.IntSet
+worldEntityIds = do
+  s :: Storage WorldEnumerableEnumerable <- getStore
+  explMemberSet s
+
+prop_enumerable :: [Entity] -> [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_enumerable dels t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  let expectedBefore = S.fromList (map (unEntity . fst) t12s ++ map (unEntity . fst) t3s)
+  actualBefore <- worldEntityIds
+
+  everything <- forM (S.toList actualBefore) (get . Entity)
+  let it = show @[Maybify WorldEnumerableShowable] everything
+  guard (length it > 0)
+
+  forM_ dels $ \e -> destroy e (Proxy @WorldEnumerableDestructible)
+
+  let expectedAfter = expectedBefore `S.difference` S.fromList (map unEntity dels)
+  actualAfter <- worldEntityIds
+  return (expectedBefore == actualBefore && expectedAfter == actualAfter)
 
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
