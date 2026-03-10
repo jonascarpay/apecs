@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -141,6 +142,7 @@ makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 -- Generate a (T1, T2, T3) tuple in a contrived way
 -- (that allows processing component lists when placed in external file)
 pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
+makeComponentTags "WorldTags" [''G1, ''T1, ''T2, ''T3]
 
 worldEntityIds :: System WorldEnumerable S.IntSet
 worldEntityIds = do

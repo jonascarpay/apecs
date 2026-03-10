@@ -9,6 +9,7 @@ module Apecs.TH
   , makeWorldAndComponents
   , makeMapComponents
   , makeMapComponentsFor
+  , makeComponentTags
   , hasStoreInstance
   , makeInstanceFold
   , mkFoldT
@@ -19,6 +20,7 @@ module Apecs.TH
 import           Control.Monad        (filterM)
 import           Control.Monad.Trans.Reader (asks)
 import           Data.Traversable     (for)
+import           GHC.Generics         (Generic)
 import           Language.Haskell.TH
 
 import           Apecs.Core
@@ -171,3 +173,11 @@ turns into
 -}
 makeWorld :: String -> [Name] -> Q [Dec]
 makeWorld worldName cTypes = makeWorldNoEC worldName (cTypes ++ [''EntityCounter])
+
+-- | Creates an Enum of component tags
+makeComponentTags :: String -> [Name] -> Q [Dec]
+makeComponentTags tagName cTypes = do
+  let dataName = mkName tagName
+      cons = map (\c -> NormalC (mkName ("T" ++ nameBase c)) []) cTypes
+      derivs = [ DerivClause Nothing (map ConT [''Eq, ''Ord, ''Show, ''Enum, ''Bounded, ''Generic]) ]
+  return [DataD [] dataName [] Nothing cons derivs]
