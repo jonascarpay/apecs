@@ -10,6 +10,7 @@ module Apecs.TH
   , makeMapComponents
   , makeMapComponentsFor
   , makeComponentTags
+  , makeComponentSum
   , hasStoreInstance
   , makeInstanceFold
   , mkFoldT
@@ -181,3 +182,10 @@ makeComponentTags tagName cTypes = do
       cons = map (\c -> NormalC (mkName ("T" ++ nameBase c)) []) cTypes
       derivs = [ DerivClause Nothing (map ConT [''Eq, ''Ord, ''Show, ''Enum, ''Bounded, ''Generic]) ]
   return [DataD [] dataName [] Nothing cons derivs]
+
+-- | Creates a sum type of components
+makeComponentSum :: String -> [Name] -> Q [Dec]
+makeComponentSum tagName cTypes = do
+  let dataName = mkName tagName
+      cons = map (\c -> NormalC (mkName (tagName ++ nameBase c)) [(Bang NoSourceUnpackedness NoSourceStrictness, ConT c)]) cTypes
+  return [DataD [] dataName [] Nothing cons []]

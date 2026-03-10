@@ -143,6 +143,7 @@ makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 -- (that allows processing component lists when placed in external file)
 pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
 makeComponentTags "WorldTags" [''G1, ''T1, ''T2, ''T3]
+makeComponentSum "WorldSum" [''G1, ''T1, ''T2, ''T3]
 
 worldEntityIds :: System WorldEnumerable S.IntSet
 worldEntityIds = do
@@ -318,6 +319,12 @@ prop_children (NonEmpty writes) = assertSys initChildTest $ do
           (show $ F.toList children')
 
   return True
+
+prop_worldSum :: Property
+prop_worldSum = once $ property $
+  let _g1 = WorldSumG1 (G1 ())
+      _t1 = WorldSumT1 (T1 2)
+  in True
 
 return []
 main = $quickCheckAll
