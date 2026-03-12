@@ -212,6 +212,25 @@ prop_tags_get t12s t3s = assertSys initWorldEnumerable $ do
 
   pure True
 
+prop_count_components :: [(Entity, T1)] -> [(Entity, T2)] -> [(Entity, T3)] -> Property
+prop_count_components t1s t2s t3s = assertSys initWorldEnumerable $ do
+  forM_ t1s $ uncurry set
+  forM_ t2s $ uncurry set
+  forM_ t3s $ uncurry set
+
+  counts <- countWorldEnumerableComponents
+  let countMap = M.fromList counts
+
+  let expectedT1 = length $ nub $ map fst t1s
+  let expectedT2 = length $ nub $ map fst t2s
+  let expectedT3 = length $ nub $ map fst t3s
+
+  -- G1 is Global and should not appear in counts
+  return $ M.lookup TT1 countMap == Just expectedT1
+        && M.lookup TT2 countMap == Just expectedT2
+        && M.lookup TT3 countMap == Just expectedT3
+        && M.lookup TG1 countMap == Nothing
+
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
 

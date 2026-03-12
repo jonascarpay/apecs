@@ -10,10 +10,12 @@ module Apecs.TH.Tags
   , makeTagLookup
   , makeTagFromSum
   , makeGetTags
+  , makeCountComponents
   ) where
 
 import           Control.Monad        (filterM)
 import           Control.Monad.Trans.Class (lift)
+import qualified Data.Vector.Unboxed  as U
 import           Language.Haskell.TH
 
 import Apecs.Core
@@ -31,7 +33,11 @@ makeTaggedComponents worldName cTypes = do
   existing <- filterM (hasStoreInstance skip ''ExplGet m) cTypes
 
   getTags <- makeGetTags getTagsFunName worldName tagType tagPrefix existing
-  pure $ tags ++ sums ++ getter ++ toTag ++ getTags
+
+  enumerable <- filterM (hasStoreInstance skip ''ExplMembers m) cTypes
+  countComps <- makeCountComponents countCompsFunName worldName tagType tagPrefix enumerable
+
+  pure $ tags ++ sums ++ getter ++ toTag ++ getTags ++ countComps
   where
     tagType = worldName ++ "Tag"
     tagPrefix = "T"
@@ -40,6 +46,7 @@ makeTaggedComponents worldName cTypes = do
     lookupFunName = "lookup" ++ worldName ++ "Tag"
     tagFromSumFunName = "tag" ++ sumType
     getTagsFunName = "get" ++ worldName ++ "Tags"
+    countCompsFunName = "count" ++ worldName ++ "Components"
 
 -- | Creates an Enum of component tags
 makeComponentTags :: String -> String -> [Name] -> Q [Dec]
@@ -121,3 +128,29 @@ makeGetTags funName worldName tagType tagPrefix cTypes = do
       where
         tagNames = map (varE . mkName . ("tag_" ++) . nameBase) cTypes
         resultE = noBindS . appE (varE 'pure) $ appE (varE 'concat) $ listE tagNames
+
+-- | For each component type with ExplMembers, count the number of entities that have that component.
+makeCountComponents :: String -> String -> String -> String -> [Name] -> Q [Dec]
+makeCountComponents funName worldName tagType tagPrefix cTypes = do
+  sig <- sigD fName [t| SystemT $(conT worldN) IO [($(conT tagN), Int)] |]
+  stmts <- mapM makeStmt cTypes
+  decl <- funD fName [clause [] (bodyS stmts) []]
+  pure [sig, decl]
+  where
+    fName = mkName funName
+    tagN = mkName tagType
+    worldN = mkName worldName
+    makeStmt cType = bindS (varP countName) body
+      where
+        countName = mkName ("count_" ++ nameBase cType)
+        tagCon = mkName (tagPrefix ++ nameBase cType)
+        body = [|
+          do
+            s <- getStore :: SystemT $(conT (mkName worldName)) IO (Storage $(conT cType))
+            members <- lift $ explMembers s
+            pure ($(conE tagCon), U.length members)
+          |]
+    bodyS stmts = normalB . doE $ map pure stmts ++ [resultE]
+      where
+        countNames = map (varE . mkName . ("count_" ++) . nameBase) cTypes
+        resultE = noBindS . appE (varE 'pure) $ listE countNames
