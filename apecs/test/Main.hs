@@ -171,8 +171,8 @@ prop_enumerable dels t12s t3s = assertSys initWorldEnumerable $ do
   actualAfter <- worldEntityIds
   return (expectedBefore == actualBefore && expectedAfter == actualAfter)
 
-prop_tags :: [Entity] -> [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
-prop_tags dels t12s t3s = assertSys initWorldEnumerable $ do
+prop_tags_lookup :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_tags_lookup t12s t3s = assertSys initWorldEnumerable $ do
   forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
   forM_ t3s $ \(e, t3) -> set e t3
 
@@ -184,6 +184,31 @@ prop_tags dels t12s t3s = assertSys initWorldEnumerable $ do
 
   let it = show (eav :: M.Map Entity (M.Map WorldEnumerableTag WorldEnumerableSum))
   guard (length it > 0)
+
+  pure True
+
+prop_tags_get :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_tags_get t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  -- arbitrary will produce overlapping entity sets for t12s and t3s
+  -- the correct set of components for each entity is known at runtime
+  let has_t12s = S.fromList (map (unEntity . fst) t12s)
+  let has_t3s = S.fromList (map (unEntity . fst) t3s)
+
+  forM_ (S.toList $ has_t12s <> has_t3s) $ \ety -> do
+    let t12 = [[TT1, TT2] | ety `S.member` has_t12s]
+    let t3 = [[TT3] | ety `S.member` has_t3s]
+    let
+      expected =
+        -- XXX: matching the order is important.
+        -- getWorldEnumerableTags will iterate in the "constructor order"
+        -- derived from the filtered component type list.
+        concat (t12 ++ t3)
+    tags <- getWorldEnumerableTags $ Entity ety
+    unless (tags == expected) $ do
+      error $ show (tags, expected)
 
   pure True
 
