@@ -22,6 +22,7 @@ import           Data.IORef
 import           Data.List                   ((\\), delete, nub, sort)
 import qualified Data.IntMap.Strict          as IM
 import qualified Data.Map.Strict             as M
+import qualified Data.Set                    as Set
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -230,6 +231,26 @@ prop_count_components t1s t2s t3s = assertSys initWorldEnumerable $ do
         && M.lookup TT2 countMap == Just expectedT2
         && M.lookup TT3 countMap == Just expectedT3
         && M.lookup TG1 countMap == Nothing
+
+prop_count_combinations :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  entities <- worldEntityIds
+  combos <- countCombinations entities getWorldEnumerableTags
+
+  let has_t12s = S.fromList (map (unEntity . fst) t12s)
+  let has_t3s = S.fromList (map (unEntity . fst) t3s)
+  let entityTags ety =
+        (if ety `S.member` has_t12s then [TT1, TT2] else [])
+        ++ (if ety `S.member` has_t3s then [TT3] else [])
+  let expected = M.fromListWith (+)
+        [ (Set.fromList (entityTags ety), 1 :: Int)
+        | ety <- S.toList (has_t12s <> has_t3s)
+        ]
+
+  return $ combos == expected
 
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
