@@ -207,7 +207,7 @@ prop_tags_get t12s t3s = assertSys initWorldEnumerable $ do
         -- getWorldEnumerableTags will iterate in the "constructor order"
         -- derived from the filtered component type list.
         concat (t12 ++ t3)
-    tags <- getWorldEnumerableTags $ Entity ety
+    tags <- entityTags $ Entity ety
     unless (tags == expected) $ do
       error $ show (tags, expected)
 
@@ -238,7 +238,7 @@ prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
   forM_ t3s $ \(e, t3) -> set e t3
 
   entities <- worldEntityIds
-  combos <- countCombinations entities getWorldEnumerableTags
+  combos <- countCombinations entities
 
   let has_t12s = S.fromList (map (unEntity . fst) t12s)
   let has_t3s = S.fromList (map (unEntity . fst) t3s)

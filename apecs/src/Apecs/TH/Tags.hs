@@ -11,6 +11,7 @@ module Apecs.TH.Tags
   , makeTagFromSum
   , makeGetTags
   , makeCountComponents
+  , makeHasTagsInstance
   ) where
 
 import           Control.Monad        (filterM)
@@ -33,11 +34,12 @@ makeTaggedComponents worldName cTypes = do
   existing <- filterM (hasStoreInstance skip ''ExplGet m) cTypes
 
   getTags <- makeGetTags getTagsFunName worldName tagType tagPrefix existing
+  hasTagsInst <- makeHasTagsInstance worldName tagType getTagsFunName
 
   enumerable <- filterM (hasStoreInstance skip ''ExplMembers m) cTypes
   countComps <- makeCountComponents countCompsFunName worldName tagType tagPrefix enumerable
 
-  pure $ tags ++ sums ++ getter ++ toTag ++ getTags ++ countComps
+  pure $ tags ++ sums ++ getter ++ toTag ++ getTags ++ hasTagsInst ++ countComps
   where
     tagType = worldName ++ "Tag"
     tagPrefix = "T"
@@ -128,6 +130,26 @@ makeGetTags funName worldName tagType tagPrefix cTypes = do
       where
         tagNames = map (varE . mkName . ("tag_" ++) . nameBase) cTypes
         resultE = noBindS . appE (varE 'pure) $ appE (varE 'concat) $ listE tagNames
+
+-- | Generates a @HasTags@ instance for the given world, delegating @entityTags@ to the
+--   generated @getWorldTags@ function.
+makeHasTagsInstance :: String -> String -> String -> Q [Dec]
+makeHasTagsInstance worldName tagType getTagsFunName = pure [decl]
+  where
+    worldN = mkName worldName
+    tagN = mkName tagType
+    getTagsN = mkName getTagsFunName
+    tySynInst =
+#if MIN_VERSION_template_haskell(2,15,0)
+      TySynInstD (TySynEqn Nothing (AppT (ConT ''WTag) (ConT worldN)) (ConT tagN))
+#else
+      TySynInstD ''WTag (TySynEqn [ConT worldN] (ConT tagN))
+#endif
+    decl = InstanceD Nothing []
+      (AppT (ConT ''HasTags) (ConT worldN))
+      [ tySynInst
+      , ValD (VarP 'entityTags) (NormalB (VarE getTagsN)) []
+      ]
 
 -- | For each component type with ExplMembers, count the number of entities that have that component.
 makeCountComponents :: String -> String -> String -> String -> [Name] -> Q [Dec]
