@@ -26,7 +26,8 @@ makeTaggedComponents :: String -> [Name] -> Q [Dec]
 makeTaggedComponents worldName cTypes = do
   tags <- makeComponentTags tagType tagPrefix cTypes
   sums <- makeComponentSum sumType sumPrefix cTypes
-  getter <- makeTagLookup lookupFunName worldName tagType tagPrefix sumType sumPrefix cTypes
+  lookupFun <- makeTagLookup (Just ''Maybe) lookupFunName worldName tagType tagPrefix sumType sumPrefix cTypes
+  getFun <- makeTagLookup Nothing getFunName worldName tagType tagPrefix sumType sumPrefix cTypes
   toTag <- makeTagFromSum tagFromSumFunName tagType tagPrefix sumType sumPrefix cTypes
 
   let skip = ["Global", "ReadOnly"]
@@ -39,13 +40,23 @@ makeTaggedComponents worldName cTypes = do
   enumerable <- filterM (hasStoreInstance skip ''ExplMembers m) cTypes
   countComps <- makeCountComponents countCompsFunName worldName tagType tagPrefix enumerable
 
-  pure $ tags ++ sums ++ getter ++ toTag ++ getTags ++ hasTagsInst ++ countComps
+  pure $ concat
+    [ tags
+    , sums
+    , lookupFun
+    , getFun
+    , toTag
+    , getTags
+    , hasTagsInst
+    , countComps
+    ]
   where
     tagType = worldName ++ "Tag"
     tagPrefix = "T"
     sumType = worldName ++ "Sum"
     sumPrefix = "S"
     lookupFunName = "lookup" ++ worldName ++ "Tag"
+    getFunName = "get" ++ worldName ++ "Tag"
     tagFromSumFunName = "tag" ++ sumType
     getTagsFunName = "get" ++ worldName ++ "Tags"
     countCompsFunName = "count" ++ worldName ++ "Components"
@@ -66,14 +77,14 @@ makeComponentSum typeName consPrefix cTypes = pure [decl]
     cons = map (\c -> NormalC (mkName $ consPrefix ++ nameBase c) [(Bang NoSourceUnpackedness NoSourceStrictness, ConT c)]) cTypes
     derivs = [ DerivClause Nothing [ConT ''Show] ]
 
-makeTagLookup :: String -> String -> String -> String -> String -> String -> [Name] -> Q [Dec]
-makeTagLookup funName worldName tagType tagPrefix sumType sumPrefix cTypes = do
+makeTagLookup :: Maybe Name -> String -> String -> String -> String -> String -> String -> [Name] -> Q [Dec]
+makeTagLookup lookupWrapper funName worldName tagType tagPrefix sumType sumPrefix cTypes = do
   m <- newName "m"
   sig <- forallCompClsSig fName ''Get worldN m cTypes
     [t|
       Entity ->
       $(conT (mkName tagType)) ->
-      SystemT $(conT worldN) $(varT m) (Maybe $(conT (mkName sumType)))
+      SystemT $(conT worldN) $(varT m) $(wrapResult $ conT (mkName sumType))
     |]
   e <- newName "e"
   matches <- mapM (makeMatch e) cTypes
@@ -82,9 +93,17 @@ makeTagLookup funName worldName tagType tagPrefix sumType sumPrefix cTypes = do
   decl <- funD fName [clause [varP e, varP t] (normalB body) []]
   pure [sig, decl]
   where
+    (wrapResult, wrapCons) =
+      case lookupWrapper of
+        Nothing -> (id, id)
+        Just funType ->
+          ( appT (conT funType)
+          , \sumConstr -> [| fmap $sumConstr |]
+          )
+
     makeMatch e cType = match (conP tagCon []) (normalB matchBody) []
       where
-        matchBody = [| fmap $(conE sumCon) <$> get $(varE e) |]
+        matchBody = [| $(wrapCons $ conE sumCon) <$> get $(varE e) |]
         tagCon = mkName (tagPrefix ++ nameBase cType)
         sumCon = mkName (sumPrefix ++ nameBase cType)
     fName = mkName funName

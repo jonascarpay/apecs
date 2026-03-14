@@ -193,6 +193,23 @@ prop_tags_get t12s t3s = assertSys initWorldEnumerable $ do
   forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
   forM_ t3s $ \(e, t3) -> set e t3
 
+  entities <- worldEntityIds
+
+  eav <- fmap M.fromList . forM (map Entity $ S.toList entities) $ \e -> do
+    entityTags <- entityTags e
+    tagged <- forM entityTags $ \t -> (t,) <$> getWorldEnumerableTag e t
+    pure (e, M.fromList tagged)
+
+  let it = show (eav :: M.Map Entity (M.Map WorldEnumerableTag WorldEnumerableSum))
+  guard (length it > 0)
+
+  pure True
+
+prop_tags_list :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_tags_list t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
   -- arbitrary will produce overlapping entity sets for t12s and t3s
   -- the correct set of components for each entity is known at runtime
   let has_t12s = S.fromList (map (unEntity . fst) t12s)
