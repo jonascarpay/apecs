@@ -1,11 +1,13 @@
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TupleSections              #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -18,6 +20,9 @@ import qualified Data.Foldable               as F
 import qualified Data.IntSet                 as S
 import           Data.IORef
 import           Data.List                   ((\\), delete, nub, sort)
+import qualified Data.IntMap.Strict          as IM
+import qualified Data.Map.Strict             as M
+import qualified Data.Set                    as Set
 import qualified Data.Vector.Unboxed         as U
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -30,6 +35,7 @@ import           Apecs.Experimental.Reactive
 import           Apecs.Experimental.Stores
 import           Apecs.Stores
 import           Apecs.TH
+import           Apecs.TH.Tags
 import           Apecs.Util
 
 type Vec = (Double, Double)
@@ -138,6 +144,7 @@ instance Component G1 where type Storage G1 = Global G1
 
 -- Tests Enumerable class
 makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+makeTaggedComponents "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 -- Generate a (T1, T2, T3) tuple in a contrived way
 -- (that allows processing component lists when placed in external file)
 pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
@@ -164,6 +171,86 @@ prop_enumerable dels t12s t3s = assertSys initWorldEnumerable $ do
   let expectedAfter = expectedBefore `S.difference` S.fromList (map unEntity dels)
   actualAfter <- worldEntityIds
   return (expectedBefore == actualBefore && expectedAfter == actualAfter)
+
+prop_tags_lookup :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_tags_lookup t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  entities <- worldEntityIds
+
+  eav <- fmap M.fromList . forM (map Entity $ S.toList entities) $ \e -> do
+    tagged <- forM [minBound .. maxBound] $ \t -> fmap (t,) <$> lookupWorldEnumerableTag e t
+    pure (e, M.fromList [ (t, v) | Just (t, v) <- tagged ])
+
+  let it = show (eav :: M.Map Entity (M.Map WorldEnumerableTag WorldEnumerableSum))
+  guard (length it > 0)
+
+  pure True
+
+prop_tags_get :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_tags_get t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  -- arbitrary will produce overlapping entity sets for t12s and t3s
+  -- the correct set of components for each entity is known at runtime
+  let has_t12s = S.fromList (map (unEntity . fst) t12s)
+  let has_t3s = S.fromList (map (unEntity . fst) t3s)
+
+  forM_ (S.toList $ has_t12s <> has_t3s) $ \ety -> do
+    let t12 = [[TT1, TT2] | ety `S.member` has_t12s]
+    let t3 = [[TT3] | ety `S.member` has_t3s]
+    let
+      expected =
+        -- XXX: matching the order is important.
+        -- getWorldEnumerableTags will iterate in the "constructor order"
+        -- derived from the filtered component type list.
+        concat (t12 ++ t3)
+    tags <- entityTags $ Entity ety
+    unless (tags == expected) $ do
+      error $ show (tags, expected)
+
+  pure True
+
+prop_count_components :: [(Entity, T1)] -> [(Entity, T2)] -> [(Entity, T3)] -> Property
+prop_count_components t1s t2s t3s = assertSys initWorldEnumerable $ do
+  forM_ t1s $ uncurry set
+  forM_ t2s $ uncurry set
+  forM_ t3s $ uncurry set
+
+  counts <- countWorldEnumerableComponents
+  let countMap = M.fromList counts
+
+  let expectedT1 = length $ nub $ map fst t1s
+  let expectedT2 = length $ nub $ map fst t2s
+  let expectedT3 = length $ nub $ map fst t3s
+
+  -- G1 is Global and should not appear in counts
+  return $ M.lookup TT1 countMap == Just expectedT1
+        && M.lookup TT2 countMap == Just expectedT2
+        && M.lookup TT3 countMap == Just expectedT3
+        && M.lookup TG1 countMap == Nothing
+
+prop_count_combinations :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
+prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
+  forM_ t12s $ \(e, (t1, t2)) -> set e t1 >> set e t2
+  forM_ t3s $ \(e, t3) -> set e t3
+
+  entities <- worldEntityIds
+  combos <- countCombinations entities
+
+  let has_t12s = S.fromList (map (unEntity . fst) t12s)
+  let has_t3s = S.fromList (map (unEntity . fst) t3s)
+  let entityTags ety =
+        (if ety `S.member` has_t12s then [TT1, TT2] else [])
+        ++ (if ety `S.member` has_t3s then [TT3] else [])
+  let expected = M.fromListWith (+)
+        [ (Set.fromList (entityTags ety), 1 :: Int)
+        | ety <- S.toList (has_t12s <> has_t3s)
+        ]
+
+  return $ combos == expected
 
 prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
 prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
