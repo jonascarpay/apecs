@@ -1,3 +1,4 @@
+{-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -19,8 +20,8 @@ instance Component Status where type Storage Status = Reactive (EnumMap Status) 
 
 makeWorld "World" [''Position, ''Status]
 
-game :: System World ()
-game = do
+main :: IO ()
+main = initWorld >>= runSystem do
   -- Create some entities
   newEntity (Position 0 0, Online)
   newEntity (Position 1 1, Offline)
@@ -63,6 +64,3 @@ game = do
   liftIO $ putStrLn $ "Entities at (3,3): " ++ show threethreeEntities
   liftIO $ putStrLn $ "Online entities: " ++ show onlineEntities'
   liftIO $ putStrLn $ "Away entities: " ++ show awayEntities'
-
-main :: IO ()
-main = initWorld >>= runSystem game
