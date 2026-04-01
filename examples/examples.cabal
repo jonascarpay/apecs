@@ -77,3 +77,11 @@ executable children
     , linear
 
   default-language: Haskell2010
+
+executable reactive-map
+  main-is:          ReactiveMap.hs
+  build-depends:
+      apecs
+    , base    >=4.9 && <5
+
+  default-language: Haskell2010
