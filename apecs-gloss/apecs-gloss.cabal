@@ -25,7 +25,7 @@ library
       apecs          >=0.7  && <0.10
     , apecs-physics  >=0.3  && <0.5
     , base           >=4.9  && <5
-    , containers     >=0.5  && <0.8
+    , containers     >=0.5  && <0.9
     , gloss          >=1.11 && <2
     , linear         >=1.20 && <2
 
