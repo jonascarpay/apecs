@@ -8,8 +8,19 @@
 
 import Apecs
 import Apecs.Experimental.Reactive
+import Data.Bits (xor)
 
-data Position = Position { x :: Int, y :: Int } deriving (Show, Eq, Ord)
+data Position = Position { x :: Word, y :: Word } deriving (Show, Eq)
+
+instance Ord Position where
+  -- Sort on "most significant difference" for better locality.
+  -- `Map Position a` then gives you a sparse quad-tree like index.
+  compare (Position a b) (Position c d)
+    | ac < bd && ac < xor ac bd = compare b d
+    | otherwise = compare a c
+    where
+      ac = xor a c
+      bd = xor b d
 
 -- We use an OrdMap for the Position component
 instance Component Position where type Storage Position = Reactive (OrdMap Position) (Map Position)
