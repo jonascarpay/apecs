@@ -41,8 +41,8 @@ library
   build-depends:
       array             >=0.4    && <0.6
     , base              >=4.9    && <5
-    , containers        >=0.5    && <0.8
-    , transformers      >= 0.5   && <0.7
+    , containers        >=0.5    && <0.9
+    , transformers      >=0.5    && <0.7
     , template-haskell  >=2.12   && <3
     , vector            >=0.11   && <0.14
 
@@ -54,11 +54,11 @@ test-suite apecs-test
   hs-source-dirs:   test
   build-depends:
       apecs
-    , base        >=4.9  && <5
-    , containers  >=0.5  && <0.8
+    , base
+    , containers
     , linear      >=1.20 && <2
     , QuickCheck  >=2.10 && <3
-    , vector      >=0.10 && <0.14
+    , vector
 
   default-language: Haskell2010
   ghc-options:      -Wall
@@ -69,7 +69,7 @@ benchmark apecs-bench
   main-is:          Main.hs
   build-depends:
       apecs
-    , base       >=4.9  && <5
+    , base
     , criterion  >=1.3  && <2
     , linear     >=1.20 && <2
 

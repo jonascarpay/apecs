@@ -7,3 +7,5 @@ packages:
 
 package apecs
   tests: True
+
+allow-newer: containers
