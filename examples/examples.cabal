@@ -85,3 +85,14 @@ executable reactive-map
     , base    >=4.9 && <5
 
   default-language: Haskell2010
+
+executable store-init-monad
+  main-is:          StoreInitMonad.hs
+  build-depends:
+      apecs
+    , base    >=4.9 && <5
+    , directory
+    , mtl
+    , resourcet
+
+  default-language: Haskell2010
