@@ -16,16 +16,16 @@ module Apecs.TH
   , mkEitherT
   ) where
 
-import qualified Data.Kind as TL
 import           Control.Monad        (filterM)
+import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Trans.Reader (asks)
 import           Data.Traversable     (for)
+import qualified Data.Kind as TL
 import           Language.Haskell.TH
 
 import           Apecs.Core
 import           Apecs.Stores
 import           Apecs.Util           (EntityCounter)
-import Control.Monad.IO.Class (MonadIO)
 
 type family WorldInitConstraints cs (m :: TL.Type -> TL.Type) :: TL.Constraint where
   WorldInitConstraints () m = ()

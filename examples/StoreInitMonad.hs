@@ -1,6 +1,11 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -11,52 +16,70 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Resource
 import System.IO (Handle, openTempFile, hClose)
 import System.Directory (getTemporaryDirectory, removeFile)
+import Data.Data (Typeable, typeRep, typeRepTyCon)
+import Data.Coerce
 
-newtype ComponentA = ComponentA Int
+-- * Stores
+
+-- | Global-like store, that returns its value from the initial environment
+data ReaderStore c = ReaderStore
+  { valueFromEnv :: Int
+  }
 
 class HasValue env where
   getValue :: env -> Int
 
-data ReaderStore = ReaderStore
-  { componentsA :: [ComponentA],
-    valueFromEnv :: Int
-  }
-
-instance Component ComponentA where
-  type Storage ComponentA = ReaderStore
-
-type instance Elem ReaderStore = ComponentA
-
-instance (Monad m, HasValue env, MonadReader env m) => ExplInit m ReaderStore where
+instance (Monad m, HasValue env, MonadReader env m) => ExplInit m (ReaderStore c) where
   explInit = do
     value <- asks getValue
-    pure $ ReaderStore mempty value
+    pure $ ReaderStore value
 
-newtype ComponentB = ComponentB Bool
+instance (Monad m, Coercible Int c) => ExplGet m (ReaderStore c) where
+  explGet :: ReaderStore c -> Int -> m c
+  explGet ReaderStore{valueFromEnv} _ety = pure $ coerce valueFromEnv
 
-data ResourceStore = ResourceStore
-  { componentsB :: [ComponentB]
-  , resource :: Handle
+  explExists :: ReaderStore c -> Int -> m Bool
+  explExists _ _ = pure True
+
+-- | Do-nothing store, showcasing custom constraints for initWorld
+data ResourceStore c = ResourceStore
+  { resource :: Handle
   }
 
-instance Component ComponentB where
-  type Storage ComponentB = ResourceStore
+type instance Elem (ResourceStore c) = c
 
-type instance Elem ResourceStore = ComponentB
-
-instance (MonadResource m) => ExplInit m ResourceStore where
+instance (MonadResource m, Typeable c) => ExplInit m (ResourceStore c) where
   explInit = do
     (_, (path, handle)) <- allocate setup teardown
-    pure $ ResourceStore mempty handle
+    liftIO . putStrLn $ "Got handle for " <> show path
+    pure $ ResourceStore handle
     where
+      compName = show (typeRepTyCon $ typeRep (Proxy :: Proxy c))
       setup = do
         putStrLn "allocating resource"
         tmpDir <- getTemporaryDirectory
-        openTempFile tmpDir "file-resource"
+        openTempFile tmpDir $ "apecs-ResourceStore-" <> compName <> "-"
       teardown (path, handle) = do
         hClose handle
         removeFile path
         putStrLn "freed resource"
+
+-- * Components
+
+newtype ComponentA = ComponentA Int
+  deriving (Show)
+
+instance Component ComponentA where
+  type Storage ComponentA = ReaderStore ComponentA
+
+type instance Elem (ReaderStore c) = c
+
+newtype ComponentB = ComponentB Bool
+
+instance Component ComponentB where
+  type Storage ComponentB = ResourceStore ComponentB
+
+-- * World & App
 
 makeWorld "World" [''ComponentA, ''ComponentB]
 
@@ -67,19 +90,21 @@ data Env = Env
 instance HasValue Env where
   getValue = envValue
 
-main :: IO ()
-main = runResourceT $ runReaderT app $ Env 1
-
 -- prints:
 -- allocating resource
--- using resource
+-- Got handle for "/tmp/apecs-ResourceStore-ComponentB-2799404-0"
+-- running app
+-- Entity 0 has ComponentA 62387
 -- freed resource
+
+main :: IO ()
+main = runResourceT $ runReaderT app $ Env 62387
 
 app :: (MonadIO m, HasValue env, MonadReader env m, MonadResource m) => m ()
 app = do
   world <- initWorld
   runWith world $ do
-    liftIO $ putStrLn "using resource"
-
-
-  
+    liftIO $ putStrLn "running app"
+    e <- newEntity ()
+    a :: ComponentA <- get e
+    liftIO $ putStrLn $ "Entity " <> show (unEntity e) <> " has " <> show a

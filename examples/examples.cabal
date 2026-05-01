@@ -94,5 +94,6 @@ executable store-init-monad
     , directory
     , mtl
     , resourcet
+    , containers
 
   default-language: Haskell2010

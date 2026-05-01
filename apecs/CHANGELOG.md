@@ -1,3 +1,7 @@
+## WIP
+### Changed
+- (#151) Allow stores to init in monads with arbitrary constraints, initWorld will request them all.
+
 ## [0.9.6]
 ### Changed
 - (#110) Relax upper bound on `mtl`: 2.3 -> 2.4
