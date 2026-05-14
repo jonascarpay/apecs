@@ -6,7 +6,6 @@ module Apecs (
   -- * Core types
     SystemT, System, Component(..), Entity(..), Has(..), Not(..),
     Get, Set, Destroy, Members,
-    HasTags(..), WTag,
 
   -- * Stores
     Map, Unique, Global, Cache,

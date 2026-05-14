@@ -15,9 +15,6 @@ module Apecs.Util (
   -- * EntityCounter
   EntityCounter(..), nextEntity, newEntity, newEntity_,
   Maybify,
-
-  -- * Census
-  countCombinations,
 ) where
 
 import           Control.Applicative  (liftA2)
@@ -73,24 +70,6 @@ newEntity_ component = do
 -- | Explicitly invoke the garbage collector
 runGC :: MonadIO m => SystemT w m ()
 runGC = liftIO performMajorGC
-
--- | Count entities grouped by their distinct component combination.
---
--- Takes the world's entity member set and uses 'entityTags' from the
--- 'HasTags' class to query each entity's tags. Returns a map from tag sets
--- to entity counts.
-countCombinations
-  :: (HasTags w m, Enum (WTag w), Ord (WTag w))
-  => IS.IntSet                        -- ^ Entity IDs to census
-  -> SystemT w m (M.Map (S.Set (WTag w)) Int)
-countCombinations entities = do
-  tagSets <- mapM poll (IS.toList entities)
-  let counts = M.fromListWith (+) [(ts, 1 :: Int) | ts <- tagSets]
-  pure $ M.mapKeysMonotonic (S.fromList . map toEnum . IS.toList) counts
-  where
-    poll eid = do
-      tags <- entityTags (Entity eid)
-      pure $! IS.fromList (map fromEnum tags)
 
 -- | Wrap tuple elements in Maybe.
 --

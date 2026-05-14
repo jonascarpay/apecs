@@ -20,6 +20,7 @@ import qualified Data.Vector.Unboxed  as U
 import           Language.Haskell.TH
 
 import Apecs.Core
+import Apecs.Tags
 import Apecs.TH (hasStoreInstance)
 
 makeTaggedComponents :: String -> [Name] -> Q [Dec]
