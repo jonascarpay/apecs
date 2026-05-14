@@ -3,6 +3,7 @@
 - (#151) Allow stores to init in monads with arbitrary constraints, initWorld will request them all.
 ### Added
 - (#147) Component tags and associated utilities: Apecs.Tags, Apecs.TH.Tags
+- (#148) Apecs.Experimental.Reload module for GHCi world persistence.
 
 ## [0.9.6]
 ### Changed
