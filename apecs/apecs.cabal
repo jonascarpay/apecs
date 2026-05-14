@@ -34,7 +34,9 @@ library
     Apecs.Experimental.Util
     Apecs.Stores
     Apecs.System
+    Apecs.Tags
     Apecs.TH
+    Apecs.TH.Tags
     Apecs.Util
 
   other-modules:    Apecs.THTuples

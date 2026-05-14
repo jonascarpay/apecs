@@ -20,8 +20,11 @@ module Apecs.Util (
 import           Control.Applicative  (liftA2)
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
+import qualified Data.IntSet          as IS
+import qualified Data.Map.Strict      as M
 import           Data.Monoid
 import           Data.Semigroup
+import qualified Data.Set             as S
 import           System.Mem           (performMajorGC)
 
 import           Apecs.Core

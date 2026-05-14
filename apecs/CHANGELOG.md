@@ -1,6 +1,8 @@
 ## WIP
 ### Changed
 - (#151) Allow stores to init in monads with arbitrary constraints, initWorld will request them all.
+### Added
+- (#147) Component tags and associated utilities: Apecs.Tags, Apecs.TH.Tags
 
 ## [0.9.6]
 ### Changed
