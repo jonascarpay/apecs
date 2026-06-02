@@ -1,22 +1,23 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Apecs.Gloss
   ( module Apecs.Gloss
   , module G
   ) where
 
-import           Data.Semigroup                   (Semigroup (..))
-import           Graphics.Gloss.Interface.IO.Game as G
-import           Linear.V2
-import           Linear.Vector
+import Data.Semigroup (Semigroup (..))
+import Graphics.Gloss.Interface.IO.Game as G
+import Linear.V2
+import Linear.Vector
 
-import           Apecs
+import Apecs
 
 data Camera = Camera
   { camOffset :: V2 Float
-  , camScale  :: Float
-  } deriving (Eq, Show, Read)
+  , camScale :: Float
+  }
+  deriving (Eq, Show, Read)
 
 instance Semigroup Camera where
   Camera x1 r1 <> Camera x2 r2 = Camera (x1 + x2) (r1 * r2)
@@ -27,41 +28,51 @@ instance Monoid Camera where
 -- | Apply a camera transformation to a picture
 cameraTransform :: Camera -> Picture -> Picture
 cameraTransform (Camera (V2 cx cy) cs) =
-    Scale cs cs .  Translate (-cx) (-cy)
+  Scale cs cs . Translate (-cx) (-cy)
 
-windowToWorld :: Camera -> (Float,Float) -> V2 Float
-windowToWorld (Camera cx cs) (x,y) = V2 x y ^/ cs + cx
+windowToWorld :: Camera -> (Float, Float) -> V2 Float
+windowToWorld (Camera cx cs) (x, y) = V2 x y ^/ cs + cx
 
 instance Component Camera where
   type Storage Camera = Global Camera
 
 play
   :: (Has w IO Camera)
-  => Display            -- ^ Display mode
-  -> Color              -- ^ Background color
-  -> Int                  -- ^ Desired FPS
-  -> System w Picture -- ^ Drawing function
-  -> (Event -> System w ()) -- ^ Event handling function
-  -> (Float  -> System w ()) -- ^ Stepping function, with a time delta argument.
+  => Display
+  -- ^ Display mode
+  -> Color
+  -- ^ Background color
+  -> Int
+  -- ^ Desired FPS
+  -> System w Picture
+  -- ^ Drawing function
+  -> (Event -> System w ())
+  -- ^ Event handling function
+  -> (Float -> System w ())
+  -- ^ Stepping function, with a time delta argument.
   -> System w ()
 play disp col fps draw handle step = do
   w <- ask
-  liftIO$ playIO disp col fps w draw' handle' step'
-    where
-      handle' event = runSystem $ handle event >> ask
-      step'   dT    = runSystem $ step dT >> ask
-      draw'         = runSystem $ do
-        cam <- get global
-        cameraTransform cam <$> draw
+  liftIO $ playIO disp col fps w draw' handle' step'
+  where
+    handle' event = runSystem $ handle event >> ask
+    step' dT = runSystem $ step dT >> ask
+    draw' = runSystem $ do
+      cam <- get global
+      cameraTransform cam <$> draw
 
 -- | Renders a picture given a component rendering function.
-foldDraw :: (Get w IO c, Members w IO c)
-         => (c -> Picture) -- ^ Component render function.
-         -> System w Picture
+foldDraw
+  :: (Get w IO c, Members w IO c)
+  => (c -> Picture)
+  -- ^ Component render function.
+  -> System w Picture
 foldDraw fn = cfold (\pic -> mappend pic . fn) mempty
 
 -- | Monadically renders a picture given a component rendering function.
-foldDrawM :: (Get w IO c, Members w IO c)
-          => (c -> System w Picture) -- ^ Component render function.
-          -> System w Picture
+foldDrawM
+  :: (Get w IO c, Members w IO c)
+  => (c -> System w Picture)
+  -- ^ Component render function.
+  -> System w Picture
 foldDrawM fn = cfoldM (\pic -> fmap (mappend pic) . fn) mempty

@@ -1,29 +1,29 @@
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE Strict                     #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE ViewPatterns               #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE Strict #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Apecs.Physics.Space where
 
-import           Apecs
-import           Apecs.Core
-import           Control.Monad.IO.Class (MonadIO)
-import           Data.IORef
-import           Foreign.Concurrent
-import           Foreign.ForeignPtr  (withForeignPtr)
-import qualified Language.C.Inline   as C
-import           Linear.V2
+import Apecs
+import Apecs.Core
+import Control.Monad.IO.Class (MonadIO)
+import Data.IORef
+import Foreign.Concurrent
+import Foreign.ForeignPtr (withForeignPtr)
+import qualified Language.C.Inline as C
+import Linear.V2
 
-import           Apecs.Physics.Types
+import Apecs.Physics.Types
 
 C.context phycsCtx
 C.include "<chipmunk.h>"
@@ -31,30 +31,30 @@ C.include "<chipmunk.h>"
 -- Space
 newSpace :: IO SpacePtr
 newSpace = do
-    spaceRaw <- [C.exp| cpSpace* { cpSpaceNew() } |]
-    newForeignPtr spaceRaw [C.exp| void { cpSpaceFree($(cpSpace* spaceRaw)) } |]
+  spaceRaw <- [C.exp| cpSpace* { cpSpaceNew() } |]
+  newForeignPtr spaceRaw [C.exp| void { cpSpaceFree($(cpSpace* spaceRaw)) } |]
 
 explStepPhysics :: SpacePtr -> Double -> IO ()
 explStepPhysics spacePtr (realToFrac -> dT) = withForeignPtr spacePtr $ \space ->
   [C.exp| void { cpSpaceStep( $(cpSpace* space), $(double dT) ) } |]
 
-stepPhysics :: MonadIO m => Has w m Physics => Double -> SystemT w m ()
+stepPhysics :: (MonadIO m) => (Has w m Physics) => Double -> SystemT w m ()
 stepPhysics dT = do
   s :: Space Physics <- getStore
-  liftIO$ explStepPhysics (spacePtr s) dT
+  liftIO $ explStepPhysics (spacePtr s) dT
 
 instance Component Physics where
   type Storage Physics = Space Physics
 
 type instance Elem (Space Physics) = Physics
 
-instance MonadIO m => ExplInit m (Space Physics) where
+instance (MonadIO m) => ExplInit m (Space Physics) where
   explInit = liftIO $ do
     spacePtr <- newSpace
-    bRef     <- newIORef mempty
-    sRef     <- newIORef mempty
-    cRef     <- newIORef mempty
-    hRef     <- newIORef mempty
+    bRef <- newIORef mempty
+    sRef <- newIORef mempty
+    cRef <- newIORef mempty
+    hRef <- newIORef mempty
     return (Space bRef sRef cRef hRef spacePtr)
 
 -- Gravity
@@ -68,7 +68,8 @@ getGravity spacePtr = withForeignPtr spacePtr $ \space -> do
   return (V2 (realToFrac x) (realToFrac y))
 
 setGravity :: SpacePtr -> V2 Double -> IO ()
-setGravity spacePtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr spacePtr $ \space -> [C.block| void {
+setGravity spacePtr (V2 (realToFrac -> x) (realToFrac -> y)) = withForeignPtr spacePtr $ \space ->
+  [C.block| void {
   const cpVect vec = { $(double x), $(double y) };
   cpSpaceSetGravity($(cpSpace* space), vec);
   } |]
@@ -81,10 +82,10 @@ instance (MonadIO m, Has w m Physics) => Has w m Gravity where
 
 type instance Elem (Space Gravity) = Gravity
 
-instance MonadIO m => ExplGet m (Space Gravity) where
-  explExists _ _  = return True
+instance (MonadIO m) => ExplGet m (Space Gravity) where
+  explExists _ _ = return True
   explGet (Space _ _ _ _ spcPtr) _ = liftIO $ Gravity <$> getGravity spcPtr
-instance MonadIO m => ExplSet m (Space Gravity) where
+instance (MonadIO m) => ExplSet m (Space Gravity) where
   explSet (Space _ _ _ _ spcPtr) _ (Gravity v) = liftIO $ setGravity spcPtr v
 
 -- Iterations
@@ -92,7 +93,8 @@ getIterations :: SpacePtr -> IO Int
 getIterations spacePtr = withForeignPtr spacePtr $ \space -> fromIntegral <$> [C.exp| int { cpSpaceGetIterations ($(cpSpace* space)) } |]
 
 setIterations :: SpacePtr -> Int -> IO ()
-setIterations spacePtr (fromIntegral -> its) = withForeignPtr spacePtr $ \space -> [C.block| void {
+setIterations spacePtr (fromIntegral -> its) = withForeignPtr spacePtr $ \space ->
+  [C.block| void {
   cpSpaceSetIterations($(cpSpace* space), $(int its));
   } |]
 
@@ -104,8 +106,8 @@ instance (MonadIO m, Has w m Physics) => Has w m Iterations where
 
 type instance Elem (Space Iterations) = Iterations
 
-instance MonadIO m => ExplGet m (Space Iterations) where
-  explExists _ _  = return False
+instance (MonadIO m) => ExplGet m (Space Iterations) where
+  explExists _ _ = return False
   explGet (Space _ _ _ _ spcPtr) _ = liftIO $ Iterations <$> getIterations spcPtr
-instance MonadIO m => ExplSet m (Space Iterations) where
+instance (MonadIO m) => ExplSet m (Space Iterations) where
   explSet (Space _ _ _ _ spcPtr) _ (Iterations v) = liftIO $ setIterations spcPtr v

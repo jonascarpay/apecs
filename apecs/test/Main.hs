@@ -1,43 +1,42 @@
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TupleSections              #-}
-{-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
-
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -w #-}
 
-import qualified Control.Exception           as E
-import           Control.Monad
-import qualified Data.Foldable               as F
-import qualified Data.IntSet                 as S
-import           Data.IORef
-import           Data.List                   ((\\), delete, nub, sort)
-import qualified Data.IntMap.Strict          as IM
-import qualified Data.Map.Strict             as M
-import qualified Data.Set                    as Set
-import qualified Data.Vector.Unboxed         as U
-import           Test.QuickCheck
-import           Test.QuickCheck.Monadic
-import           Text.Printf                 (printf)
+import qualified Control.Exception as E
+import Control.Monad
+import qualified Data.Foldable as F
+import Data.IORef
+import qualified Data.IntMap.Strict as IM
+import qualified Data.IntSet as S
+import Data.List (delete, nub, sort, (\\))
+import qualified Data.Map.Strict as M
+import qualified Data.Set as Set
+import qualified Data.Vector.Unboxed as U
+import Test.QuickCheck
+import Test.QuickCheck.Monadic
+import Text.Printf (printf)
 
-import           Apecs
-import           Apecs.Core
-import           Apecs.Experimental.Children
-import           Apecs.Experimental.Reactive
-import           Apecs.Experimental.Stores
-import           Apecs.Stores
-import           Apecs.Tags
-import           Apecs.TH
-import           Apecs.TH.Tags
-import           Apecs.Util
+import Apecs
+import Apecs.Core
+import Apecs.Experimental.Children
+import Apecs.Experimental.Reactive
+import Apecs.Experimental.Stores
+import Apecs.Stores
+import Apecs.TH
+import Apecs.TH.Tags
+import Apecs.Tags
+import Apecs.Util
 
 type Vec = (Double, Double)
 
@@ -48,18 +47,23 @@ instance Arbitrary Entity where
 assertSys :: IO w -> System w Bool -> Property
 assertSys initW sys = monadicIO $ run (initW >>= runSystem sys) >>= assert
 
-genericSetGet :: forall w c.
-  ( ExplGet IO (Storage c)
-  , ExplSet IO (Storage c)
-  , ExplDestroy IO (Storage c)
-  , Has w IO c
-  , Eq c
-  , Arbitrary c )
+genericSetGet
+  :: forall w c
+   . ( ExplGet IO (Storage c)
+     , ExplSet IO (Storage c)
+     , ExplDestroy IO (Storage c)
+     , Has w IO c
+     , Eq c
+     , Arbitrary c
+     )
   => IO w
   -> c
-  -> [(Entity, c)] -> [Entity]
-  -> Entity -> c
-  -> [(Entity, c)] -> [Entity]
+  -> [(Entity, c)]
+  -> [Entity]
+  -> Entity
+  -> c
+  -> [(Entity, c)]
+  -> [Entity]
   -> Property
 genericSetGet initSys _ sets1 dels1 ety c sets2 dels2 = do
   assertSys initSys $ do
@@ -68,24 +72,30 @@ genericSetGet initSys _ sets1 dels1 ety c sets2 dels2 = do
     forM_ dels1 $ flip destroy (Proxy @c)
     set ety c
     forM_ (filter ((/= ety) . fst) sets2) $ uncurry set
-    forM_ (filter (/= ety)         dels2) $ flip destroy (Proxy @c)
+    forM_ (filter (/= ety) dels2) $ flip destroy (Proxy @c)
     c' <- get ety
     return (c == c')
 
-genericSetSet :: forall w c.
-  ( ExplGet IO (Storage c)
-  , ExplSet IO (Storage c)
-  , ExplDestroy IO (Storage c)
-  , Has w IO c
-  , Eq c
-  , Arbitrary c )
+genericSetSet
+  :: forall w c
+   . ( ExplGet IO (Storage c)
+     , ExplSet IO (Storage c)
+     , ExplDestroy IO (Storage c)
+     , Has w IO c
+     , Eq c
+     , Arbitrary c
+     )
   => IO w
   -> c
-  -> [(Entity, c)] -> [Entity]
-  -> Entity -> c
-  -> [(Entity, c)] -> [Entity]
+  -> [(Entity, c)]
+  -> [Entity]
+  -> Entity
   -> c
-  -> [(Entity, c)] -> [Entity]
+  -> [(Entity, c)]
+  -> [Entity]
+  -> c
+  -> [(Entity, c)]
+  -> [Entity]
   -> Property
 genericSetSet initSys _ sets1 dels1 ety c1 sets2 dels2 c2 sets3 dels3 = do
   assertSys initSys $ do
@@ -94,10 +104,10 @@ genericSetSet initSys _ sets1 dels1 ety c1 sets2 dels2 c2 sets3 dels3 = do
     forM_ dels1 $ flip destroy (Proxy @c)
     set ety c1
     forM_ (filter ((/= ety) . fst) sets2) $ uncurry set
-    forM_ (filter (/= ety)         dels2) $ flip destroy (Proxy @c)
+    forM_ (filter (/= ety) dels2) $ flip destroy (Proxy @c)
     set ety c2
     forM_ (filter ((/= ety) . fst) sets3) $ uncurry set
-    forM_ (filter (/= ety)         dels3) $ flip destroy (Proxy @c)
+    forM_ (filter (/= ety) dels3) $ flip destroy (Proxy @c)
     c' <- get ety
     return (c2 == c')
 
@@ -146,6 +156,7 @@ instance Component G1 where type Storage G1 = Global G1
 -- Tests Enumerable class
 makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 makeTaggedComponents "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+
 -- Generate a (T1, T2, T3) tuple in a contrived way
 -- (that allows processing component lists when placed in external file)
 pure <$> makeInstanceFold mkTupleT "WorldEnumerableShowable" [''T1, ''T2, ''T3]
@@ -182,7 +193,7 @@ prop_tags_lookup t12s t3s = assertSys initWorldEnumerable $ do
 
   eav <- fmap M.fromList . forM (map Entity $ S.toList entities) $ \e -> do
     tagged <- forM [minBound .. maxBound] $ \t -> fmap (t,) <$> lookupWorldEnumerableTag e t
-    pure (e, M.fromList [ (t, v) | Just (t, v) <- tagged ])
+    pure (e, M.fromList [(t, v) | Just (t, v) <- tagged])
 
   let it = show (eav :: M.Map Entity (M.Map WorldEnumerableTag WorldEnumerableSum))
   guard (length it > 0)
@@ -219,12 +230,11 @@ prop_tags_list t12s t3s = assertSys initWorldEnumerable $ do
   forM_ (S.toList $ has_t12s <> has_t3s) $ \ety -> do
     let t12 = [[TT1, TT2] | ety `S.member` has_t12s]
     let t3 = [[TT3] | ety `S.member` has_t3s]
-    let
-      expected =
-        -- XXX: matching the order is important.
-        -- getWorldEnumerableTags will iterate in the "constructor order"
-        -- derived from the filtered component type list.
-        concat (t12 ++ t3)
+    let expected =
+          -- XXX: matching the order is important.
+          -- getWorldEnumerableTags will iterate in the "constructor order"
+          -- derived from the filtered component type list.
+          concat (t12 ++ t3)
     tags <- entityTags $ Entity ety
     unless (tags == expected) $ do
       error $ show (tags, expected)
@@ -245,10 +255,11 @@ prop_count_components t1s t2s t3s = assertSys initWorldEnumerable $ do
   let expectedT3 = length $ nub $ map fst t3s
 
   -- G1 is Global and should not appear in counts
-  return $ M.lookup TT1 countMap == Just expectedT1
-        && M.lookup TT2 countMap == Just expectedT2
-        && M.lookup TT3 countMap == Just expectedT3
-        && M.lookup TG1 countMap == Nothing
+  return $
+    M.lookup TT1 countMap == Just expectedT1
+      && M.lookup TT2 countMap == Just expectedT2
+      && M.lookup TT3 countMap == Just expectedT3
+      && M.lookup TG1 countMap == Nothing
 
 prop_count_combinations :: [(Entity, (T1, T2))] -> [(Entity, T3)] -> Property
 prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
@@ -262,16 +273,18 @@ prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
   let has_t3s = S.fromList (map (unEntity . fst) t3s)
   let entityTags ety =
         (if ety `S.member` has_t12s then [TT1, TT2] else [])
-        ++ (if ety `S.member` has_t3s then [TT3] else [])
-  let expected = M.fromListWith (+)
-        [ (Set.fromList (entityTags ety), 1 :: Int)
-        | ety <- S.toList (has_t12s <> has_t3s)
-        ]
+          ++ (if ety `S.member` has_t3s then [TT3] else [])
+  let expected =
+        M.fromListWith
+          (+)
+          [ (Set.fromList (entityTags ety), 1 :: Int)
+          | ety <- S.toList (has_t12s <> has_t3s)
+          ]
 
   return $ combos == expected
 
-prop_setGetTuple = genericSetGet initTuples (undefined :: (T1,T2,T3))
-prop_setSetTuple = genericSetSet initTuples (undefined :: (T1,T2,T3))
+prop_setGetTuple = genericSetGet initTuples (undefined :: (T1, T2, T3))
+prop_setSetTuple = genericSetSet initTuples (undefined :: (T1, T2, T3))
 
 -- Tests Reactive store properties
 newtype TestEnum = TestEnum Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
@@ -283,20 +296,21 @@ prop_setGetReactive = genericSetGet initReactiveWld (undefined :: TestEnum)
 prop_setSetReactive = genericSetSet initReactiveWld (undefined :: TestEnum)
 prop_lookupValid :: [(Entity, TestEnum)] -> [Entity] -> Property
 prop_lookupValid writes deletes = assertSys initReactiveWld $ do
-  forM_ writes  $ uncurry set
+  forM_ writes $ uncurry set
   forM_ deletes $ flip destroy (Proxy @TestEnum)
 
   let getAll = cfold (flip (:)) [] :: SystemT ReactiveWld IO [(TestEnum, Entity)]
-  et <- fmap snd . filter ((== TestEnum True ) . fst) <$> getAll
+  et <- fmap snd . filter ((== TestEnum True) . fst) <$> getAll
   ef <- fmap snd . filter ((== TestEnum False) . fst) <$> getAll
 
   rt <- withReactive $ enumLookup (TestEnum True)
   rf <- withReactive $ enumLookup (TestEnum False)
 
-  return (  sort rt == sort et
-         && sort rf == sort ef
-         && all (`notElem` ef) et
-         )
+  return
+    ( sort rt == sort et
+        && sort rf == sort ef
+        && all (`notElem` ef) et
+    )
 
 -- Tests Reactive component counting
 newtype TestCount = TestCount Bool deriving (Eq, Show, Bounded, Enum, Arbitrary)
@@ -308,19 +322,21 @@ prop_setGetReactiveCount = genericSetGet initReactiveCountWld (undefined :: Test
 prop_setSetReactiveCount = genericSetSet initReactiveCountWld (undefined :: TestCount)
 prop_reactiveCounts :: [(Entity, TestCount)] -> [Entity] -> Property
 prop_reactiveCounts writes deletes = assertSys initReactiveCountWld $ do
-  forM_ writes  $ uncurry set
+  forM_ writes $ uncurry set
   forM_ deletes $ flip destroy (Proxy @TestCount)
 
   count <- withReactive $ readComponentCount @TestCount
 
-  return $ count == ComponentCount
-    { componentCountCurrent = length existingEnts
-    , componentCountMax = length writeEnts
-    }
+  return $
+    count
+      == ComponentCount
+        { componentCountCurrent = length existingEnts
+        , componentCountMax = length writeEnts
+        }
   where
-  existingEnts = writeEnts \\ deleteEnts
-  writeEnts = nub $ sort $ fst <$> writes
-  deleteEnts = nub $ sort deletes
+    existingEnts = writeEnts \\ deleteEnts
+    writeEnts = nub $ sort $ fst <$> writes
+    deleteEnts = nub $ sort deletes
 
 -- Tests Pushdown
 newtype StackInt = StackInt Int deriving (Eq, Show, Arbitrary)
@@ -336,8 +352,10 @@ makeWorld "ChildTest" [''T1, ''ChildT2]
 
 prop_setGetChild = genericSetGet initChildTest (undefined :: (T1, Child T2))
 prop_setSetChild = genericSetSet initChildTest (undefined :: (T1, Child T2))
--- | This instance is only for the generic tests. It hard-codes each generated
--- @Child T2@ component value with the global entity as the parent.
+
+{- | This instance is only for the generic tests. It hard-codes each generated
+@Child T2@ component value with the global entity as the parent.
+-}
 instance Arbitrary (Child T2) where
   arbitrary = Child <$> pure global <*> arbitrary
 
@@ -357,48 +375,59 @@ prop_children (NonEmpty writes) = assertSys initChildTest $ do
     forM_ children $ \child -> do
       Child p t2 :: Child T2 <- get child
       unless (p == parent) $ do
-        liftIO $ E.throwIO $ ChildrenEx $
-          printf "Child entity %d's parent of %d does not match set parent of %d"
-            (unEntity child)
-            (unEntity p)
-            (unEntity parent)
+        liftIO $
+          E.throwIO $
+            ChildrenEx $
+              printf
+                "Child entity %d's parent of %d does not match set parent of %d"
+                (unEntity child)
+                (unEntity p)
+                (unEntity parent)
       unless (t2 `elem` t2s) $ do
-        liftIO $ E.throwIO $ ChildrenEx $
-          printf
-            "Child entity %d's component value of %s is not present in the input %s"
-            (unEntity child)
-            (show t2)
-            (show t2s)
+        liftIO $
+          E.throwIO $
+            ChildrenEx $
+              printf
+                "Child entity %d's component value of %s is not present in the input %s"
+                (unEntity child)
+                (show t2)
+                (show t2s)
     -- Fetch the child entity list from the parent entity and check its validity.
     ChildList children' :: ChildList T2 <- get parent
     unless (sort children == sort (F.toList children')) $ do
-      liftIO $ E.throwIO $ ChildrenEx $
-        printf
-          "Mismatch between fetched child list (%s) and created child entities (%s)"
-          (show $ sort $ F.toList children')
-          (show $ sort children)
+      liftIO $
+        E.throwIO $
+          ChildrenEx $
+            printf
+              "Mismatch between fetched child list (%s) and created child entities (%s)"
+              (show $ sort $ F.toList children')
+              (show $ sort children)
     -- Reparent the first child entity in this group to be under the global entity.
     let child1 = head children
     modify child1 $ \(ChildValue t2) -> Child @T2 global t2
     -- Check that the first child entity's parent was actually updated.
     Child child1Parent child1T2 :: Child T2 <- get child1
     unless (child1Parent == global) $ do
-      liftIO $ E.throwIO $ ChildrenEx $
-        printf
-          "Reparented child entity %d should have been under global entity but is under %d"
-          (unEntity child1)
-          (unEntity child1Parent)
+      liftIO $
+        E.throwIO $
+          ChildrenEx $
+            printf
+              "Reparented child entity %d should have been under global entity but is under %d"
+              (unEntity child1)
+              (unEntity child1Parent)
     -- Check that the original parent no longer sees the reparented child as
     -- its own child.
     get parent >>= \case
       Nothing -> pure () -- Parent only had 1 child, and this child just reparented.
       Just (ChildList children'' :: ChildList T2) -> do
         unless (sort (delete child1 children) == sort (F.toList children'')) $ do
-          liftIO $ E.throwIO $ ChildrenEx $
-            printf
-              "Mismatch between fetched child list (%s) and modified child entities (%s)"
-              (show $ sort $ F.toList children'')
-              (show $ sort children)
+          liftIO $
+            E.throwIO $
+              ChildrenEx $
+                printf
+                  "Mismatch between fetched child list (%s) and modified child entities (%s)"
+                  (show $ sort $ F.toList children'')
+                  (show $ sort children)
 
   -- Check that the global entity's children have component values aligning
   -- with the first T2 value in each group of the input list, as the first
@@ -408,17 +437,22 @@ prop_children (NonEmpty writes) = assertSys initChildTest $ do
   forM_ (zip (sort $ F.toList children) $ fmap (head . getNonEmpty . snd) writes) $ \(child, expT2) -> do
     ChildValue t2 :: ChildValue T2 <- get child
     unless (t2 == expT2) $ do
-      liftIO $ E.throwIO $ ChildrenEx $
-        "Child component value mismatch within those entities reparented under the global entity"
+      liftIO $
+        E.throwIO $
+          ChildrenEx $
+            "Child component value mismatch within those entities reparented under the global entity"
 
   -- Check that a cascading destroy works.
   destroy global $ Proxy @(ChildList T2)
   get global >>= \case
     Nothing -> pure () -- Expected case - there's no child list as they were all just destroyed.
     Just (ChildList children' :: ChildList T2) -> do
-      liftIO $ E.throwIO $ ChildrenEx $
-        printf "Left over child entities (%s) after cascade destroy on the global entity"
-          (show $ F.toList children')
+      liftIO $
+        E.throwIO $
+          ChildrenEx $
+            printf
+              "Left over child entities (%s) after cascade destroy on the global entity"
+              (show $ F.toList children')
 
   return True
 
