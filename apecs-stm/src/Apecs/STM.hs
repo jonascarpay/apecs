@@ -1,65 +1,85 @@
-{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase                 #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
--- | This module contains STM-supporting versions of regular apecs stores, and some convenience functions.
--- It is designed to be imported qualified, since it shadows both apecs and STM names.
--- There is also an @Apecs.STM.Prelude@ module, which can be imported by itself.
---
--- Note that if you want to be able to create entities in STM, you will also need to use a STM-supported @EntityCounter@, typically done through this module's @makeWorld@.
+{-| This module contains STM-supporting versions of regular apecs stores, and some convenience functions.
+It is designed to be imported qualified, since it shadows both apecs and STM names.
+There is also an @Apecs.STM.Prelude@ module, which can be imported by itself.
 
+Note that if you want to be able to create entities in STM, you will also need to use a STM-supported @EntityCounter@, typically done through this module's @makeWorld@.
+-}
 module Apecs.STM
   ( -- * Stores
     Map (..)
   , Unique (..)
   , Global (..)
+
     -- * EntityCounter
   , EntityCounter (..)
-  , nextEntity, newEntity, newEntity_, makeWorld, makeWorldAndComponents
+  , nextEntity
+  , newEntity
+  , newEntity_
+  , makeWorld
+  , makeWorldAndComponents
+
     -- * STM conveniences
-  , atomically, retry, check, forkSys, threadDelay, STM
+  , atomically
+  , retry
+  , check
+  , forkSys
+  , threadDelay
+  , STM
   ) where
 
-import qualified Control.Concurrent          as S
-import           Control.Concurrent.STM      (STM)
-import qualified Control.Concurrent.STM      as S
-import           Control.Concurrent.STM.TVar as S
-import           Control.Monad
-import           Data.Maybe
-import           Data.Monoid                 (Sum (..))
-import           Data.Semigroup
-import           Data.Typeable (Typeable, typeRep)
-import qualified Data.IntSet                 as IS
-import qualified Data.Vector.Unboxed         as U
-import           Language.Haskell.TH
-import qualified ListT                       as L
-import qualified StmContainers.Map           as M
+import qualified Control.Concurrent as S
+import Control.Concurrent.STM (STM)
+import qualified Control.Concurrent.STM as S
+import Control.Concurrent.STM.TVar as S
+import Control.Monad
+import qualified Data.IntSet as IS
+import Data.Maybe
+import Data.Monoid (Sum (..))
+import Data.Semigroup
+import Data.Typeable (Typeable, typeRep)
+import qualified Data.Vector.Unboxed as U
+import Language.Haskell.TH
+import qualified ListT as L
+import qualified StmContainers.Map as M
 
-import           Apecs                       (ask, get, global, lift, liftIO,
-                                              runSystem, set)
-import           Apecs.Core
-import           Apecs.TH                    (makeWorldNoEC, makeMapComponentsFor)
+import Apecs
+  ( ask
+  , get
+  , global
+  , lift
+  , liftIO
+  , runSystem
+  , set
+  )
+import Apecs.Core
+import Apecs.TH (makeMapComponentsFor, makeWorldNoEC)
 
 newtype Map c = Map (M.Map Int c)
 type instance Elem (Map c) = c
 
 instance ExplInit STM (Map c) where
   explInit = Map <$> M.new
-instance Typeable c => ExplGet STM (Map c) where
+instance (Typeable c) => ExplGet STM (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
-  explExists (Map m) ety = isJust   <$> M.lookup ety m
-  explGet    (Map m) ety = flip fmap (M.lookup ety m) $ \case
+  explExists (Map m) ety = isJust <$> M.lookup ety m
+  explGet (Map m) ety = flip fmap (M.lookup ety m) $ \case
     Just c -> c
-    notFound -> error $ unwords
-      [ "Reading non-existent STM Map component"
-      , show (typeRep notFound)
-      , "for entity"
-      , show ety
-      ]
+    notFound ->
+      error $
+        unwords
+          [ "Reading non-existent STM Map component"
+          , show (typeRep notFound)
+          , "for entity"
+          , show ety
+          ]
 
 instance ExplSet STM (Map c) where
   {-# INLINE explSet #-}
@@ -76,7 +96,7 @@ instance ExplMembers STM (Map c) where
 instance ExplInit IO (Map c) where
   {-# INLINE explInit #-}
   explInit = S.atomically explInit
-instance Typeable c => ExplGet IO (Map c) where
+instance (Typeable c) => ExplGet IO (Map c) where
   {-# INLINE explExists #-}
   {-# INLINE explGet #-}
   explExists m e = S.atomically $ explExists m e
@@ -98,16 +118,18 @@ type instance Elem (Unique c) = c
 instance ExplInit STM (Unique c) where
   explInit = Unique <$> newTVar Nothing
 
-instance Typeable c => ExplGet STM (Unique c) where
+instance (Typeable c) => ExplGet STM (Unique c) where
   {-# INLINE explGet #-}
   explGet (Unique ref) _ = flip fmap (readTVar ref) $ \case
-    Just (_, c)  -> c
-    notFound -> error $ unwords
-      [ "Reading non-existent STM Unique component"
-      , show (typeRep notFound)
-      ]
+    Just (_, c) -> c
+    notFound ->
+      error $
+        unwords
+          [ "Reading non-existent STM Unique component"
+          , show (typeRep notFound)
+          ]
   {-# INLINE explExists #-}
-  explExists (Unique ref) ety = maybe False ((==ety) . fst) <$> readTVar ref
+  explExists (Unique ref) ety = maybe False ((== ety) . fst) <$> readTVar ref
 
 instance ExplSet STM (Unique c) where
   {-# INLINE explSet #-}
@@ -115,8 +137,9 @@ instance ExplSet STM (Unique c) where
 
 instance ExplDestroy STM (Unique c) where
   {-# INLINE explDestroy #-}
-  explDestroy (Unique ref) ety = readTVar ref >>=
-    mapM_ (flip when (writeTVar ref Nothing) . (==ety) . fst)
+  explDestroy (Unique ref) ety =
+    readTVar ref
+      >>= mapM_ (flip when (writeTVar ref Nothing) . (== ety) . fst)
 
 instance ExplMembers STM (Unique c) where
   {-# INLINE explMembers #-}
@@ -131,7 +154,7 @@ instance ExplMembers STM (Unique c) where
 instance ExplInit IO (Unique c) where
   {-# INLINE explInit #-}
   explInit = S.atomically explInit
-instance Typeable c => ExplGet IO (Unique c) where
+instance (Typeable c) => ExplGet IO (Unique c) where
   {-# INLINE explExists #-}
   explExists m e = S.atomically $ explExists m e
   {-# INLINE explGet #-}
@@ -150,7 +173,7 @@ instance ExplMembers IO (Unique c) where
 
 newtype Global c = Global (TVar c)
 type instance Elem (Global c) = c
-instance Monoid c => ExplInit STM (Global c) where
+instance (Monoid c) => ExplInit STM (Global c) where
   {-# INLINE explInit #-}
   explInit = Global <$> newTVar mempty
 instance ExplGet STM (Global c) where
@@ -162,7 +185,7 @@ instance ExplSet STM (Global c) where
   {-# INLINE explSet #-}
   explSet (Global ref) _ c = writeTVar ref c
 
-instance Monoid c => ExplInit IO (Global c) where
+instance (Monoid c) => ExplInit IO (Global c) where
   {-# INLINE explInit #-}
   explInit = S.atomically explInit
 instance ExplGet IO (Global c) where
@@ -181,22 +204,27 @@ instance Component EntityCounter where
 
 {-# INLINE nextEntity #-}
 nextEntity :: (Get w m EntityCounter, Set w m EntityCounter) => SystemT w m Entity
-nextEntity = do EntityCounter n <- get global
-                set global (EntityCounter $ n+1)
-                return (Entity . getSum $ n)
+nextEntity = do
+  EntityCounter n <- get global
+  set global (EntityCounter $ n + 1)
+  return (Entity . getSum $ n)
 
 {-# INLINE newEntity #-}
-newEntity :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
-          => c -> SystemT w m Entity
-newEntity c = do ety <- nextEntity
-                 set ety c
-                 return ety
+newEntity
+  :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
+  => c -> SystemT w m Entity
+newEntity c = do
+  ety <- nextEntity
+  set ety c
+  return ety
 
 {-# INLINE newEntity_ #-}
-newEntity_ :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
-          => c -> SystemT w m ()
-newEntity_ c = do ety <- nextEntity
-                  set ety c
+newEntity_
+  :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
+  => c -> SystemT w m ()
+newEntity_ c = do
+  ety <- nextEntity
+  set ety c
 
 -- | Like @makeWorld@ from @Apecs@, but uses the STM @EntityCounter@
 makeWorld :: String -> [Name] -> Q [Dec]
