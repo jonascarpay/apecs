@@ -1,19 +1,10 @@
-resolver: lts-21.3
-
-# apecs-stm is not in stack because it makes CI a huge pain.  The issue is that
-# stm-containers and its dependencies are not on stackage.  It's by no means
-# impossible or even difficult to build apecs-stm with stack, we used to do it
-# on CI, but it was very fragile.  So, if you want to build apecs-stm with
-# stack, for now, you'll have to add these dependencies manually:
-# extra-deps:
-#   - stm-containers-1.2
-#   - stm-hamt-1.2.0.4
-#   - primitive-extras-0.8
+resolver: lts-24.45
 
 packages:
   - apecs
   - apecs-physics
   - apecs-gloss
+  - apecs-stm
   - examples
 
 nix:

@@ -18,12 +18,14 @@ module Apecs.Util
   , nextEntity
   , newEntity
   , newEntity_
+  , nextEntityIO
   , Maybify
   ) where
 
 import Control.Applicative (liftA2)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
+import Data.IORef
 import qualified Data.IntSet as IS
 import qualified Data.Map.Strict as M
 import Data.Monoid
@@ -33,6 +35,7 @@ import System.Mem (performMajorGC)
 
 import Apecs.Core
 import Apecs.Stores
+import qualified Apecs.Stores.Internal as Stores
 import Apecs.System
 
 -- | Convenience entity, for use in places where the entity value does not matter, i.e. a global store.
@@ -47,7 +50,22 @@ newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigrou
 instance Component EntityCounter where
   type Storage EntityCounter = ReadOnly (Global EntityCounter)
 
--- | Bumps the EntityCounter and yields its value
+{- | Atomically bumps the EntityCounter and yields its value.
+  Relatively slower than nextEntity, but unsafeIOToSTM-safe.
+-}
+{-# INLINE nextEntityIO #-}
+nextEntityIO :: (Has w IO EntityCounter) => SystemT w IO Entity
+nextEntityIO = do
+  Stores.ReadOnly (Stores.Global ecRef) <- getStore
+  liftIO $ atomicModifyIORef' ecRef $ \(EntityCounter (Sum c)) ->
+    ( EntityCounter (Sum $ c + 1)
+    , Entity c
+    )
+
+{- | Bumps the EntityCounter and yields its value.
+
+Not thread-safe.
+-}
 {-# INLINE nextEntity #-}
 nextEntity :: (MonadIO m, Get w m EntityCounter) => SystemT w m Entity
 nextEntity = do

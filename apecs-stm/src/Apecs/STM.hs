@@ -39,27 +39,21 @@ import Control.Concurrent.STM (STM)
 import qualified Control.Concurrent.STM as S
 import Control.Concurrent.STM.TVar as S
 import Control.Monad
+import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.Trans.Class (lift)
 import qualified Data.IntSet as IS
 import Data.Maybe
-import Data.Monoid (Sum (..))
-import Data.Semigroup
 import Data.Typeable (Typeable, typeRep)
 import qualified Data.Vector.Unboxed as U
+import GHC.Conc (unsafeIOToSTM)
 import Language.Haskell.TH
 import qualified ListT as L
 import qualified StmContainers.Map as M
 
-import Apecs
-  ( ask
-  , get
-  , global
-  , lift
-  , liftIO
-  , runSystem
-  , set
-  )
+import Apecs (ask, runSystem, set)
 import Apecs.Core
 import Apecs.TH (makeMapComponentsFor, makeWorldNoEC)
+import Apecs.Util (EntityCounter (..), nextEntityIO)
 
 newtype Map c = Map (M.Map Int c)
 type instance Elem (Map c) = c
@@ -197,31 +191,19 @@ instance ExplSet IO (Global c) where
   {-# INLINE explSet #-}
   explSet m e x = S.atomically $ explSet m e x
 
-newtype EntityCounter = EntityCounter {getCounter :: Sum Int} deriving (Semigroup, Monoid, Eq, Show)
-
-instance Component EntityCounter where
-  type Storage EntityCounter = Global EntityCounter
-
 {-# INLINE nextEntity #-}
-nextEntity :: (Get w m EntityCounter, Set w m EntityCounter) => SystemT w m Entity
-nextEntity = do
-  EntityCounter n <- get global
-  set global (EntityCounter $ n + 1)
-  return (Entity . getSum $ n)
+nextEntity :: (Has w IO EntityCounter) => SystemT w STM Entity
+nextEntity = ask >>= lift . unsafeIOToSTM . runSystem nextEntityIO
 
 {-# INLINE newEntity #-}
-newEntity
-  :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
-  => c -> SystemT w m Entity
+newEntity :: (Set w STM c, Has w IO EntityCounter) => c -> SystemT w STM Entity
 newEntity c = do
   ety <- nextEntity
   set ety c
   return ety
 
 {-# INLINE newEntity_ #-}
-newEntity_
-  :: (Set w m c, Get w m EntityCounter, Set w m EntityCounter)
-  => c -> SystemT w m ()
+newEntity_ :: (Set w STM c, Has w IO EntityCounter) => c -> SystemT w STM ()
 newEntity_ c = do
   ety <- nextEntity
   set ety c
