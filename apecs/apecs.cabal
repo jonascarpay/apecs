@@ -33,13 +33,16 @@ library
     Apecs.Experimental.Stores
     Apecs.Experimental.Util
     Apecs.Stores
+    Apecs.Stores.Internal
     Apecs.System
     Apecs.Tags
     Apecs.TH
     Apecs.TH.Tags
     Apecs.Util
 
-  other-modules:    Apecs.THTuples
+  other-modules:
+    Apecs.THTuples
+
   default-language: Haskell2010
   build-depends:
       array             >=0.4    && <0.6
