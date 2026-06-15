@@ -13,6 +13,7 @@
 module Apecs.Stores.Internal
   ( Map (..)
   , Cache (..)
+  , Sharded (..)
   , Unique (..)
   , Global (..)
   , Cachable
@@ -30,12 +31,19 @@ import qualified Data.IntMap.Strict as M
 import qualified Data.IntSet as IS
 import Data.Proxy
 import Data.Typeable (Typeable, typeRep)
+import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import GHC.TypeLits
 
 import Apecs.Core
+
+{- | The smallest power of two not smaller than @n@ (and at least 1). Used by
+the stores whose size must be a power of two so indexing can use a bit mask.
+-}
+nextPowerOf2 :: Int -> Int
+nextPowerOf2 n = until (>= n) (`shiftL` 1) 1
 
 -- | A map based on 'Data.IntMap.Strict'. O(log(n)) for most operations.
 newtype Map c = Map (IORef (M.IntMap c))
@@ -184,7 +192,7 @@ instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s) => ExplInit m (Cache 
   explInit = do
     let
       n = fromIntegral $ natVal (Proxy @n) :: Int
-      size = head . dropWhile (< n) $ iterate (`shiftL` 1) 1
+      size = nextPowerOf2 n
       mask = size - 1
     tags <- liftIO $ UM.replicate size (-2)
     cache <- liftIO $ VM.replicate size cacheMiss
@@ -233,6 +241,60 @@ instance (MonadIO m, ExplMembers m s) => ExplMembers m (Cache n s) where
     let etyFilter ety = (/= ety) <$> UM.unsafeRead tags (ety .&. mask)
     stored <- explMembers s >>= liftIO . U.filterM etyFilter
     return $! cached U.++ stored
+
+{- | A store that partitions the entity key space across @n@ independent child
+  stores ("shards"), routing every operation to @shard = entity .&. mask@.
+
+  Unlike 'Cache', 'Sharded' wraps /any/ map-like ('Cachable') store and works in
+  whatever monad that store works in. Its purpose is concurrency rather than raw
+  speed: operations on entities that fall in different shards touch disjoint
+  child stores, so (for transactional stores such as those in @apecs-stm@) they
+  do not conflict and can commit in parallel.
+
+  The shard count is given as a type-level argument, like the capacity of a
+  'Cache'. The actual number of shards is the next power of two not smaller than
+  the argument, so the shard index can be computed with a bit mask.
+
+  Note that iterating a 'Sharded' store ('explMembers') visits every shard, so
+  the cost scales with the shard count.
+-}
+data Sharded (n :: Nat) s = Sharded !Int !(V.Vector s)
+
+type instance Elem (Sharded n s) = Elem s
+
+instance (Cachable s) => Cachable (Sharded n s)
+
+{-# INLINE shard #-}
+shard :: Sharded n s -> Int -> s
+shard (Sharded mask shards) ety = V.unsafeIndex shards (ety .&. mask)
+
+instance (Monad m, KnownNat n, ExplInit m s, Cachable s) => ExplInit m (Sharded n s) where
+  {-# INLINE explInit #-}
+  explInit = do
+    let
+      n = fromIntegral $ natVal (Proxy @n) :: Int
+      size = nextPowerOf2 n
+    shards <- V.replicateM size explInit
+    return $ Sharded (size - 1) shards
+
+instance (ExplGet m s) => ExplGet m (Sharded n s) where
+  {-# INLINE explGet #-}
+  explGet sh ety = explGet (shard sh ety) ety
+  {-# INLINE explExists #-}
+  explExists sh ety = explExists (shard sh ety) ety
+
+instance (ExplSet m s) => ExplSet m (Sharded n s) where
+  {-# INLINE explSet #-}
+  explSet sh ety = explSet (shard sh ety) ety
+
+instance (ExplDestroy m s) => ExplDestroy m (Sharded n s) where
+  {-# INLINE explDestroy #-}
+  explDestroy sh ety = explDestroy (shard sh ety) ety
+
+instance (Monad m, ExplMembers m s) => ExplMembers m (Sharded n s) where
+  {-# INLINE explMembers #-}
+  explMembers (Sharded _ shards) =
+    U.concat <$> mapM explMembers (V.toList shards)
 
 {- | Wrapper that makes a store read-only by hiding its 'ExplSet' and 'ExplDestroy' instances.
   Use 'setReadOnly' and 'destroyReadOnly' to override.

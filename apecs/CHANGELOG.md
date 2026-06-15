@@ -4,6 +4,10 @@
 ### Added
 - (#147) Component tags and associated utilities: Apecs.Tags, Apecs.TH.Tags
 - (#148) Apecs.Experimental.Reload module for GHCi world persistence.
+- `Sharded n s`, a store combinator that partitions the entity key space across
+  a type-level number of child stores. Routes each operation to its shard so
+  that, for transactional stores, operations on entities in different shards do
+  not conflict.
 
 ## [0.9.6]
 ### Changed

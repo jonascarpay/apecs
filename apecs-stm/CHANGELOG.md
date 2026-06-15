@@ -4,6 +4,13 @@ Reverting the 0.2 changes around `EntityCounter` and taking the codebase back to
 
 ### Added
 - `newEntity_`, an STM counterpart of IO `newEntity_`.
+- `TMap`, a map store backed by `TVar (IntMap (TVar c))`: an outer `TVar` for
+  the live set plus a per-entity inner `TVar` for each value. Updating an
+  existing component only touches its inner `TVar`, so concurrent value updates
+  to different entities never conflict. Much cheaper per operation than the
+  stm-containers backed `Map`. Compose with `Apecs.Sharded` (e.g.
+  `Sharded 64 (TMap c)`) to also spread structural changes across shards. See
+  the `apecs-stm-bench` benchmark for comparisons.
 
 ## [0.2]
 ### Removed

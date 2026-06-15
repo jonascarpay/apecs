@@ -14,6 +14,8 @@ Note that if you want to be able to create entities in STM, you will also need t
 module Apecs.STM
   ( -- * Stores
     Map (..)
+  , TMap (..)
+  , Sharded
   , Unique (..)
   , Global (..)
 
@@ -41,6 +43,7 @@ import Control.Concurrent.STM.TVar as S
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Trans.Class (lift)
+import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as IS
 import Data.Maybe
 import Data.Typeable (Typeable, typeRep)
@@ -50,8 +53,9 @@ import Language.Haskell.TH
 import qualified ListT as L
 import qualified StmContainers.Map as M
 
-import Apecs (ask, runSystem, set)
+import Apecs (Sharded, ask, runSystem, set)
 import Apecs.Core
+import Apecs.Stores (Cachable)
 import Apecs.TH (makeMapComponentsFor, makeWorldNoEC)
 import Apecs.Util (EntityCounter (..), nextEntityIO)
 
@@ -102,6 +106,88 @@ instance ExplDestroy IO (Map c) where
   {-# INLINE explDestroy #-}
   explDestroy m e = S.atomically $ explDestroy m e
 instance ExplMembers IO (Map c) where
+  {-# INLINE explMembers #-}
+  explMembers m = S.atomically $ explMembers m
+  {-# INLINE explMemberSet #-}
+  explMemberSet m = S.atomically $ explMemberSet m
+
+{- | A map store backed by a @TVar (IntMap (TVar c))@: an outer 'TVar' holding
+the set of live entities, and a per-entity inner 'TVar' holding each component
+value.
+
+This two-level structure is what makes it concurrency-friendly. Reading or
+writing the value of an /existing/ entity only touches that entity's inner
+'TVar' (the outer 'TVar' is merely read), so two transactions updating
+different existing components never conflict. Only structural changes —
+inserting a new entity or destroying one — write the outer 'TVar'.
+
+Each operation is a cheap 'TVar' access over a pure
+'Data.IntMap.Strict.IntMap', so per-operation cost is far lower than the
+stm-containers backed 'Map'. The trade-off is that all structural changes, and
+'explMembers', contend on the single outer 'TVar'; wrap a 'TMap' in
+'Apecs.Sharded' to spread that contention across shards:
+
+> instance Component Pos where
+>   type Storage Pos = Sharded 64 (TMap Pos)
+-}
+newtype TMap c = TMap (TVar (IM.IntMap (TVar c)))
+
+type instance Elem (TMap c) = c
+
+instance Cachable (TMap c)
+
+instance ExplInit STM (TMap c) where
+  explInit = TMap <$> newTVar IM.empty
+instance (Typeable c) => ExplGet STM (TMap c) where
+  {-# INLINE explExists #-}
+  explExists (TMap ref) ety = IM.member ety <$> readTVar ref
+  {-# INLINE explGet #-}
+  explGet (TMap ref) ety = do
+    m <- readTVar ref
+    case IM.lookup ety m of
+      Just cell -> readTVar cell
+      notFound ->
+        error $
+          unwords
+            [ "Reading non-existent STM TMap component"
+            , show (typeRep notFound)
+            , "for entity"
+            , show ety
+            ]
+
+instance ExplSet STM (TMap c) where
+  {-# INLINE explSet #-}
+  explSet (TMap ref) ety x = do
+    m <- readTVar ref
+    case IM.lookup ety m of
+      Just cell -> writeTVar cell x
+      Nothing -> do
+        cell <- newTVar x
+        writeTVar ref $! IM.insert ety cell m
+instance ExplDestroy STM (TMap c) where
+  {-# INLINE explDestroy #-}
+  explDestroy (TMap ref) ety = modifyTVar' ref (IM.delete ety)
+instance ExplMembers STM (TMap c) where
+  {-# INLINE explMembers #-}
+  explMembers (TMap ref) = U.fromList . IM.keys <$> readTVar ref
+  {-# INLINE explMemberSet #-}
+  explMemberSet (TMap ref) = IM.keysSet <$> readTVar ref
+
+instance ExplInit IO (TMap c) where
+  {-# INLINE explInit #-}
+  explInit = S.atomically explInit
+instance (Typeable c) => ExplGet IO (TMap c) where
+  {-# INLINE explExists #-}
+  explExists m e = S.atomically $ explExists m e
+  {-# INLINE explGet #-}
+  explGet m e = S.atomically $ explGet m e
+instance ExplSet IO (TMap c) where
+  {-# INLINE explSet #-}
+  explSet m e x = S.atomically $ explSet m e x
+instance ExplDestroy IO (TMap c) where
+  {-# INLINE explDestroy #-}
+  explDestroy m e = S.atomically $ explDestroy m e
+instance ExplMembers IO (TMap c) where
   {-# INLINE explMembers #-}
   explMembers m = S.atomically $ explMembers m
   {-# INLINE explMemberSet #-}

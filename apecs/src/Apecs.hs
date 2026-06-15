@@ -20,6 +20,7 @@ module Apecs
   , Unique
   , Global
   , Cache
+  , Sharded
   , explInit
 
     -- * Systems

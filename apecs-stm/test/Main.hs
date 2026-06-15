@@ -45,15 +45,19 @@ assertSTM initW sys = monadicIO $ run (initW >>= runSystem (STM.atomically sys))
 -- Components & world --------------------------------------------------------
 
 newtype MapInt = MapInt Int deriving (Eq, Show, Arbitrary)
+newtype TInt = TInt Int deriving (Eq, Show, Arbitrary)
+newtype ShardInt = ShardInt Int deriving (Eq, Show, Arbitrary)
 newtype UniqueInt = UniqueInt Int deriving (Eq, Show, Arbitrary)
 newtype GlobalSum = GlobalSum (Sum Int) deriving (Eq, Show, Semigroup, Monoid, Arbitrary)
 
 instance Component MapInt where type Storage MapInt = STM.Map MapInt
+instance Component TInt where type Storage TInt = STM.TMap TInt
+instance Component ShardInt where type Storage ShardInt = STM.Sharded 16 (STM.TMap ShardInt)
 instance Component UniqueInt where type Storage UniqueInt = STM.Unique UniqueInt
 instance Component GlobalSum where type Storage GlobalSum = STM.Global GlobalSum
 
 -- Generates @World@, @initWorld :: IO World@, and (STM) @EntityCounter@.
-STM.makeWorld "World" [''MapInt, ''UniqueInt, ''GlobalSum]
+STM.makeWorld "World" [''MapInt, ''TInt, ''ShardInt, ''UniqueInt, ''GlobalSum]
 
 -- Map: set/get roundtrips ---------------------------------------------------
 
@@ -80,6 +84,25 @@ setGetBody _ sets1 dels1 ety c sets2 dels2 = do
   c' <- get ety
   return (c == c')
 
+{- | Monad-polymorphic body shared by the per-store members properties:
+@explMembers@ (via 'cfold') must report exactly the entities we set and did not
+later destroy.
+-}
+membersBody
+  :: forall w m c
+   . (Get w m c, Set w m c, Destroy w m c, Members w m c)
+  => Proxy c
+  -> [(Entity, c)]
+  -> [Entity]
+  -> SystemT w m Bool
+membersBody _ sets dels = do
+  forM_ sets $ uncurry set
+  forM_ dels $ flip destroy (Proxy @c)
+  present <- cfold (\acc (_ :: c, e :: Entity) -> e : acc) []
+  -- The live set is everything we set, minus everything we deleted.
+  let expected = nub [e | (e, _) <- sets, e `notElem` dels]
+  pure $ sort present == sort expected
+
 prop_setGetMapIO
   :: [(Entity, MapInt)] -> [Entity] -> Entity -> MapInt -> [(Entity, MapInt)] -> [Entity] -> Property
 prop_setGetMapIO s1 d1 e c s2 d2 =
@@ -93,13 +116,38 @@ prop_setGetMapSTM s1 d1 e c s2 d2 =
 -- Map: members and destroy --------------------------------------------------
 
 prop_mapMembers :: [(Entity, MapInt)] -> [Entity] -> Property
-prop_mapMembers sets dels = assertSys initWorld $ do
-  forM_ sets $ uncurry set
-  forM_ dels $ flip destroy (Proxy @MapInt)
-  present <- cfold (\acc (_ :: MapInt, e :: Entity) -> e : acc) []
-  -- The live set is everything we set, minus everything we deleted.
-  let expected = nub [e | (e, _) <- sets, e `notElem` dels]
-  pure $ sort present == sort expected
+prop_mapMembers sets dels = assertSys initWorld (membersBody (Proxy @MapInt) sets dels)
+
+-- TMap: same contract as Map, exercised over both instance sets ------------
+
+prop_setGetTMapIO
+  :: [(Entity, TInt)] -> [Entity] -> Entity -> TInt -> [(Entity, TInt)] -> [Entity] -> Property
+prop_setGetTMapIO s1 d1 e c s2 d2 =
+  assertSys initWorld (setGetBody (Proxy @TInt) s1 d1 e c s2 d2)
+
+prop_setGetTMapSTM
+  :: [(Entity, TInt)] -> [Entity] -> Entity -> TInt -> [(Entity, TInt)] -> [Entity] -> Property
+prop_setGetTMapSTM s1 d1 e c s2 d2 =
+  assertSTM initWorld (setGetBody (Proxy @TInt) s1 d1 e c s2 d2)
+
+prop_tmapMembers :: [(Entity, TInt)] -> [Entity] -> Property
+prop_tmapMembers sets dels = assertSys initWorld (membersBody (Proxy @TInt) sets dels)
+
+-- Sharded (TMap): same contract, with operations routed across shards -------
+
+prop_setGetShardedIO
+  :: [(Entity, ShardInt)] -> [Entity] -> Entity -> ShardInt -> [(Entity, ShardInt)] -> [Entity] -> Property
+prop_setGetShardedIO s1 d1 e c s2 d2 =
+  assertSys initWorld (setGetBody (Proxy @ShardInt) s1 d1 e c s2 d2)
+
+prop_setGetShardedSTM
+  :: [(Entity, ShardInt)] -> [Entity] -> Entity -> ShardInt -> [(Entity, ShardInt)] -> [Entity] -> Property
+prop_setGetShardedSTM s1 d1 e c s2 d2 =
+  assertSTM initWorld (setGetBody (Proxy @ShardInt) s1 d1 e c s2 d2)
+
+-- | @explMembers@ must return every live entity exactly once, across shards.
+prop_shardedMembers :: [(Entity, ShardInt)] -> [Entity] -> Property
+prop_shardedMembers sets dels = assertSys initWorld (membersBody (Proxy @ShardInt) sets dels)
 
 -- Unique: at most one live entity ------------------------------------------
 

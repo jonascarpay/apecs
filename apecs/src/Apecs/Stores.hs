@@ -13,6 +13,7 @@
 module Apecs.Stores
   ( Map
   , Cache
+  , Sharded
   , Unique
   , Global
   , Cachable
