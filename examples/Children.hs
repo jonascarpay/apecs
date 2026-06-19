@@ -5,6 +5,13 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
+import Apecs
+import Apecs.Experimental.Children (Child (..), ChildList (..), ChildValue (..))
+import Data.Foldable (for_)
+import Linear (V2 (..))
+import Linear.Affine (Affine ((.+^)), Point (..))
+import Text.Printf (printf)
+
 -- | Demonstrates simple usage of child components.
 --
 -- In this example, entities with a @Pos@ component are parent entities, and
@@ -13,13 +20,6 @@
 -- to the parent entity's position). The code shows a few ways of accessing the
 -- @Hitbox@ components and transforming them from local space to world space by
 -- leveraging the parent-child relationship of the entities.
-
-import Apecs
-import Apecs.Experimental.Children (Child (..), ChildList (..), ChildValue (..))
-import Data.Foldable (for_)
-import Linear (V2 (..))
-import Linear.Affine (Affine ((.+^)), Point (..))
-import Text.Printf (printf)
 
 newtype Pos = Pos (Point V2 Int) deriving (Show)
 instance Component Pos where type Storage Pos = Map Pos

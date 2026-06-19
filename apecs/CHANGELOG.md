@@ -4,9 +4,9 @@
 - (#142) `SystemT` is now a type alias for `ReaderT` instead of a newtype: the `SystemT`/`unSystem` constructor is gone. Dropped the `mtl`, `exceptions`, and `unliftio-core` dependencies.
 - (#151) Allow stores to init in monads with arbitrary constraints, initWorld will request them all.
 ### Added
-- (#141) `makeWorld` now generates a `<WorldName>Destructible` type alias covering all destroyable components
+- (#141) New `makeWorldDestructible` generates a `<WorldName>Destructible` type alias covering all components that can be used with `destroy`.
 - (#144) New `explMemberSet` method on the `ExplMembers` typeclass returning IntSet.
-- (#144) `makeWorld` also generates a `<WorldName>Enumerable` type alias over all enumerable components, plus reusable TH helpers `hasStoreInstance`, `makeInstanceFold`, `mkTupleT`, `mkEitherT`, `mkFoldT` and the `Maybify` type family.
+- (#144) New `makeWorldEnumerable` generator makes a `<WorldName>Enumerable` type alias over all enumerable components, plus reusable TH helpers `hasStoreInstance`, `makeInstanceFold`, `mkTupleT`, `mkEitherT`, `mkFoldT` and the `Maybify` type family.
 - (#147) Component tags and associated utilities: Apecs.Tags, Apecs.TH.Tags. Paired with the previous this enables generic world inspection and manipulation in runtime.
 - (#148) Apecs.Experimental.Reload module for GHCi world persistence.
 - (#155) `nextEntityIO` for getting the next entity atomically in `IO`.
