@@ -1,18 +1,18 @@
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
-import           Apecs.Physics       as P
-import           Apecs.Physics.Gloss
-import           Apecs.Util
-import           Control.Monad
+import Apecs.Physics as P
+import Apecs.Physics.Gloss
+import Apecs.Util
+import Control.Monad
 
 data MouseBody = MouseBody
-instance Component MouseBody
-  where type Storage MouseBody = Unique MouseBody
+instance Component MouseBody where
+  type Storage MouseBody = Unique MouseBody
 
 makeWorld "World" [''Physics, ''Camera, ''MouseBody]
 
@@ -21,8 +21,11 @@ material = (Friction 0.4, Elasticity 0.8, Density 1)
 collisionFilter = CollisionFilter 1 maskAll maskAll
 
 initialize = do
-  set global ( Camera 0 150
-             , earthGravity )
+  set
+    global
+    ( Camera 0 150
+    , earthGravity
+    )
 
   let gridLines' = gridLines (V2 4 3) 4 3
 
@@ -91,7 +94,6 @@ handle :: Event -> System World ()
 handle (EventMotion mouseWin) = do
   mpos <- mousePos mouseWin
   cmap $ \MouseBody -> Position mpos
-
 handle (EventKey (MouseButton LeftButton) Down _ mouseWin) = do
   mpos <- mousePos mouseWin
   pq <- pointQuery mpos 0 collisionFilter
@@ -99,24 +101,22 @@ handle (EventKey (MouseButton LeftButton) Down _ mouseWin) = do
     Shape otherEty _ <- get shape
     mouse <- newEntity (MouseBody, StaticBody, Position mpos)
     newEntity (Constraint mouse otherEty (PivotJoint mpos), MaxForce 2)
-
 handle (EventKey (MouseButton LeftButton) Up _ _) =
   cmap $ \MouseBody -> Not :: Not (MouseBody, Body)
-
 handle (EventKey (MouseButton RightButton) Down _ mouseWin) = do
   mpos <- mousePos mouseWin
   box <- newEntity (DynamicBody, Position mpos)
   newEntity (Shape box (cRectangle 0.3), material)
   return ()
-
 handle _ = return ()
 
-disp = InWindow "Constraint Gallery" (640,640) (10,10)
+disp = InWindow "Constraint Gallery" (640, 640) (10, 10)
 main = (initWorld >>=) . runSystem $ do
   initialize
-  play disp
-       black
-       60
-       (foldDrawM drawBody)
-       handle
-       (const $ stepPhysics (1/60))
+  play
+    disp
+    black
+    60
+    (foldDrawM drawBody)
+    handle
+    (const $ stepPhysics (1 / 60))

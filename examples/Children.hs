@@ -1,3 +1,10 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+
 -- | Demonstrates simple usage of child components.
 --
 -- In this example, entities with a @Pos@ component are parent entities, and
@@ -7,31 +14,24 @@
 -- @Hitbox@ components and transforming them from local space to world space by
 -- leveraging the parent-child relationship of the entities.
 
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
-
 import Apecs
-import Apecs.Experimental.Children (Child(..), ChildList(..), ChildValue(..))
-import Linear (V2 (..))
-import Linear.Affine (Point(..), Affine ((.+^)))
-import Text.Printf (printf)
+import Apecs.Experimental.Children (Child (..), ChildList (..), ChildValue (..))
 import Data.Foldable (for_)
+import Linear (V2 (..))
+import Linear.Affine (Affine ((.+^)), Point (..))
+import Text.Printf (printf)
 
-newtype Pos = Pos (Point V2 Int) deriving Show
+newtype Pos = Pos (Point V2 Int) deriving (Show)
 instance Component Pos where type Storage Pos = Map Pos
 
-newtype Hitbox = Hitbox AABB deriving Show
+newtype Hitbox = Hitbox AABB deriving (Show)
 instance Component Hitbox where type Storage Hitbox = Map Hitbox
 
 -- | A type alias solely for TH quoting's sake in the call to @makeWorld@.
 type ChildHitbox = Child Hitbox
 
 -- | Stores bounding box min point in local coordinates and extents.
-data AABB = AABB !(Point V2 Int) !(V2 Int) deriving Show
+data AABB = AABB !(Point V2 Int) !(V2 Int) deriving (Show)
 
 makeWorld "World" [''Pos, ''ChildHitbox]
 

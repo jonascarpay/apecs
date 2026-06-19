@@ -196,9 +196,10 @@ instance (MonadIO m, ExplGet m s) => ExplGet m (Cache n s) where
   explGet (Cache mask tags cache s) ety = do
     let index = ety .&. mask
     tag <- liftIO $ UM.unsafeRead tags index
-    if tag == ety
-      then liftIO $ VM.unsafeRead cache index
-      else explGet s ety
+    if tag == ety then
+      liftIO $ VM.unsafeRead cache index
+    else
+      explGet s ety
 
   {-# INLINE explExists #-}
   explExists (Cache mask tags _ s) ety = do
