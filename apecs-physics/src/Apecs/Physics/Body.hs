@@ -21,7 +21,6 @@ import Control.Monad
 import Control.Monad.IO.Class (MonadIO)
 import Data.IORef
 import qualified Data.IntMap as M
-import qualified Data.IntSet as IS
 import qualified Data.IntSet as S
 import qualified Data.Vector.Unboxed as U
 import Foreign.ForeignPtr (withForeignPtr)
