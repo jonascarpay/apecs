@@ -40,8 +40,6 @@ Finally, we use `random` for our RNG, and import some base stuff.
 > import System.Random
 > import System.Exit
 > import Control.Monad
-> import Data.Monoid
-> import Data.Semigroup (Semigroup)
 
 We need `Monoid` for `mempty`, but in recent GHC's that requires also defining `Semigroup` instances.
 So, depending on your GHC version, you might not actually need the `Semigroup` import/instances.
@@ -59,7 +57,7 @@ You can use `Double`, but if you don't need the extra accuracy, using `Float` wi
 
 > newtype Position = Position (V2 Float) deriving Show
 > instance Component Position where type Storage Position = Map Position
-> 
+>
 > newtype Velocity = Velocity (V2 Float) deriving Show
 > instance Component Velocity where type Storage Velocity = Map Velocity
 
@@ -68,7 +66,7 @@ Unit types are common in apecs, as they can be used to tag an Entity.
 
 > data Target = Target deriving Show
 > instance Component Target where type Storage Target = Map Target
-> 
+>
 > data Bullet = Bullet deriving Show
 > instance Component Bullet where type Storage Bullet = Map Bullet
 
@@ -97,7 +95,7 @@ The initial value of a `Global` will be drawn from that Component's `Monoid` ins
 > instance Semigroup Score where (<>) = (+)
 > instance Monoid Score where mempty = 0
 > instance Component Score where type Storage Score = Global Score
-> 
+>
 > newtype Time = Time Float deriving (Show, Num)
 > instance Semigroup Time where (<>) = (+)
 > instance Monoid Time where mempty = 0
@@ -122,18 +120,18 @@ At this point I also like to define some type synonyms and constants:
 
 > type System' a = System World a
 > type Kinetic = (Position, Velocity)
-> 
+>
 > playerSpeed, bulletSpeed, enemySpeed, xmin, xmax :: Float
 > playerSpeed = 170
 > bulletSpeed = 500
 > enemySpeed  = 80
 > xmin = -100
 > xmax = 100
-> 
+>
 > hitBonus, missPenalty :: Int
 > hitBonus = 100
 > missPenalty = 40
-> 
+>
 > playerPos, scorePos :: V2 Float
 > playerPos = V2 0 (-120)
 > scorePos  = V2 xmin (-170)
@@ -142,7 +140,7 @@ With that, we are ready to start writing our first Systems.
 
 > initialize :: System' ()
 > initialize = do
->   playerEty <- newEntity (Player, Position playerPos, Velocity 0)
+>   newEntity_ (Player, Position playerPos, Velocity 0)
 >   return ()
 
 `initialize` initializes our game state.
@@ -203,10 +201,10 @@ Our mapped function will have type `(Target, Position, Velocity) -> Maybe (Targe
 If we return a `Just c`, `c` gets written as normal, but when we return `Nothing`, those same Components will be deleted instead.
 
 > clearTargets :: System' ()
-> clearTargets = cmap $ \all@(Target, Position (V2 x _), Velocity _) ->
+> clearTargets = cmap $ \keep@(Target, Position (V2 x _), Velocity _) ->
 >   if x < xmin || x > xmax
 >      then Nothing
->      else Just all
+>      else Just keep
 
 This works fine, but it's not ideal.
 We don't really need to read `Velocity`, we are only ever interested in removing it.
@@ -294,6 +292,7 @@ I won't go into further detail here, but the take-away here is that `cmap` is pr
 
 Anyway, collision handling:
 
+> handleCollisions :: System' ()
 > handleCollisions =
 >   cmapM_ $ \(Target, Position posT, etyT) ->
 >     cmapM_ $ \(Bullet, Position posB, etyB) ->
@@ -322,7 +321,7 @@ If you hadn't noticed by the way, `get` doesn't need a `Proxy` because unlike e.
 > triggerEvery dT period phase sys = do
 >   Time t <- get global
 >   let t' = t + phase
->       trigger = floor (t'/period) /= floor ((t'+dT)/period)
+>       trigger = floor @_ @Int (t'/period) /= floor ((t'+dT)/period)
 >   when trigger $ void sys
 
 `spawnParticles` does what it says on the tin.
@@ -358,23 +357,23 @@ We define a function that maps each possible input to a System:
 > handleEvent :: Event -> System' ()
 > handleEvent (EventKey (SpecialKey KeyLeft) Down _ _) =
 >   cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
-> 
+>
 > handleEvent (EventKey (SpecialKey KeyLeft)  Up   _ _) =
 >   cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x+playerSpeed) 0)
-> 
+>
 > handleEvent (EventKey (SpecialKey KeyRight) Down _ _) =
 >   cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x+playerSpeed) 0)
-> 
+>
 > handleEvent (EventKey (SpecialKey KeyRight) Up   _ _) =
 >   cmap $ \(Player, Velocity (V2 x _)) -> Velocity (V2 (x-playerSpeed) 0)
-> 
+>
 > handleEvent (EventKey (SpecialKey KeySpace) Down _ _) =
 >   cmapM_ $ \(Player, pos) -> do
->     newEntity (Bullet, pos, Velocity (V2 0 bulletSpeed))
+>     newEntity_ (Bullet, pos, Velocity (V2 0 bulletSpeed))
 >     spawnParticles 7 pos (-80,80) (10,100)
 >
 > handleEvent (EventKey (SpecialKey KeyEsc) Down   _ _) = liftIO exitSuccess
-> 
+>
 > handleEvent _ = return ()
 
 Next, we'll look at drawing.
@@ -387,7 +386,7 @@ It performs a `cfold` of some drawing function, and combines all results into a 
 
 > translate' :: Position -> Picture -> Picture
 > translate' (Position (V2 x y)) = translate x y
-> 
+>
 > triangle, diamond :: Picture
 > triangle = Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]
 > diamond  = Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]
@@ -397,14 +396,14 @@ It performs a `cfold` of some drawing function, and combines all results into a 
 >   player  <- foldDraw $ \(Player, pos) -> translate' pos . color white  . scale 10 20 $ triangle
 >   targets <- foldDraw $ \(Target, pos) -> translate' pos . color red    . scale 10 10 $ diamond
 >   bullets <- foldDraw $ \(Bullet, pos) -> translate' pos . color yellow . scale 4  4  $ diamond
-> 
+>
 >   particles <- foldDraw $
 >     \(Particle _, Velocity (V2 vx vy), pos) ->
 >         translate' pos . color orange $ Line [(0,0),(vx/10, vy/10)]
-> 
+>
 >   Score s <- get global
 >   let score = color white . translate' (Position scorePos) . scale 0.1 0.1 . Text $ "Score: " ++ show s
-> 
+>
 >   return $ player <> targets <> bullets <> score <> particles
 
 And with that, we can run our little game!

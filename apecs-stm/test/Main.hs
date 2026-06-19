@@ -25,8 +25,8 @@ import Test.QuickCheck.Monadic
 import Apecs (Cache, Map, cfold, destroy, exists, get, global, modify, runSystem, set)
 import Apecs.Core
 import Apecs.Stores.STM (STM)
-import Apecs.TH (makeWorld)
 import qualified Apecs.Stores.STM as STM
+import Apecs.TH (makeWorld)
 
 -- Preamble ------------------------------------------------------------------
 
@@ -56,9 +56,11 @@ instance Component GlobalSum where type Storage GlobalSum = STM.TGlobal GlobalSu
 -- Generates @World@, @initWorld :: IO World@, and @EntityCounter@.
 makeWorld "World" [''MapInt, ''UniqueInt, ''GlobalSum]
 
--- | An IO-only store: a cached 'Map'. It has no STM instances, so it can only
--- be touched from IO systems, never from inside an STM transaction.
+{- | An IO-only store: a cached 'Map'. It has no STM instances, so it can only
+be touched from IO systems, never from inside an STM transaction.
+-}
 newtype CachedInt = CachedInt Int deriving (Eq, Show, Arbitrary)
+
 instance Component CachedInt where type Storage CachedInt = Cache 64 (Map CachedInt)
 
 {- | A single world that mixes an IO-only cached 'Map' (@CachedInt@) with an
@@ -241,7 +243,8 @@ prop_concurrentGlobal = once $ monadicIO $ do
 {- | Within one IO system, drive the cached 'Map' directly while routing
 transactional reads and writes of the STM 'STM.TMap' through @atomically@.
 Both stores are keyed by the same 'Entity', demonstrating that the two store
-families coexist in a single world. -}
+families coexist in a single world.
+-}
 prop_mixedRoundtrip :: Entity -> CachedInt -> MapInt -> Property
 prop_mixedRoundtrip e cv mv = assertSys initMixedWorld $ do
   -- Cached Map: plain IO access.
@@ -250,7 +253,8 @@ prop_mixedRoundtrip e cv mv = assertSys initMixedWorld $ do
   STM.atomically $ set e mv
   cv' <- get e -- read back from the cached Map (IO)
   exC <- exists e (Proxy @CachedInt)
-  (mv', exM) <- STM.atomically $ do -- read back from the TMap (STM)
+  (mv', exM) <- STM.atomically $ do
+    -- read back from the TMap (STM)
     v <- get e
     ex <- exists e (Proxy @MapInt)
     pure (v, ex)
@@ -259,7 +263,8 @@ prop_mixedRoundtrip e cv mv = assertSys initMixedWorld $ do
 {- | Many threads concurrently allocate entities and populate the STM 'TMap'
 inside transactions; the IO-backed 'EntityCounter' keeps ids unique. Afterwards
 the main thread, back in IO, decorates every spawned entity with a 'CachedInt'
-in the cached 'Map' — a store the worker transactions could not have touched. -}
+in the cached 'Map' — a store the worker transactions could not have touched.
+-}
 prop_mixedConcurrentSpawn :: Property
 prop_mixedConcurrentSpawn = once $ monadicIO $ do
   let

@@ -45,7 +45,7 @@ library
     Apecs.Physics.Types
 
   build-depends:
-      apecs             >=0.7  && <0.10
+      apecs             >=0.7  && <0.11
     , base
     , containers
     , inline-c          >=0.6  && <1

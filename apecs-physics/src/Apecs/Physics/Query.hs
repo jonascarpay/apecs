@@ -48,9 +48,10 @@ pointQuery (fmap realToFrac -> V2 px py) (realToFrac -> maxDistance) (CollisionF
         , $(cpPointQueryInfo *pq));
       }|]
     res <- peek pq
-    if unEntity (pqShape res) == -1
-      then return Nothing
-      else return (Just res)
+    if unEntity (pqShape res) == -1 then
+      return Nothing
+    else
+      return (Just res)
 
 instance Storable PointQueryResult where
   sizeOf ~_ = 48 -- sizeOf (undefined :: Ptr Shape) + sizeOf (undefined :: CDouble) + 2*sizeOf (undefined :: V2 CDouble)
@@ -92,9 +93,10 @@ segmentQuery (fmap realToFrac -> V2 sx sy) (fmap realToFrac -> V2 ex ey) (realTo
         , $(cpSegmentQueryInfo *sq));
       }|]
     res <- peek sq
-    if unEntity (sqShape res) == -1
-      then return Nothing
-      else return (Just res)
+    if unEntity (sqShape res) == -1 then
+      return Nothing
+    else
+      return (Just res)
 
 instance Storable SegmentQueryResult where
   sizeOf ~_ = 48 -- sizeOf (undefined :: Ptr Shape) + 2*sizeOf (undefined :: V2 CDouble) + sizeOf (undefined :: CDouble)

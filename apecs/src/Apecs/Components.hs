@@ -96,9 +96,10 @@ instance (ExplGet m s) => ExplGet m (MaybeStore s) where
   {-# INLINE explGet #-}
   explGet (MaybeStore sa) ety = do
     e <- explExists sa ety
-    if e
-      then Just <$> explGet sa ety
-      else return Nothing
+    if e then
+      Just <$> explGet sa ety
+    else
+      return Nothing
   explExists _ _ = return True
 
 instance (ExplDestroy m s, ExplSet m s) => ExplSet m (MaybeStore s) where
@@ -126,15 +127,17 @@ instance (ExplGet m sa, ExplGet m sb) => ExplGet m (EitherStore sa sb) where
   {-# INLINE explGet #-}
   explGet (EitherStore sa sb) ety = do
     e <- explExists sb ety
-    if e
-      then Right <$> explGet sb ety
-      else Left <$> explGet sa ety
+    if e then
+      Right <$> explGet sb ety
+    else
+      Left <$> explGet sa ety
   {-# INLINE explExists #-}
   explExists (EitherStore sa sb) ety = do
     e <- explExists sb ety
-    if e
-      then return True
-      else explExists sa ety
+    if e then
+      return True
+    else
+      explExists sa ety
 
 instance (ExplSet m sa, ExplSet m sb) => ExplSet m (EitherStore sa sb) where
   {-# INLINE explSet #-}

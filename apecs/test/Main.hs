@@ -11,18 +11,15 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -w #-}
+{-# OPTIONS_GHC -Wno-missing-signatures -Wno-orphans -Wno-unused-top-binds #-}
 
 import qualified Control.Exception as E
 import Control.Monad
 import qualified Data.Foldable as F
-import Data.IORef
-import qualified Data.IntMap.Strict as IM
 import qualified Data.IntSet as S
 import Data.List (delete, nub, sort, (\\))
 import qualified Data.Map.Strict as M
 import qualified Data.Set as Set
-import qualified Data.Vector.Unboxed as U
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Text.Printf (printf)
@@ -32,13 +29,10 @@ import Apecs.Core
 import Apecs.Experimental.Children
 import Apecs.Experimental.Reactive
 import Apecs.Experimental.Stores
-import Apecs.Stores
 import Apecs.TH
 import Apecs.TH.Tags
 import Apecs.Tags
 import Apecs.Util
-
-type Vec = (Double, Double)
 
 -- Preamble
 instance Arbitrary Entity where
@@ -115,6 +109,7 @@ genericSetSet initSys _ sets1 dels1 ety c1 sets2 dels2 c2 sets3 dels3 = do
 newtype MapInt = MapInt Int deriving (Eq, Show, Arbitrary)
 instance Component MapInt where type Storage MapInt = Map MapInt
 makeWorld "Simple" [''MapInt]
+makeWorldDestructible "Simple" [''MapInt]
 
 prop_setGetMap = genericSetGet initSimple (undefined :: MapInt)
 prop_setSetMap = genericSetSet initSimple (undefined :: MapInt)
@@ -134,9 +129,9 @@ prop_setSetCache = genericSetSet initCached (undefined :: CacheInt)
 
 prop_cacheUnique :: [CacheInt] -> [Entity] -> [(Entity, CacheInt)] -> Property
 prop_cacheUnique eInit eDel eSet = assertSys initCached $ do
-  mapM newEntity eInit
-  mapM (flip set (Not @CacheInt)) eDel
-  mapM (uncurry set) eSet
+  mapM_ newEntity eInit
+  mapM_ (flip set (Not @CacheInt)) eDel
+  mapM_ (uncurry set) eSet
   es <- cfold (\a (_ :: CacheInt, Entity e) -> e : a) []
   pure $ es == nub es
 
@@ -155,6 +150,8 @@ instance Component G1 where type Storage G1 = Global G1
 
 -- Tests Enumerable class
 makeWorld "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+makeWorldEnumerable "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
+makeWorldDestructible "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 makeTaggedComponents "WorldEnumerable" [''G1, ''T1, ''T2, ''T3]
 
 -- Generate a (T1, T2, T3) tuple in a contrived way
@@ -208,8 +205,8 @@ prop_tags_get t12s t3s = assertSys initWorldEnumerable $ do
   entities <- worldEntityIds
 
   eav <- fmap M.fromList . forM (map Entity $ S.toList entities) $ \e -> do
-    entityTags <- entityTags e
-    tagged <- forM entityTags $ \t -> (t,) <$> getWorldEnumerableTag e t
+    tags <- entityTags e
+    tagged <- forM tags $ \t -> (t,) <$> getWorldEnumerableTag e t
     pure (e, M.fromList tagged)
 
   let it = show (eav :: M.Map Entity (M.Map WorldEnumerableTag WorldEnumerableSum))
@@ -269,15 +266,16 @@ prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
   entities <- worldEntityIds
   combos <- countCombinations entities
 
-  let has_t12s = S.fromList (map (unEntity . fst) t12s)
-  let has_t3s = S.fromList (map (unEntity . fst) t3s)
-  let entityTags ety =
+  let
+    has_t12s = S.fromList (map (unEntity . fst) t12s)
+    has_t3s = S.fromList (map (unEntity . fst) t3s)
+    tags ety =
         (if ety `S.member` has_t12s then [TT1, TT2] else [])
           ++ (if ety `S.member` has_t3s then [TT3] else [])
   let expected =
         M.fromListWith
           (+)
-          [ (Set.fromList (entityTags ety), 1 :: Int)
+          [ (Set.fromList (tags ety), 1 :: Int)
           | ety <- S.toList (has_t12s <> has_t3s)
           ]
 
@@ -406,7 +404,7 @@ prop_children (NonEmpty writes) = assertSys initChildTest $ do
     let child1 = head children
     modify child1 $ \(ChildValue t2) -> Child @T2 global t2
     -- Check that the first child entity's parent was actually updated.
-    Child child1Parent child1T2 :: Child T2 <- get child1
+    Child child1Parent _child1T2 :: Child T2 <- get child1
     unless (child1Parent == global) $ do
       liftIO $
         E.throwIO $
@@ -457,4 +455,6 @@ prop_children (NonEmpty writes) = assertSys initChildTest $ do
   return True
 
 return []
+
+main :: IO Bool
 main = $quickCheckAll

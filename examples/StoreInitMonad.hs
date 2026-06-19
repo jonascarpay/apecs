@@ -11,13 +11,13 @@
 
 import Apecs hiding (asks)
 import Apecs.Core
-import Control.Monad.Reader (MonadReader, asks, runReaderT)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Reader (MonadReader, asks, runReaderT)
 import Control.Monad.Trans.Resource
-import System.IO (Handle, openTempFile, hClose)
-import System.Directory (getTemporaryDirectory, removeFile)
-import Data.Data (Typeable, typeRep, typeRepTyCon)
 import Data.Coerce
+import Data.Data (Typeable, typeRep, typeRepTyCon)
+import System.Directory (getTemporaryDirectory, removeFile)
+import System.IO (Handle, hClose, openTempFile)
 
 -- * Stores
 

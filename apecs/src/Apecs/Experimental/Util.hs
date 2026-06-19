@@ -14,8 +14,6 @@ module Apecs.Experimental.Util
   , flatten'
   ) where
 
-import Control.Applicative (liftA2)
-
 {- $hash
 The following are helper functions for spatial hashing.
 Your spatial hash is defined by two vectors;
@@ -59,7 +57,7 @@ inbounds
   => v a -- Field size vector
   -> v a
   -> Bool
-inbounds size vec = and (liftA2 (\v s -> v >= 0 && v <= s) vec size)
+inbounds size vec = and ((\v s -> v >= 0 && v <= s) <$> vec <*> size)
 
 {- | For two table-space vectors indicating a region's bounds, gives a list of the vectors contained between them.
   This is useful for querying a spatial hash.
@@ -72,7 +70,7 @@ region
   -> v a
   -- ^ Higher bound for the region
   -> [v a]
-region a b = sequence $ liftA2 enumFromTo a b
+region a b = sequence $ enumFromTo <$> a <*> b
 
 -- | flatten, but yields garbage for out-of-bounds vectors.
 {-# INLINE flatten' #-}
@@ -81,4 +79,4 @@ flatten'
   => v a -- Field size vector
   -> v a
   -> a
-flatten' size vec = foldr (\(n, x) acc -> n * acc + x) 0 (liftA2 (,) size vec)
+flatten' size vec = foldr (\(n, x) acc -> n * acc + x) 0 $ (,) <$> size <*> vec

@@ -21,7 +21,6 @@ import Data.IORef
 import qualified Data.IntMap as M
 import qualified Data.IntSet as S
 import qualified Data.Map as Map
-import Data.Monoid ((<>))
 import qualified Foreign.C.Types as C
 import Foreign.ForeignPtr
 import Foreign.Ptr
