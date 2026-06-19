@@ -1,9 +1,17 @@
 ## [0.3]
 
-Reverting the 0.2 changes around `EntityCounter` and taking the codebase back to the 0.1.5 state.
+The package is now fully subordinate to vanilla apecs,
+reusing its EntityCounter, makeWorld etc.
 
-### Added
-- `newEntity_`, an STM counterpart of IO `newEntity_`.
+While it can still be used as "put everything into STM"
+this is quite inefficient.
+
+* Renamed Map, Global, Unique to TMap, TGlobal, TUnique.
+  They now can be used alongside vanilla Map/Global/Unique
+  and only where it matters.
+* TMap.explMembers is not atomic under IO.
+  Using stm-containers' listTNonAtomic escape hatch for
+  single-threaded/non-atomic membership tests.
 
 ## [0.2]
 ### Removed

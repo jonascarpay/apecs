@@ -17,20 +17,13 @@ jobs:
       - name: Build shell
         run: nix develop -L -c echo "All good"
 
-  stack-build:
+  stack-build-newer:
     name: Stack ${{ matrix.resolver }} on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        resolver: [ lts-21, lts-20, lts-19, lts-18 ]
-        exclude:
-          # macos-latest is now ARM64, and older GHC versions lack native aarch64
-          # generators and fail to find correct LLVM versions on this runner
-          - os: macos-latest
-            resolver: lts-19
-          - os: macos-latest
-            resolver: lts-18
+        resolver: [ lts-24, lts-23, lts-22 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -46,9 +39,36 @@ jobs:
           key: stack-${{ matrix.os }}-${{ matrix.resolver }}-${{ hashFiles('**/*.cabal', 'stack.yaml') }}
       - run: sudo apt-get update && sudo apt-get install freeglut3-dev
         if: matrix.os == 'ubuntu-latest'
-      - run: stack build --only-dependencies --resolver ${{ matrix.resolver }}
+      - run: stack build --resolver ${{ matrix.resolver }} --only-dependencies --install-ghc
       - run: stack build --resolver ${{ matrix.resolver }}
       - run: stack test --resolver ${{ matrix.resolver }}
+
+  stack-build-older:
+    name: Stack ${{ matrix.resolver }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        resolver: [ lts-18 ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: 8.10.7
+          enable-stack: true
+      - uses: actions/cache@v3
+        if: matrix.os == 'ubuntu-latest' # Stack caching doesn't work and I don't feel like figuring out why
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: stack-${{ matrix.os }}-${{ matrix.resolver }}-${{ hashFiles('**/*.cabal', 'stack.yaml') }}
+      - run: sudo apt-get update && sudo apt-get install freeglut3-dev
+        if: matrix.os == 'ubuntu-latest'
+      - run: stack build --stack-yaml stack-older.yaml --only-dependencies --resolver ${{ matrix.resolver }}
+      - run: stack build --stack-yaml stack-older.yaml --resolver ${{ matrix.resolver }}
+      - run: stack test --stack-yaml stack-older.yaml --resolver ${{ matrix.resolver }}
 
   cabal-build:
     name: Cabal GHC ${{ matrix.ghc }} on ${{ matrix.os }}

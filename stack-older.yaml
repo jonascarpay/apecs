@@ -1,4 +1,4 @@
-resolver: lts-24.45
+resolver: lts-18.28
 
 packages:
   - apecs
@@ -6,6 +6,13 @@ packages:
   - apecs-gloss
   - apecs-stm
   - examples
+
+extra-deps:
+  - stm-containers-1.2.2
+  -   stm-hamt-1.2.2.1
+  -     primitive-extras-0.10.2.2
+  -     hashable-1.4.7.0
+  -       data-array-byte-0.1.0.2
 
 allow-newer: true
 
