@@ -27,6 +27,7 @@ import Text.Printf (printf)
 import Apecs
 import Apecs.Core
 import Apecs.Experimental.ArrayMap
+import Apecs.Experimental.ChunkStore
 import Apecs.Experimental.Children
 import Apecs.Experimental.Reactive
 import Apecs.Experimental.Stores
@@ -157,6 +158,30 @@ prop_uArrayMapGrow c = assertSys initUArrayMapped $ do
 prop_uArrayMapDestroyOOB :: Property
 prop_uArrayMapDestroyOOB = assertSys initUArrayMapped $ do
   destroy (Entity 9999) (Proxy @Int)
+  pure True
+
+-- ChunkStore tests — page size 4 so tests cross page boundaries easily
+newtype ChunkInt = ChunkInt Int deriving (Eq, Show, Arbitrary)
+instance Component ChunkInt where type Storage ChunkInt = BChunkStore 4 ChunkInt
+makeWorld "Chunk" [''ChunkInt]
+
+prop_setGetChunk = genericSetGet initChunk (undefined :: ChunkInt)
+prop_setSetChunk = genericSetSet initChunk (undefined :: ChunkInt)
+
+-- Entity 7 is in page 1 and entity 8 is in page 2 (with page size 4 -> bits=2, mask=3).
+-- Checks that components in different pages don't interfere.
+prop_chunkPageBoundary :: ChunkInt -> ChunkInt -> Property
+prop_chunkPageBoundary a b = assertSys initChunk $ do
+  set (Entity 7) a
+  set (Entity 8) b
+  a' <- get (Entity 7)
+  b' <- get (Entity 8)
+  pure (a == a' && b == b')
+
+-- Destroying in a non-existent page is a safe no-op.
+prop_chunkDestroyMissingPage :: Property
+prop_chunkDestroyMissingPage = assertSys initChunk $ do
+  destroy (Entity 9999) (Proxy @ChunkInt)
   pure True
 
 -- Tests whether this is also true for caches
