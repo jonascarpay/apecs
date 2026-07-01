@@ -26,6 +26,7 @@ import Text.Printf (printf)
 
 import Apecs
 import Apecs.Core
+import Apecs.Experimental.ArrayMap
 import Apecs.Experimental.Children
 import Apecs.Experimental.Reactive
 import Apecs.Experimental.Stores
@@ -118,6 +119,27 @@ prop_destroyAll ety = assertSys initSimple $ do
   set ety (MapInt 1)
   destroy ety (Proxy @SimpleDestructible)
   not <$> exists ety (Proxy @MapInt)
+
+-- Tests whether this is also true for ArrayMap
+newtype ArrayMapInt = ArrayMapInt Int deriving (Eq, Show, Arbitrary)
+instance Component ArrayMapInt where type Storage ArrayMapInt = ArrayMap ArrayMapInt
+makeWorld "ArrayMapped" [''ArrayMapInt]
+
+prop_setGetArrayMap = genericSetGet initArrayMapped (undefined :: ArrayMapInt)
+prop_setSetArrayMap = genericSetSet initArrayMapped (undefined :: ArrayMapInt)
+
+-- Set a component at entity 1024, which is exactly at the initial capacity and triggers a grow.
+prop_arrayMapGrow :: ArrayMapInt -> Property
+prop_arrayMapGrow c = assertSys initArrayMapped $ do
+  set (Entity 1024) c
+  c' <- get (Entity 1024)
+  pure (c == c')
+
+-- Destroying an entity beyond current capacity should be a safe no-op.
+prop_arrayMapDestroyOOB :: Property
+prop_arrayMapDestroyOOB = assertSys initArrayMapped $ do
+  destroy (Entity 9999) (Proxy @ArrayMapInt)
+  pure True
 
 -- Tests whether this is also true for caches
 newtype CacheInt = CacheInt Int deriving (Eq, Show, Arbitrary)
