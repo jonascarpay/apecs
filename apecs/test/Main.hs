@@ -141,6 +141,24 @@ prop_arrayMapDestroyOOB = assertSys initArrayMapped $ do
   destroy (Entity 9999) (Proxy @ArrayMapInt)
   pure True
 
+-- Tests the unboxed ArrayMap variant using Int directly (which already has Unbox)
+instance Component Int where type Storage Int = UArrayMap Int
+makeWorld "UArrayMapped" [''Int]
+
+prop_setGetUArrayMap = genericSetGet initUArrayMapped (undefined :: Int)
+prop_setSetUArrayMap = genericSetSet initUArrayMapped (undefined :: Int)
+
+prop_uArrayMapGrow :: Int -> Property
+prop_uArrayMapGrow c = assertSys initUArrayMapped $ do
+  set (Entity 1024) c
+  c' <- get (Entity 1024)
+  pure (c == c')
+
+prop_uArrayMapDestroyOOB :: Property
+prop_uArrayMapDestroyOOB = assertSys initUArrayMapped $ do
+  destroy (Entity 9999) (Proxy @Int)
+  pure True
+
 -- Tests whether this is also true for caches
 newtype CacheInt = CacheInt Int deriving (Eq, Show, Arbitrary)
 instance Component CacheInt where type Storage CacheInt = Cache 2 (Map CacheInt)
