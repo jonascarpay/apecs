@@ -55,7 +55,10 @@ growTo dataRef presentRef ety = do
   oldData    <- readIORef dataRef
   oldPresent <- readIORef presentRef
   let oldCap = UM.length oldPresent
-      newCap  = max (ety + 1) (2 * oldCap)
+      -- When ety is within normal doubling range, double as usual.
+      -- When ety is a large jump beyond 2*oldCap, allocate oldCap extra headroom
+      -- beyond ety so that sequential writes from ety don't each trigger a resize.
+      newCap  = max (2 * oldCap) (ety + 1 + oldCap)
       added   = newCap - oldCap
   newData    <- GMV.unsafeGrow oldData added
   newPresent <- UM.unsafeGrow oldPresent added
