@@ -122,7 +122,7 @@ prop_destroyAll ety = assertSys initSimple $ do
 
 -- Tests whether this is also true for ArrayMap
 newtype ArrayMapInt = ArrayMapInt Int deriving (Eq, Show, Arbitrary)
-instance Component ArrayMapInt where type Storage ArrayMapInt = ArrayMap ArrayMapInt
+instance Component ArrayMapInt where type Storage ArrayMapInt = BArrayMap ArrayMapInt
 makeWorld "ArrayMapped" [''ArrayMapInt]
 
 prop_setGetArrayMap = genericSetGet initArrayMapped (undefined :: ArrayMapInt)

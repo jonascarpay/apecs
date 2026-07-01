@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -8,70 +9,91 @@ Stability: experimental
 
 This module is experimental, and its API might change between point releases. Use at your own risk.
 
-Provides 'ArrayMap', a direct-indexed array-backed store. Both the data array and the
+Provides 'ArrayMap', a direct-indexed array-backed store parameterised over the underlying
+mutable vector type via 'Data.Vector.Generic.Mutable.MVector'. Both the data array and the
 presence array grow on demand: when a component is set for an entity whose ID exceeds the
 current capacity, both arrays are reallocated to @max (entityId + 1) (2 * capacity)@.
 
 This gives O(1) get, set, exists, and destroy. Iteration via 'explMembers' is O(capacity)
 because it must scan the presence array; prefer this store for components that are held by
 the majority of entities, where that scan is not wasteful.
+
+Convenience aliases:
+
+* 'BArrayMap' — boxed storage via 'Data.Vector.Mutable.MVector', works for any component type.
+* 'UArrayMap' — unboxed storage via 'Data.Vector.Unboxed.Mutable.MVector', requires an
+  'Data.Vector.Unboxed.Unbox' instance, but is significantly more memory-efficient for
+  scalar and enum types.
 -}
 module Apecs.Experimental.ArrayMap
   ( ArrayMap (..)
+  , BArrayMap
+  , UArrayMap
   ) where
 
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.IORef
+import qualified Data.Vector.Generic.Mutable as GMV
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import GHC.Prim (RealWorld)
 
 import Apecs.Core
 
 initialCapacity :: Int
 initialCapacity = 1024
 
--- | Grow both arrays to @max (ety + 1) (2 * current capacity)@, copying existing data.
 growTo
-  :: IORef (VM.IOVector c)
+  :: GMV.MVector v c
+  => IORef (v RealWorld c)
   -> IORef (UM.IOVector Bool)
-  -> Int  -- ^ entity index that triggered the grow
+  -> Int
   -> IO ()
 growTo dataRef presentRef ety = do
   oldData    <- readIORef dataRef
   oldPresent <- readIORef presentRef
   let oldCap = UM.length oldPresent
-      newCap = max (ety + 1) (2 * oldCap)
-  newData    <- VM.unsafeGrow oldData (newCap - oldCap)
-  newPresent <- UM.unsafeGrow oldPresent (newCap - oldCap)
-  -- Zero-initialise the new presence slots (unsafeGrow does not guarantee this).
-  UM.set (UM.unsafeSlice oldCap (newCap - oldCap) newPresent) False
+      newCap  = max (ety + 1) (2 * oldCap)
+      added   = newCap - oldCap
+  newData    <- GMV.unsafeGrow oldData added
+  newPresent <- UM.unsafeGrow oldPresent added
+  -- Zero-initialise the new presence slots; unsafeGrow does not guarantee this.
+  UM.set (UM.unsafeSlice oldCap added newPresent) False
   writeIORef dataRef    newData
   writeIORef presentRef newPresent
 
--- | Direct-indexed, dynamically growing store backed by a pair of mutable vectors.
+-- | Direct-indexed, dynamically growing store parameterised over the mutable vector type.
 --
--- @amData@ stores component values at the entity's index.
--- @amPresent@ stores whether each entity slot is occupied.
-data ArrayMap c = ArrayMap
-  { amData    :: !(IORef (VM.IOVector c))
+-- @v@ must be an instance of 'GMV.MVector'; use 'VM.MVector' (via 'BArrayMap') for any
+-- component type, or 'UM.MVector' (via 'UArrayMap') for unboxed storage of scalar and
+-- enum types. @amPresent@ is always an unboxed 'Bool' vector.
+data ArrayMap v c = ArrayMap
+  { amData    :: !(IORef (v RealWorld c))
   , amPresent :: !(IORef (UM.IOVector Bool))
   }
 
-type instance Elem (ArrayMap c) = c
+-- | 'ArrayMap' backed by boxed storage. Works for any component type.
+type BArrayMap = ArrayMap VM.MVector
 
-instance (MonadIO m) => ExplInit m (ArrayMap c) where
+-- | 'ArrayMap' backed by unboxed storage. Requires 'U.Unbox'; significantly more
+-- memory-efficient for scalar and enum component types.
+type UArrayMap = ArrayMap UM.MVector
+
+type instance Elem (ArrayMap v c) = c
+
+instance (MonadIO m, GMV.MVector v c) => ExplInit m (ArrayMap v c) where
   explInit = liftIO $ do
-    dat  <- VM.new initialCapacity
+    dat  <- GMV.unsafeNew initialCapacity
     pres <- UM.replicate initialCapacity False
     ArrayMap <$> newIORef dat <*> newIORef pres
 
-instance (MonadIO m) => ExplGet m (ArrayMap c) where
+instance (MonadIO m, GMV.MVector v c) => ExplGet m (ArrayMap v c) where
   {-# INLINE explGet #-}
   explGet (ArrayMap dataRef _) ety = liftIO $ do
     dat <- readIORef dataRef
-    VM.unsafeRead dat ety
+    GMV.unsafeRead dat ety
 
   {-# INLINE explExists #-}
   explExists (ArrayMap _ presentRef) ety = liftIO $ do
@@ -80,27 +102,27 @@ instance (MonadIO m) => ExplGet m (ArrayMap c) where
       then UM.unsafeRead pres ety
       else pure False
 
-instance (MonadIO m) => ExplSet m (ArrayMap c) where
+instance (MonadIO m, GMV.MVector v c) => ExplSet m (ArrayMap v c) where
   {-# INLINE explSet #-}
   explSet (ArrayMap dataRef presentRef) ety x = liftIO $ do
     pres <- readIORef presentRef
     when (ety >= UM.length pres) $
       growTo dataRef presentRef ety
-    dat <- readIORef dataRef
-    VM.unsafeWrite dat     ety x
+    dat   <- readIORef dataRef
     pres' <- readIORef presentRef
-    UM.unsafeWrite pres'   ety True
+    GMV.unsafeWrite dat   ety x
+    UM.unsafeWrite  pres' ety True
 
-instance (MonadIO m) => ExplDestroy m (ArrayMap c) where
+instance MonadIO m => ExplDestroy m (ArrayMap v c) where
   {-# INLINE explDestroy #-}
   explDestroy (ArrayMap _ presentRef) ety = liftIO $ do
     pres <- readIORef presentRef
     when (ety < UM.length pres) $
       UM.unsafeWrite pres ety False
 
-instance (MonadIO m) => ExplMembers m (ArrayMap c) where
+instance MonadIO m => ExplMembers m (ArrayMap v c) where
   {-# INLINE explMembers #-}
   explMembers (ArrayMap _ presentRef) = liftIO $ do
-    pres <- readIORef presentRef
+    pres   <- readIORef presentRef
     frozen <- U.unsafeFreeze pres
     pure $! U.map fst . U.filter snd $ U.indexed frozen
