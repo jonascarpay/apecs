@@ -27,6 +27,7 @@ import Text.Printf (printf)
 import Apecs
 import Apecs.Core
 import Apecs.Experimental.ArrayMap
+import Apecs.Experimental.SparseStore
 import Apecs.Experimental.ChunkStore
 import Apecs.Experimental.Children
 import Apecs.Experimental.Reactive
@@ -182,6 +183,40 @@ prop_chunkPageBoundary a b = assertSys initChunk $ do
 prop_chunkDestroyMissingPage :: Property
 prop_chunkDestroyMissingPage = assertSys initChunk $ do
   destroy (Entity 9999) (Proxy @ChunkInt)
+  pure True
+
+-- SparseStore tests
+newtype SSInt = SSInt Int deriving (Eq, Show, Arbitrary)
+instance Component SSInt where type Storage SSInt = BSparseStore SSInt
+makeWorld "SparseStoreW" [''SSInt]
+
+prop_setGetSparseStore = genericSetGet initSparseStoreW (undefined :: SSInt)
+prop_setSetSparseStore = genericSetSet initSparseStoreW (undefined :: SSInt)
+
+-- Destroy the middle of three entities: the last entity must be swapped into
+-- the vacated slot and remain readable at its original ID.
+prop_sparseStoreDestroySwap :: SSInt -> SSInt -> SSInt -> Property
+prop_sparseStoreDestroySwap a b c = assertSys initSparseStoreW $ do
+  set (Entity 0) a
+  set (Entity 1) b
+  set (Entity 2) c
+  destroy (Entity 1) (Proxy @SSInt)
+  a' <- get (Entity 0)
+  c' <- get (Entity 2)
+  ex1 <- exists (Entity 1) (Proxy @SSInt)
+  pure (a == a' && c == c' && not ex1)
+
+-- Sparse array grows when an entity ID exceeds initial capacity.
+prop_sparseStoreGrow :: SSInt -> Property
+prop_sparseStoreGrow x = assertSys initSparseStoreW $ do
+  set (Entity 1024) x
+  x' <- get (Entity 1024)
+  pure (x == x')
+
+-- Destroying a non-existent entity is a safe no-op.
+prop_sparseStoreDestroyOOB :: Property
+prop_sparseStoreDestroyOOB = assertSys initSparseStoreW $ do
+  destroy (Entity 9999) (Proxy @SSInt)
   pure True
 
 -- Tests whether this is also true for caches
