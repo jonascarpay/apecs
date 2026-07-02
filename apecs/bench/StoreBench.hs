@@ -99,7 +99,7 @@ makeWorld "SparseWorldU" [''Word]
 instance NFData SparseWorldU where rnf (SparseWorldU _ _) = ()
 
 -- ---------------------------------------------------------------------------
--- Item-size comparison: V4 Double (32B) and V4 (V2 Double) (64B)
+-- Item-size comparison: V4 Double (32B) and V2 (V4 Double) (64B)
 -- Each (store, size) pair needs a distinct newtype to allow separate Component instances.
 -- Unboxed variants use derivingUnbox to delegate to the underlying linear type's Unbox.
 
@@ -127,27 +127,27 @@ instance Component US32 where type Storage US32 = SparseStoreU US32
 makeWorld "US32World" [''US32]
 instance NFData US32World where rnf (US32World _ _) = ()
 
--- 64-byte component (V4 (V2 Double)) --
+-- 64-byte component (V2 (V4 Double)) --
 
-newtype BA64 = BA64 (V4 (V2 Double))
+newtype BA64 = BA64 (V2 (V4 Double))
 instance Component BA64 where type Storage BA64 = ArrayMapB BA64
 makeWorld "BA64World" [''BA64]
 instance NFData BA64World where rnf (BA64World _ _) = ()
 
-newtype UA64 = UA64 (V4 (V2 Double))
-$(derivingUnbox "UA64" [t| UA64 -> V4 (V2 Double) |] [| \(UA64 v) -> v |] [| UA64 |])
+newtype UA64 = UA64 (V2 (V4 Double))
+$(derivingUnbox "UA64" [t| UA64 -> V2 (V4 Double) |] [| \(UA64 v) -> v |] [| UA64 |])
 instance Component UA64 where type Storage UA64 = ArrayMapU UA64
 makeWorld "UA64World" [''UA64]
 instance NFData UA64World where rnf (UA64World _ _) = ()
 
-newtype BS64 = BS64 (V4 (V2 Double))
+newtype BS64 = BS64 (V2 (V4 Double))
 instance Component BS64 where type Storage BS64 = SparseStoreB BS64
 makeWorld "BS64World" [''BS64]
 instance NFData BS64World where rnf (BS64World _ _) = ()
 
-newtype US64 = US64 (V4 (V2 Double))
-$(derivingUnbox "US64" [t| US64 -> V4 (V2 Double) |] [| \(US64 v) -> v |] [| US64 |])
-instance Component US64 where type Storage US64 = USparseStore US64
+newtype US64 = US64 (V2 (V4 Double))
+$(derivingUnbox "US64" [t| US64 -> V2 (V4 Double) |] [| \(US64 v) -> v |] [| US64 |])
+instance Component US64 where type Storage US64 = SparseStoreU US64
 makeWorld "US64World" [''US64]
 instance NFData US64World where rnf (US64World _ _) = ()
 
@@ -158,11 +158,11 @@ mk32 i = V4 (fromIntegral i) 0 0 0
 rd32 :: V4 Double -> Int
 rd32 (V4 x _ _ _) = round x
 
-mk64 :: Int -> V4 (V2 Double)
-mk64 i = V4 (V2 (fromIntegral i) 0) (V2 0 0) (V2 0 0) (V2 0 0)
+mk64 :: Int -> V2 (V4 Double)
+mk64 i = V2 (V4 (fromIntegral i) 0 0 0) (V4 0 0 0 0)
 
-rd64 :: V4 (V2 Double) -> Int
-rd64 (V4 (V2 x _) _ _ _) = round x
+rd64 :: V2 (V4 Double) -> Int
+rd64 (V2 (V4 x _ _ _) _) = round x
 
 -- ---------------------------------------------------------------------------
 -- Benchmark helpers
