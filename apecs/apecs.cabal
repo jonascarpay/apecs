@@ -87,7 +87,8 @@ benchmark apecs-bench
   default-language: Haskell2010
   ghc-options:
     -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
-    -funfolding-keeness-factor1000
+  if impl(ghc < 9.0)
+    ghc-options: -funfolding-keeness-factor1000
 
 -- -fllvm
 
@@ -106,4 +107,6 @@ benchmark store-bench
   default-language: Haskell2010
   ghc-options:
     -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
-    -funfolding-keeness-factor1000
+  if impl(ghc < 9.0)
+    ghc-options: -funfolding-keeness-factor1000
+
