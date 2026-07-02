@@ -187,7 +187,7 @@ prop_chunkDestroyMissingPage = assertSys initChunk $ do
 
 -- SparseStore tests
 newtype SSInt = SSInt Int deriving (Eq, Show, Arbitrary)
-instance Component SSInt where type Storage SSInt = BSparseStore SSInt
+instance Component SSInt where type Storage SSInt = SparseStoreB SSInt
 makeWorld "SparseStoreW" [''SSInt]
 
 prop_setGetSparseStore = genericSetGet initSparseStoreW (undefined :: SSInt)

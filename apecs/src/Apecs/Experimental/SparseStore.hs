@@ -34,13 +34,13 @@ O(1) get, set, exists, destroy. O(count) members.
 
 Convenience aliases:
 
-* 'BSparseStore' — boxed dense array, works for any component type.
-* 'USparseStore' — unboxed dense array, requires 'Data.Vector.Unboxed.Unbox'.
+* 'SparseStoreB' — boxed dense array, works for any component type.
+* 'SparseStoreU' — unboxed dense array, requires 'Data.Vector.Unboxed.Unbox'.
 -}
 module Apecs.Experimental.SparseStore
   ( SparseStore (..)
-  , BSparseStore
-  , USparseStore
+  , SparseStoreB
+  , SparseStoreU
   ) where
 
 import Control.Monad (when)
@@ -70,10 +70,10 @@ data SparseStore v c = SparseStore
   }
 
 -- | 'SparseStore' backed by boxed storage. Works for any component type.
-type BSparseStore = SparseStore VM.MVector
+type SparseStoreB = SparseStore VM.MVector
 
 -- | 'SparseStore' backed by unboxed storage. Requires 'U.Unbox'.
-type USparseStore = SparseStore UM.MVector
+type SparseStoreU = SparseStore UM.MVector
 
 type instance Elem (SparseStore v c) = c
 
