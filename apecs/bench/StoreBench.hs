@@ -59,6 +59,12 @@ instance Component CInt where type Storage CInt = Cache 16384 (Map CInt)
 makeWorld "CacheWorld" [''CInt]
 instance NFData CacheWorld where rnf (CacheWorld _ _) = ()
 
+-- Cache over Map: size 1024 (< n = 10000) so eviction occurs in all patterns
+newtype CInt1024 = CInt1024 Int
+instance Component CInt1024 where type Storage CInt1024 = Cache 1024 (Map CInt1024)
+makeWorld "Cache1024World" [''CInt1024]
+instance NFData Cache1024World where rnf (Cache1024World _ _) = ()
+
 -- ArrayMapB: boxed direct-indexed growing array
 newtype BAInt = BAInt Int
 instance Component BAInt where type Storage BAInt = ArrayMapB BAInt
@@ -193,8 +199,9 @@ namedReadBench name initW wr rd indices =
 
 writeGroup :: [Int] -> [Benchmark]
 writeGroup indices =
-  [ bench "Map"          $ whnfIO (writeBench initMapWorld    (\i -> set (Entity i) (MInt i))                                    indices)
-  , bench "Cache-16384"  $ whnfIO (writeBench initCacheWorld  (\i -> set (Entity i) (CInt i))                                    indices)
+  [ bench "Map"          $ whnfIO (writeBench initMapWorld       (\i -> set (Entity i) (MInt i))                                    indices)
+  , bench "Cache-16384"  $ whnfIO (writeBench initCacheWorld     (\i -> set (Entity i) (CInt i))                                    indices)
+  , bench "Cache-1024"   $ whnfIO (writeBench initCache1024World (\i -> set (Entity i) (CInt1024 i))                               indices)
   , bench "ArrayMapB"    $ whnfIO (writeBench initArrayWorldB (\i -> set (Entity i) (BAInt i))                                   indices)
   , bench "ArrayMapU"    $ whnfIO (writeBench initArrayWorldU (\i -> set (Entity i) i)                                           indices)
   , bench "ChunkStoreB"   $ whnfIO (writeBench initChunkWorldB  (\i -> set (Entity i) (BSInt i))                                  indices)
@@ -217,8 +224,9 @@ writeGroupLarge indices =
 
 readGroup :: [Int] -> [Benchmark]
 readGroup indices =
-  [ namedReadBench "Map"         initMapWorld    (\i -> set (Entity i) (MInt i))  (\i -> (\(MInt x) -> x) <$> get (Entity i))   indices
-  , namedReadBench "Cache-16384" initCacheWorld  (\i -> set (Entity i) (CInt i))  (\i -> (\(CInt x) -> x) <$> get (Entity i))   indices
+  [ namedReadBench "Map"         initMapWorld       (\i -> set (Entity i) (MInt i))     (\i -> (\(MInt x) -> x) <$> get (Entity i))         indices
+  , namedReadBench "Cache-16384" initCacheWorld     (\i -> set (Entity i) (CInt i))     (\i -> (\(CInt x) -> x) <$> get (Entity i))         indices
+  , namedReadBench "Cache-1024"  initCache1024World (\i -> set (Entity i) (CInt1024 i)) (\i -> (\(CInt1024 x) -> x) <$> get (Entity i))     indices
   , namedReadBench "ArrayMapB"   initArrayWorldB (\i -> set (Entity i) (BAInt i)) (\i -> (\(BAInt x) -> x) <$> get (Entity i))  indices
   , namedReadBench "ArrayMapU"   initArrayWorldU (\i -> set (Entity i) i)         (\i -> get (Entity i))                         indices
   , namedReadBench "ChunkStoreB"  initChunkWorldB  (\i -> set (Entity i) (BSInt i))                    (\i -> (\(BSInt x) -> x) <$> get (Entity i))                           indices
