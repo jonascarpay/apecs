@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-{- |
+{-|
 Stability: experimental
 
 This module is experimental, and its API might change between point releases. Use at your own risk.
@@ -51,17 +51,18 @@ import Apecs.Core
 
 -- | A fixed-size page covering @pageSize@ consecutive entity IDs.
 data Page v c = Page
-  { pageData    :: !(v RealWorld c)
+  { pageData :: !(v RealWorld c)
   , pagePresent :: !(UM.IOVector Bool)
   }
 
--- | Paged store parameterised over page size @n@ and vector backend @v@.
--- The page directory is a persistent 'IM.IntMap'; leaf arrays are mutable.
+{- | Paged store parameterised over page size @n@ and vector backend @v@.
+The page directory is a persistent 'IM.IntMap'; leaf arrays are mutable.
+-}
 data ChunkStore (n :: Nat) v c = ChunkStore
-  { csPages    :: !(IORef (IM.IntMap (Page v c)))
+  { csPages :: !(IORef (IM.IntMap (Page v c)))
   , csPageSize :: !Int
-  , csPageBits :: !Int   -- log2 of page size, used for shiftR
-  , csPageMask :: !Int   -- page size - 1, used for .&.
+  , csPageBits :: !Int -- log2 of page size, used for shiftR
+  , csPageMask :: !Int -- page size - 1, used for .&.
   }
 
 -- | 'ChunkStore' backed by boxed storage. Works for any component type.
@@ -76,17 +77,18 @@ nextPow2 :: Int -> Int
 nextPow2 n = go 1
   where
     go x
-      | x >= n    = x
+      | x >= n = x
       | otherwise = go (x `shiftL` 1)
 
-newPage :: GMV.MVector v c => Int -> IO (Page v c)
+newPage :: (GMV.MVector v c) => Int -> IO (Page v c)
 newPage pageSize = Page <$> GMV.unsafeNew pageSize <*> UM.replicate pageSize False
 
 instance (MonadIO m, KnownNat n, GMV.MVector v c) => ExplInit m (ChunkStore n v c) where
   explInit = liftIO $ do
-    let pageSize = nextPow2 . fromIntegral $ natVal (Proxy @n)
-        pageBits = countTrailingZeros pageSize
-        pageMask = pageSize - 1
+    let
+      pageSize = nextPow2 . fromIntegral $ natVal (Proxy @n)
+      pageBits = countTrailingZeros pageSize
+      pageMask = pageSize - 1
     ChunkStore <$> newIORef IM.empty <*> pure pageSize <*> pure pageBits <*> pure pageMask
 
 instance (MonadIO m, GMV.MVector v c) => ExplGet m (ChunkStore n v c) where
@@ -99,33 +101,34 @@ instance (MonadIO m, GMV.MVector v c) => ExplGet m (ChunkStore n v c) where
   explExists (ChunkStore pagesRef _ pageBits pageMask) ety = liftIO $ do
     pages <- readIORef pagesRef
     case IM.lookup (ety `shiftR` pageBits) pages of
-      Nothing   -> pure False
+      Nothing -> pure False
       Just page -> UM.unsafeRead (pagePresent page) (ety .&. pageMask)
 
 instance (MonadIO m, GMV.MVector v c) => ExplSet m (ChunkStore n v c) where
   {-# INLINE explSet #-}
   explSet (ChunkStore pagesRef pageSize pageBits pageMask) ety x = liftIO $ do
     pages <- readIORef pagesRef
-    let pIdx = ety `shiftR` pageBits
-        pOff = ety .&. pageMask
+    let
+      pIdx = ety `shiftR` pageBits
+      pOff = ety .&. pageMask
     page <- case IM.lookup pIdx pages of
-      Just p  -> pure p
+      Just p -> pure p
       Nothing -> do
         p <- newPage pageSize
         writeIORef pagesRef (IM.insert pIdx p pages)
         pure p
-    GMV.unsafeWrite (pageData page)    pOff x
-    UM.unsafeWrite  (pagePresent page) pOff True
+    GMV.unsafeWrite (pageData page) pOff x
+    UM.unsafeWrite (pagePresent page) pOff True
 
-instance MonadIO m => ExplDestroy m (ChunkStore n v c) where
+instance (MonadIO m) => ExplDestroy m (ChunkStore n v c) where
   {-# INLINE explDestroy #-}
   explDestroy (ChunkStore pagesRef _ pageBits pageMask) ety = liftIO $ do
     pages <- readIORef pagesRef
     case IM.lookup (ety `shiftR` pageBits) pages of
-      Nothing   -> pure ()
+      Nothing -> pure ()
       Just page -> UM.unsafeWrite (pagePresent page) (ety .&. pageMask) False
 
-instance MonadIO m => ExplMembers m (ChunkStore n v c) where
+instance (MonadIO m) => ExplMembers m (ChunkStore n v c) where
   {-# INLINE explMembers #-}
   explMembers (ChunkStore pagesRef _ pageBits _) = liftIO $ do
     pages <- readIORef pagesRef

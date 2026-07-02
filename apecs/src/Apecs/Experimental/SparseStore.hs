@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
-{- |
+{-|
 Stability: experimental
 
 This module is experimental, and its API might change between point releases. Use at your own risk.
@@ -56,17 +56,17 @@ import Apecs.Core
 
 initialSparse, initialDense :: Int
 initialSparse = 1024
-initialDense  = 256
+initialDense = 256
 
 absent :: Int
 absent = -1
 
 -- | Sparse-set store parameterised over the mutable vector type for the dense array.
 data SparseStore v c = SparseStore
-  { ssIndices  :: !(IORef (UM.IOVector Int))  -- sparse: entity → dense index, absent = -1
-  , ssDense    :: !(IORef (v RealWorld c))     -- packed component values
-  , ssEntities :: !(IORef (UM.IOVector Int))   -- packed entity IDs, parallel to ssDense
-  , ssCount    :: !(IORef Int)
+  { ssIndices :: !(IORef (UM.IOVector Int)) -- sparse: entity → dense index, absent = -1
+  , ssDense :: !(IORef (v RealWorld c)) -- packed component values
+  , ssEntities :: !(IORef (UM.IOVector Int)) -- packed entity IDs, parallel to ssDense
+  , ssCount :: !(IORef Int)
   }
 
 -- | 'SparseStore' backed by boxed storage. Works for any component type.
@@ -81,16 +81,17 @@ type instance Elem (SparseStore v c) = c
 growSparse :: IORef (UM.IOVector Int) -> Int -> IO (UM.IOVector Int)
 growSparse indRef ety = do
   inds <- readIORef indRef
-  let oldCap = UM.length inds
-      newCap  = max (2 * oldCap) (ety + 1 + oldCap)
-      added   = newCap - oldCap
+  let
+    oldCap = UM.length inds
+    newCap = max (2 * oldCap) (ety + 1 + oldCap)
+    added = newCap - oldCap
   inds' <- UM.unsafeGrow inds added
   UM.set (UM.slice oldCap added inds') absent
   writeIORef indRef inds'
   pure inds'
 
 -- Double the capacity of both dense arrays together.
-growDense :: GMV.MVector v c => IORef (v RealWorld c) -> IORef (UM.IOVector Int) -> IO ()
+growDense :: (GMV.MVector v c) => IORef (v RealWorld c) -> IORef (UM.IOVector Int) -> IO ()
 growDense denseRef entRef = do
   d <- readIORef denseRef
   e <- readIORef entRef
@@ -102,9 +103,9 @@ growDense denseRef entRef = do
 
 instance (MonadIO m, GMV.MVector v c) => ExplInit m (SparseStore v c) where
   explInit = liftIO $ do
-    inds  <- UM.replicate initialSparse absent
+    inds <- UM.replicate initialSparse absent
     dense <- GMV.unsafeNew initialDense
-    ents  <- UM.new initialDense
+    ents <- UM.new initialDense
     SparseStore
       <$> newIORef inds
       <*> newIORef dense
@@ -114,44 +115,45 @@ instance (MonadIO m, GMV.MVector v c) => ExplInit m (SparseStore v c) where
 instance (MonadIO m, GMV.MVector v c) => ExplGet m (SparseStore v c) where
   {-# INLINE explGet #-}
   explGet (SparseStore indRef denseRef _ _) ety = liftIO $ do
-    inds  <- readIORef indRef
-    di    <- UM.unsafeRead inds ety
+    inds <- readIORef indRef
+    di <- UM.unsafeRead inds ety
     dense <- readIORef denseRef
     GMV.unsafeRead dense di
 
   {-# INLINE explExists #-}
   explExists (SparseStore indRef _ _ _) ety = liftIO $ do
     inds <- readIORef indRef
-    if ety >= UM.length inds
-      then pure False
-      else (/= absent) <$> UM.unsafeRead inds ety
+    if ety >= UM.length inds then
+      pure False
+    else
+      (/= absent) <$> UM.unsafeRead inds ety
 
 instance (MonadIO m, GMV.MVector v c) => ExplSet m (SparseStore v c) where
   {-# INLINE explSet #-}
   explSet (SparseStore indRef denseRef entRef cntRef) ety x = liftIO $ do
     inds <- readIORef indRef
     inds' <-
-      if ety >= UM.length inds
-        then growSparse indRef ety
-        else pure inds
+      if ety >= UM.length inds then
+        growSparse indRef ety
+      else
+        pure inds
     di <- UM.unsafeRead inds' ety
-    if di /= absent
-      then do
-        -- component already present: update in place, no index changes needed
-        dense <- readIORef denseRef
-        GMV.unsafeWrite dense di x
-      else do
-        -- new component: append to the dense arrays
-        cnt <- readIORef cntRef
-        dense <- readIORef denseRef
-        when (cnt >= GMV.length dense) $
-          growDense denseRef entRef
-        dense' <- readIORef denseRef
-        ents' <- readIORef entRef
-        GMV.unsafeWrite dense' cnt x
-        UM.unsafeWrite ents' cnt ety
-        UM.unsafeWrite inds' ety cnt
-        writeIORef cntRef (cnt + 1)
+    if di /= absent then do
+      -- component already present: update in place, no index changes needed
+      dense <- readIORef denseRef
+      GMV.unsafeWrite dense di x
+    else do
+      -- new component: append to the dense arrays
+      cnt <- readIORef cntRef
+      dense <- readIORef denseRef
+      when (cnt >= GMV.length dense) $
+        growDense denseRef entRef
+      dense' <- readIORef denseRef
+      ents' <- readIORef entRef
+      GMV.unsafeWrite dense' cnt x
+      UM.unsafeWrite ents' cnt ety
+      UM.unsafeWrite inds' ety cnt
+      writeIORef cntRef (cnt + 1)
 
 instance (MonadIO m, GMV.MVector v c) => ExplDestroy m (SparseStore v c) where
   {-# INLINE explDestroy #-}
@@ -163,7 +165,7 @@ instance (MonadIO m, GMV.MVector v c) => ExplDestroy m (SparseStore v c) where
         cnt <- readIORef cntRef
         let lastIdx = cnt - 1
         dense <- readIORef denseRef
-        ents  <- readIORef entRef
+        ents <- readIORef entRef
         -- swap the slot being removed with the last slot, then shrink
         when (di /= lastIdx) $ do
           lastVal <- GMV.unsafeRead dense lastIdx
@@ -174,9 +176,9 @@ instance (MonadIO m, GMV.MVector v c) => ExplDestroy m (SparseStore v c) where
         UM.unsafeWrite inds ety absent
         writeIORef cntRef lastIdx
 
-instance MonadIO m => ExplMembers m (SparseStore v c) where
+instance (MonadIO m) => ExplMembers m (SparseStore v c) where
   {-# INLINE explMembers #-}
   explMembers (SparseStore _ _ entRef cntRef) = liftIO $ do
-    cnt  <- readIORef cntRef
+    cnt <- readIORef cntRef
     ents <- readIORef entRef
     U.freeze (UM.slice 0 cnt ents)

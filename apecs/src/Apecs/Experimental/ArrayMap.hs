@@ -4,7 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
-{- |
+{-|
 Stability: experimental
 
 This module is experimental, and its API might change between point releases. Use at your own risk.
@@ -46,49 +46,52 @@ initialCapacity :: Int
 initialCapacity = 1024
 
 growTo
-  :: GMV.MVector v c
+  :: (GMV.MVector v c)
   => IORef (v RealWorld c)
   -> IORef (UM.IOVector Bool)
   -> Int
   -> IO ()
 growTo dataRef presentRef ety = do
-  oldData    <- readIORef dataRef
+  oldData <- readIORef dataRef
   oldPresent <- readIORef presentRef
-  let oldCap = UM.length oldPresent
-      -- When ety is within normal doubling range, double as usual.
-      -- When ety is a large jump beyond 2*oldCap, allocate oldCap extra headroom
-      -- beyond ety so that sequential writes from ety don't each trigger a resize.
-      newCap  = max (2 * oldCap) (ety + 1 + oldCap)
-      added   = newCap - oldCap
-  newData    <- GMV.unsafeGrow oldData added
+  let
+    oldCap = UM.length oldPresent
+    -- When ety is within normal doubling range, double as usual.
+    -- When ety is a large jump beyond 2*oldCap, allocate oldCap extra headroom
+    -- beyond ety so that sequential writes from ety don't each trigger a resize.
+    newCap = max (2 * oldCap) (ety + 1 + oldCap)
+    added = newCap - oldCap
+  newData <- GMV.unsafeGrow oldData added
   newPresent <- UM.unsafeGrow oldPresent added
   -- Zero-initialise the new presence slots; unsafeGrow does not guarantee this.
   UM.set (UM.unsafeSlice oldCap added newPresent) False
-  writeIORef dataRef    newData
+  writeIORef dataRef newData
   writeIORef presentRef newPresent
 
--- | Direct-indexed, dynamically growing store parameterised over the mutable vector type.
---
--- @v@ must be an instance of 'GMV.MVector'; use 'VM.MVector' (via 'ArrayMapB') for any
--- component type, or 'UM.MVector' (via 'ArrayMapU') for unboxed storage of scalar and
--- enum types. @amPresent@ is always an unboxed 'Bool' vector.
+{- | Direct-indexed, dynamically growing store parameterised over the mutable vector type.
+
+@v@ must be an instance of 'GMV.MVector'; use 'VM.MVector' (via 'ArrayMapB') for any
+component type, or 'UM.MVector' (via 'ArrayMapU') for unboxed storage of scalar and
+enum types. @amPresent@ is always an unboxed 'Bool' vector.
+-}
 data ArrayMap v c = ArrayMap
-  { amData    :: !(IORef (v RealWorld c))
+  { amData :: !(IORef (v RealWorld c))
   , amPresent :: !(IORef (UM.IOVector Bool))
   }
 
 -- | 'ArrayMap' backed by boxed storage. Works for any component type.
 type ArrayMapB = ArrayMap VM.MVector
 
--- | 'ArrayMap' backed by unboxed storage. Requires 'U.Unbox'; significantly more
--- memory-efficient for scalar and enum component types.
+{- | 'ArrayMap' backed by unboxed storage. Requires 'U.Unbox'; significantly more
+memory-efficient for scalar and enum component types.
+-}
 type ArrayMapU = ArrayMap UM.MVector
 
 type instance Elem (ArrayMap v c) = c
 
 instance (MonadIO m, GMV.MVector v c) => ExplInit m (ArrayMap v c) where
   explInit = liftIO $ do
-    dat  <- GMV.unsafeNew initialCapacity
+    dat <- GMV.unsafeNew initialCapacity
     pres <- UM.replicate initialCapacity False
     ArrayMap <$> newIORef dat <*> newIORef pres
 
@@ -101,9 +104,10 @@ instance (MonadIO m, GMV.MVector v c) => ExplGet m (ArrayMap v c) where
   {-# INLINE explExists #-}
   explExists (ArrayMap _ presentRef) ety = liftIO $ do
     pres <- readIORef presentRef
-    if ety < UM.length pres
-      then UM.unsafeRead pres ety
-      else pure False
+    if ety < UM.length pres then
+      UM.unsafeRead pres ety
+    else
+      pure False
 
 instance (MonadIO m, GMV.MVector v c) => ExplSet m (ArrayMap v c) where
   {-# INLINE explSet #-}
@@ -111,21 +115,21 @@ instance (MonadIO m, GMV.MVector v c) => ExplSet m (ArrayMap v c) where
     pres <- readIORef presentRef
     when (ety >= UM.length pres) $
       growTo dataRef presentRef ety
-    dat   <- readIORef dataRef
+    dat <- readIORef dataRef
     pres' <- readIORef presentRef
-    GMV.unsafeWrite dat   ety x
-    UM.unsafeWrite  pres' ety True
+    GMV.unsafeWrite dat ety x
+    UM.unsafeWrite pres' ety True
 
-instance MonadIO m => ExplDestroy m (ArrayMap v c) where
+instance (MonadIO m) => ExplDestroy m (ArrayMap v c) where
   {-# INLINE explDestroy #-}
   explDestroy (ArrayMap _ presentRef) ety = liftIO $ do
     pres <- readIORef presentRef
     when (ety < UM.length pres) $
       UM.unsafeWrite pres ety False
 
-instance MonadIO m => ExplMembers m (ArrayMap v c) where
+instance (MonadIO m) => ExplMembers m (ArrayMap v c) where
   {-# INLINE explMembers #-}
   explMembers (ArrayMap _ presentRef) = liftIO $ do
-    pres   <- readIORef presentRef
+    pres <- readIORef presentRef
     frozen <- U.unsafeFreeze pres
     pure $! U.map fst . U.filter snd $ U.indexed frozen
