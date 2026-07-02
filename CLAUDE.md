@@ -19,7 +19,9 @@ stack test apecs
 cabal test apecs-test --test-show-details=always
 
 # Run benchmarks
-cabal bench apecs-bench
+cabal bench apecs-bench       # original ECS system benchmarks
+cabal bench store-bench       # per-store read/write throughput across access patterns
+cabal bench world-bench       # multi-store world: iteration-order and cross-store write costs
 # or
 stack bench apecs
 
@@ -89,6 +91,9 @@ The key combinators (`cmap`, `cmapM`, `cmapM_`, `cfold`, `cfoldM`) iterate over 
 - `Reload` — GHCi world persistence via `foreign-store`
 - `Stores` — additional store types
 - `Components` — additional pseudo-components
+- `ArrayMap` — direct-indexed growing array; O(1) get/set/exists, O(capacity) members; aliases `ArrayMapB` (boxed) / `ArrayMapU` (unboxed, requires `Unbox`)
+- `ChunkStore` — paged `IntMap` with fixed-size mutable leaf arrays (page size is a type-level `Nat`); O(log P) ops, O(E) members; aliases `ChunkStoreB` / `ChunkStoreU`
+- `SparseStore` — sparse-set with packed dense array; O(1) ops, O(count) members with excellent iteration locality; aliases `SparseStoreB` / `SparseStoreU`
 
 ## Code Style
 
