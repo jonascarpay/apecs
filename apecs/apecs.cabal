@@ -26,10 +26,13 @@ library
     Apecs
     Apecs.Components
     Apecs.Core
+    Apecs.Experimental.ArrayMap
     Apecs.Experimental.Components
     Apecs.Experimental.Children
     Apecs.Experimental.Reactive
     Apecs.Experimental.Reload
+    Apecs.Experimental.SparseStore
+    Apecs.Experimental.ChunkStore
     Apecs.Experimental.Stores
     Apecs.Experimental.Util
     Apecs.Stores
@@ -47,6 +50,7 @@ library
   build-depends:
       array             >=0.4    && <0.6
     , base              >=4.9    && <5
+    , ghc-prim
     , containers        >=0.5    && <0.9
     , transformers      >=0.5    && <0.7
     , template-haskell  >=2.12   && <3
@@ -77,12 +81,50 @@ benchmark apecs-bench
   build-depends:
       apecs
     , base
-    , criterion  >=1.3  && <2
-    , linear     >=1.20 && <2
+    , criterion       >=1.3  && <2
+    , deepseq
+    , linear          >=1.20 && <2
+    , vector-th-unbox >=0.2  && <0.3
 
   default-language: Haskell2010
   ghc-options:
     -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
-    -funfolding-keeness-factor1000
+  if impl(ghc < 9.0)
+    ghc-options: -funfolding-keeness-factor1000
 
 -- -fllvm
+
+benchmark store-bench
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          StoreBench.hs
+  build-depends:
+      apecs
+    , base
+    , criterion       >= 1.3  && < 2
+    , deepseq
+    , linear          >= 1.20 && < 2
+    , vector-th-unbox >= 0.2  && < 0.3
+
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
+  if impl(ghc < 9.0)
+    ghc-options: -funfolding-keeness-factor1000
+
+benchmark world-bench
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          WorldBench.hs
+  build-depends:
+      apecs
+    , base
+    , criterion       >= 1.3  && < 2
+    , deepseq
+    , vector-th-unbox >= 0.2  && < 0.3
+
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -O2 -optlo-O3 -threaded -funfolding-use-threshold1000
+  if impl(ghc < 9.0)
+    ghc-options: -funfolding-keeness-factor1000
