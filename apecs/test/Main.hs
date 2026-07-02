@@ -163,7 +163,7 @@ prop_ArrayMapUDestroyOOB = assertSys initUArrayMapped $ do
 
 -- ChunkStore tests — page size 4 so tests cross page boundaries easily
 newtype ChunkInt = ChunkInt Int deriving (Eq, Show, Arbitrary)
-instance Component ChunkInt where type Storage ChunkInt = BChunkStore 4 ChunkInt
+instance Component ChunkInt where type Storage ChunkInt = ChunkStoreB 4 ChunkInt
 makeWorld "Chunk" [''ChunkInt]
 
 prop_setGetChunk = genericSetGet initChunk (undefined :: ChunkInt)

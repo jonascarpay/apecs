@@ -70,16 +70,16 @@ instance Component Int where type Storage Int = ArrayMapU Int
 makeWorld "ArrayWorldU" [''Int]
 instance NFData ArrayWorldU where rnf (ArrayWorldU _ _) = ()
 
--- BChunkStore: boxed paged store, page size 64 matches chunkSize
+-- ChunkStoreB: boxed paged store, page size 64 matches chunkSize
 newtype BSInt = BSInt Int
-instance Component BSInt where type Storage BSInt = BChunkStore 64 BSInt
-makeWorld "BChunkWorld" [''BSInt]
-instance NFData BChunkWorld where rnf (BChunkWorld _ _) = ()
+instance Component BSInt where type Storage BSInt = ChunkStoreB 64 BSInt
+makeWorld "ChunkWorldB" [''BSInt]
+instance NFData ChunkWorldB where rnf (ChunkWorldB _ _) = ()
 
--- UChunkStore: unboxed paged store, page size 64 (Double has Unbox)
-instance Component Double where type Storage Double = UChunkStore 64 Double
-makeWorld "UChunkWorld" [''Double]
-instance NFData UChunkWorld where rnf (UChunkWorld _ _) = ()
+-- ChunkStoreU: unboxed paged store, page size 64 (Double has Unbox)
+instance Component Double where type Storage Double = ChunkStoreU 64 Double
+makeWorld "ChunkWorldU" [''Double]
+instance NFData ChunkWorldU where rnf (ChunkWorldU _ _) = ()
 
 -- SparseStoreB: boxed sparse-set (dense packed array + sparse index)
 newtype BSSInt = BSSInt Int
@@ -197,8 +197,8 @@ writeGroup indices =
   , bench "Cache-16384"  $ whnfIO (writeBench initCacheWorld  (\i -> set (Entity i) (CInt i))                                    indices)
   , bench "ArrayMapB"    $ whnfIO (writeBench initArrayWorldB (\i -> set (Entity i) (BAInt i))                                   indices)
   , bench "ArrayMapU"    $ whnfIO (writeBench initArrayWorldU (\i -> set (Entity i) i)                                           indices)
-  , bench "BChunkStore"   $ whnfIO (writeBench initBChunkWorld  (\i -> set (Entity i) (BSInt i))                                  indices)
-  , bench "UChunkStore"   $ whnfIO (writeBench initUChunkWorld  (\i -> set (Entity i) (fromIntegral i :: Double))                 indices)
+  , bench "ChunkStoreB"   $ whnfIO (writeBench initChunkWorldB  (\i -> set (Entity i) (BSInt i))                                  indices)
+  , bench "ChunkStoreU"   $ whnfIO (writeBench initChunkWorldU  (\i -> set (Entity i) (fromIntegral i :: Double))                 indices)
   , bench "SparseStoreB"     $ whnfIO (writeBench initSparseWorldB (\i -> set (Entity i) (BSSInt i))                      indices)
   , bench "SparseStoreU"     $ whnfIO (writeBench initSparseWorldU (\i -> set (Entity i) (fromIntegral i :: Word))        indices)
   ]
@@ -221,8 +221,8 @@ readGroup indices =
   , namedReadBench "Cache-16384" initCacheWorld  (\i -> set (Entity i) (CInt i))  (\i -> (\(CInt x) -> x) <$> get (Entity i))   indices
   , namedReadBench "ArrayMapB"   initArrayWorldB (\i -> set (Entity i) (BAInt i)) (\i -> (\(BAInt x) -> x) <$> get (Entity i))  indices
   , namedReadBench "ArrayMapU"   initArrayWorldU (\i -> set (Entity i) i)         (\i -> get (Entity i))                         indices
-  , namedReadBench "BChunkStore"  initBChunkWorld  (\i -> set (Entity i) (BSInt i))                    (\i -> (\(BSInt x) -> x) <$> get (Entity i))                           indices
-  , namedReadBench "UChunkStore"  initUChunkWorld  (\i -> set (Entity i) (fromIntegral i :: Double))   (\i -> round <$> (get (Entity i) :: System UChunkWorld Double))           indices
+  , namedReadBench "ChunkStoreB"  initChunkWorldB  (\i -> set (Entity i) (BSInt i))                    (\i -> (\(BSInt x) -> x) <$> get (Entity i))                           indices
+  , namedReadBench "ChunkStoreU"  initChunkWorldU  (\i -> set (Entity i) (fromIntegral i :: Double))   (\i -> round <$> (get (Entity i) :: System ChunkWorldU Double))           indices
   , namedReadBench "SparseStoreB"     initSparseWorldB (\i -> set (Entity i) (BSSInt i))                   (\i -> (\(BSSInt x) -> x) <$> get (Entity i))                                                 indices
   , namedReadBench "SparseStoreU"     initSparseWorldU (\i -> set (Entity i) (fromIntegral i :: Word))     (\i -> fromIntegral <$> (get (Entity i) :: System SparseWorldU Word))                       indices
   ]

@@ -26,13 +26,13 @@ O(E) for 'explMembers', where E is the total number of components.
 
 Convenience aliases:
 
-* 'BChunkStore' — boxed leaf arrays, works for any component type.
-* 'UChunkStore' — unboxed leaf arrays, requires 'Data.Vector.Unboxed.Unbox'.
+* 'ChunkStoreU' — boxed leaf arrays, works for any component type.
+* 'ChunkStoreU' — unboxed leaf arrays, requires 'Data.Vector.Unboxed.Unbox'.
 -}
 module Apecs.Experimental.ChunkStore
   ( ChunkStore (..)
-  , BChunkStore
-  , UChunkStore
+  , ChunkStoreB
+  , ChunkStoreU
   ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -65,10 +65,10 @@ data ChunkStore (n :: Nat) v c = ChunkStore
   }
 
 -- | 'ChunkStore' backed by boxed storage. Works for any component type.
-type BChunkStore n = ChunkStore n VM.MVector
+type ChunkStoreB n = ChunkStore n VM.MVector
 
 -- | 'ChunkStore' backed by unboxed storage. Requires 'U.Unbox'.
-type UChunkStore n = ChunkStore n UM.MVector
+type ChunkStoreU n = ChunkStore n UM.MVector
 
 type instance Elem (ChunkStore n v c) = c
 
