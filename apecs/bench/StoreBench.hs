@@ -199,52 +199,52 @@ namedReadBench name initW wr rd indices =
 
 writeGroup :: [Int] -> [Benchmark]
 writeGroup indices =
-  [ bench "Map"          $ whnfIO (writeBench initMapWorld       (\i -> set (Entity i) (MInt i))                                    indices)
-  , bench "Cache-16384"  $ whnfIO (writeBench initCacheWorld     (\i -> set (Entity i) (CInt i))                                    indices)
-  , bench "Cache-1024"   $ whnfIO (writeBench initCache1024World (\i -> set (Entity i) (CInt1024 i))                               indices)
-  , bench "ArrayMapB"    $ whnfIO (writeBench initArrayWorldB (\i -> set (Entity i) (BAInt i))                                   indices)
-  , bench "ArrayMapU"    $ whnfIO (writeBench initArrayWorldU (\i -> set (Entity i) i)                                           indices)
-  , bench "ChunkStoreB"   $ whnfIO (writeBench initChunkWorldB  (\i -> set (Entity i) (BSInt i))                                  indices)
-  , bench "ChunkStoreU"   $ whnfIO (writeBench initChunkWorldU  (\i -> set (Entity i) (fromIntegral i :: Double))                 indices)
-  , bench "SparseStoreB"     $ whnfIO (writeBench initSparseWorldB (\i -> set (Entity i) (BSSInt i))                      indices)
-  , bench "SparseStoreU"     $ whnfIO (writeBench initSparseWorldU (\i -> set (Entity i) (fromIntegral i :: Word))        indices)
+  [ bench "Map"          $ whnfIO (writeBench initMapWorld       (\i -> set (Entity i) (MInt i))                   indices)
+  , bench "Cache-16384"  $ whnfIO (writeBench initCacheWorld     (\i -> set (Entity i) (CInt i))                   indices)
+  , bench "Cache-1024"   $ whnfIO (writeBench initCache1024World (\i -> set (Entity i) (CInt1024 i))               indices)
+  , bench "ArrayMapB"    $ whnfIO (writeBench initArrayWorldB    (\i -> set (Entity i) (BAInt i))                  indices)
+  , bench "ArrayMapU"    $ whnfIO (writeBench initArrayWorldU    (\i -> set (Entity i) i)                          indices)
+  , bench "ChunkStoreB"  $ whnfIO (writeBench initChunkWorldB    (\i -> set (Entity i) (BSInt i))                  indices)
+  , bench "ChunkStoreU"  $ whnfIO (writeBench initChunkWorldU    (\i -> set (Entity i) (fromIntegral i :: Double)) indices)
+  , bench "SparseStoreB" $ whnfIO (writeBench initSparseWorldB   (\i -> set (Entity i) (BSSInt i))                 indices)
+  , bench "SparseStoreU" $ whnfIO (writeBench initSparseWorldU   (\i -> set (Entity i) (fromIntegral i :: Word))   indices)
   ]
 
 writeGroupLarge :: [Int] -> [Benchmark]
 writeGroupLarge indices =
-  [ bench "ArrayMapB-32B"    $ whnfIO (writeBench initBA32World    (\i -> set (Entity i) (BA32 (mk32 i)))                 indices)
-  , bench "ArrayMapU-32B"    $ whnfIO (writeBench initUA32World    (\i -> set (Entity i) (UA32 (mk32 i)))                 indices)
-  , bench "SparseStoreB-32B" $ whnfIO (writeBench initBS32World    (\i -> set (Entity i) (BS32 (mk32 i)))                 indices)
-  , bench "SparseStoreU-32B" $ whnfIO (writeBench initUS32World    (\i -> set (Entity i) (US32 (mk32 i)))                 indices)
-  , bench "ArrayMapB-64B"    $ whnfIO (writeBench initBA64World    (\i -> set (Entity i) (BA64 (mk64 i)))                 indices)
-  , bench "ArrayMapU-64B"    $ whnfIO (writeBench initUA64World    (\i -> set (Entity i) (UA64 (mk64 i)))                 indices)
-  , bench "SparseStoreB-64B" $ whnfIO (writeBench initBS64World    (\i -> set (Entity i) (BS64 (mk64 i)))                 indices)
-  , bench "SparseStoreU-64B" $ whnfIO (writeBench initUS64World    (\i -> set (Entity i) (US64 (mk64 i)))                 indices)
+  [ bench "ArrayMapB-32B"    $ whnfIO (writeBench initBA32World (\i -> set (Entity i) (BA32 (mk32 i))) indices)
+  , bench "ArrayMapU-32B"    $ whnfIO (writeBench initUA32World (\i -> set (Entity i) (UA32 (mk32 i))) indices)
+  , bench "SparseStoreB-32B" $ whnfIO (writeBench initBS32World (\i -> set (Entity i) (BS32 (mk32 i))) indices)
+  , bench "SparseStoreU-32B" $ whnfIO (writeBench initUS32World (\i -> set (Entity i) (US32 (mk32 i))) indices)
+  , bench "ArrayMapB-64B"    $ whnfIO (writeBench initBA64World (\i -> set (Entity i) (BA64 (mk64 i))) indices)
+  , bench "ArrayMapU-64B"    $ whnfIO (writeBench initUA64World (\i -> set (Entity i) (UA64 (mk64 i))) indices)
+  , bench "SparseStoreB-64B" $ whnfIO (writeBench initBS64World (\i -> set (Entity i) (BS64 (mk64 i))) indices)
+  , bench "SparseStoreU-64B" $ whnfIO (writeBench initUS64World (\i -> set (Entity i) (US64 (mk64 i))) indices)
   ]
 
 readGroup :: [Int] -> [Benchmark]
 readGroup indices =
-  [ namedReadBench "Map"         initMapWorld       (\i -> set (Entity i) (MInt i))     (\i -> (\(MInt x) -> x) <$> get (Entity i))         indices
-  , namedReadBench "Cache-16384" initCacheWorld     (\i -> set (Entity i) (CInt i))     (\i -> (\(CInt x) -> x) <$> get (Entity i))         indices
-  , namedReadBench "Cache-1024"  initCache1024World (\i -> set (Entity i) (CInt1024 i)) (\i -> (\(CInt1024 x) -> x) <$> get (Entity i))     indices
-  , namedReadBench "ArrayMapB"   initArrayWorldB (\i -> set (Entity i) (BAInt i)) (\i -> (\(BAInt x) -> x) <$> get (Entity i))  indices
-  , namedReadBench "ArrayMapU"   initArrayWorldU (\i -> set (Entity i) i)         (\i -> get (Entity i))                         indices
-  , namedReadBench "ChunkStoreB"  initChunkWorldB  (\i -> set (Entity i) (BSInt i))                    (\i -> (\(BSInt x) -> x) <$> get (Entity i))                           indices
-  , namedReadBench "ChunkStoreU"  initChunkWorldU  (\i -> set (Entity i) (fromIntegral i :: Double))   (\i -> round <$> (get (Entity i) :: System ChunkWorldU Double))           indices
-  , namedReadBench "SparseStoreB"     initSparseWorldB (\i -> set (Entity i) (BSSInt i))                   (\i -> (\(BSSInt x) -> x) <$> get (Entity i))                                                 indices
-  , namedReadBench "SparseStoreU"     initSparseWorldU (\i -> set (Entity i) (fromIntegral i :: Word))     (\i -> fromIntegral <$> (get (Entity i) :: System SparseWorldU Word))                       indices
+  [ namedReadBench "Map"          initMapWorld       (\i -> set (Entity i) (MInt i))     (\i -> (\(MInt x) -> x) <$> get (Entity i))     indices
+  , namedReadBench "Cache-16384"  initCacheWorld     (\i -> set (Entity i) (CInt i))     (\i -> (\(CInt x) -> x) <$> get (Entity i))     indices
+  , namedReadBench "Cache-1024"   initCache1024World (\i -> set (Entity i) (CInt1024 i)) (\i -> (\(CInt1024 x) -> x) <$> get (Entity i)) indices
+  , namedReadBench "ArrayMapB"    initArrayWorldB    (\i -> set (Entity i) (BAInt i))    (\i -> (\(BAInt x) -> x) <$> get (Entity i))    indices
+  , namedReadBench "ArrayMapU"    initArrayWorldU    (\i -> set (Entity i) i)            (\i -> get (Entity i))                          indices
+  , namedReadBench "ChunkStoreB"  initChunkWorldB    (\i -> set (Entity i) (BSInt i))                    (\i -> (\(BSInt x) -> x) <$> get (Entity i))                          indices
+  , namedReadBench "ChunkStoreU"  initChunkWorldU    (\i -> set (Entity i) (fromIntegral i :: Double))   (\i -> round <$> (get (Entity i) :: System ChunkWorldU Double))       indices
+  , namedReadBench "SparseStoreB" initSparseWorldB   (\i -> set (Entity i) (BSSInt i))                   (\i -> (\(BSSInt x) -> x) <$> get (Entity i))                         indices
+  , namedReadBench "SparseStoreU" initSparseWorldU   (\i -> set (Entity i) (fromIntegral i :: Word))     (\i -> fromIntegral <$> (get (Entity i) :: System SparseWorldU Word)) indices
   ]
 
 readGroupLarge :: [Int] -> [Benchmark]
 readGroupLarge indices =
-  [ namedReadBench "ArrayMapB-32B"    initBA32World    (\i -> set (Entity i) (BA32 (mk32 i)))              (\i -> (\(BA32 v) -> rd32 v) <$> get (Entity i))                                           indices
-  , namedReadBench "ArrayMapU-32B"    initUA32World    (\i -> set (Entity i) (UA32 (mk32 i)))              (\i -> (\(UA32 v) -> rd32 v) <$> get (Entity i))                                           indices
-  , namedReadBench "SparseStoreB-32B" initBS32World    (\i -> set (Entity i) (BS32 (mk32 i)))              (\i -> (\(BS32 v) -> rd32 v) <$> get (Entity i))                                           indices
-  , namedReadBench "SparseStoreU-32B" initUS32World    (\i -> set (Entity i) (US32 (mk32 i)))              (\i -> (\(US32 v) -> rd32 v) <$> get (Entity i))                                           indices
-  , namedReadBench "ArrayMapB-64B"    initBA64World    (\i -> set (Entity i) (BA64 (mk64 i)))              (\i -> (\(BA64 v) -> rd64 v) <$> get (Entity i))                                           indices
-  , namedReadBench "ArrayMapU-64B"    initUA64World    (\i -> set (Entity i) (UA64 (mk64 i)))              (\i -> (\(UA64 v) -> rd64 v) <$> get (Entity i))                                           indices
-  , namedReadBench "SparseStoreB-64B" initBS64World    (\i -> set (Entity i) (BS64 (mk64 i)))              (\i -> (\(BS64 v) -> rd64 v) <$> get (Entity i))                                           indices
-  , namedReadBench "SparseStoreU-64B" initUS64World    (\i -> set (Entity i) (US64 (mk64 i)))              (\i -> (\(US64 v) -> rd64 v) <$> get (Entity i))                                           indices
+  [ namedReadBench "ArrayMapB-32B"    initBA32World (\i -> set (Entity i) (BA32 (mk32 i))) (\i -> (\(BA32 v) -> rd32 v) <$> get (Entity i)) indices
+  , namedReadBench "ArrayMapU-32B"    initUA32World (\i -> set (Entity i) (UA32 (mk32 i))) (\i -> (\(UA32 v) -> rd32 v) <$> get (Entity i)) indices
+  , namedReadBench "SparseStoreB-32B" initBS32World (\i -> set (Entity i) (BS32 (mk32 i))) (\i -> (\(BS32 v) -> rd32 v) <$> get (Entity i)) indices
+  , namedReadBench "SparseStoreU-32B" initUS32World (\i -> set (Entity i) (US32 (mk32 i))) (\i -> (\(US32 v) -> rd32 v) <$> get (Entity i)) indices
+  , namedReadBench "ArrayMapB-64B"    initBA64World (\i -> set (Entity i) (BA64 (mk64 i))) (\i -> (\(BA64 v) -> rd64 v) <$> get (Entity i)) indices
+  , namedReadBench "ArrayMapU-64B"    initUA64World (\i -> set (Entity i) (UA64 (mk64 i))) (\i -> (\(UA64 v) -> rd64 v) <$> get (Entity i)) indices
+  , namedReadBench "SparseStoreB-64B" initBS64World (\i -> set (Entity i) (BS64 (mk64 i))) (\i -> (\(BS64 v) -> rd64 v) <$> get (Entity i)) indices
+  , namedReadBench "SparseStoreU-64B" initUS64World (\i -> set (Entity i) (US64 (mk64 i))) (\i -> (\(US64 v) -> rd64 v) <$> get (Entity i)) indices
   ]
 
 -- ---------------------------------------------------------------------------
