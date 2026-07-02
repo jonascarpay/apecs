@@ -59,16 +59,16 @@ instance Component CInt where type Storage CInt = Cache 16384 (Map CInt)
 makeWorld "CacheWorld" [''CInt]
 instance NFData CacheWorld where rnf (CacheWorld _ _) = ()
 
--- BArrayMap: boxed direct-indexed growing array
+-- ArrayMapB: boxed direct-indexed growing array
 newtype BAInt = BAInt Int
-instance Component BAInt where type Storage BAInt = BArrayMap BAInt
-makeWorld "BArrayWorld" [''BAInt]
-instance NFData BArrayWorld where rnf (BArrayWorld _ _) = ()
+instance Component BAInt where type Storage BAInt = ArrayMapB BAInt
+makeWorld "ArrayWorldB" [''BAInt]
+instance NFData ArrayWorldB where rnf (ArrayWorldB _ _) = ()
 
--- UArrayMap: unboxed direct-indexed growing array (Int has Unbox)
-instance Component Int where type Storage Int = UArrayMap Int
-makeWorld "UArrayWorld" [''Int]
-instance NFData UArrayWorld where rnf (UArrayWorld _ _) = ()
+-- ArrayMapU: unboxed direct-indexed growing array (Int has Unbox)
+instance Component Int where type Storage Int = ArrayMapU Int
+makeWorld "ArrayWorldU" [''Int]
+instance NFData ArrayWorldU where rnf (ArrayWorldU _ _) = ()
 
 -- BChunkStore: boxed paged store, page size 64 matches chunkSize
 newtype BSInt = BSInt Int
@@ -100,13 +100,13 @@ instance NFData USparseWorld where rnf (USparseWorld _ _) = ()
 -- 32-byte component (V4 Double) --
 
 newtype BA32 = BA32 (V4 Double)
-instance Component BA32 where type Storage BA32 = BArrayMap BA32
+instance Component BA32 where type Storage BA32 = ArrayMapB BA32
 makeWorld "BA32World" [''BA32]
 instance NFData BA32World where rnf (BA32World _ _) = ()
 
 newtype UA32 = UA32 (V4 Double)
 $(derivingUnbox "UA32" [t| UA32 -> V4 Double |] [| \(UA32 v) -> v |] [| UA32 |])
-instance Component UA32 where type Storage UA32 = UArrayMap UA32
+instance Component UA32 where type Storage UA32 = ArrayMapU UA32
 makeWorld "UA32World" [''UA32]
 instance NFData UA32World where rnf (UA32World _ _) = ()
 
@@ -124,13 +124,13 @@ instance NFData US32World where rnf (US32World _ _) = ()
 -- 64-byte component (V4 (V2 Double)) --
 
 newtype BA64 = BA64 (V4 (V2 Double))
-instance Component BA64 where type Storage BA64 = BArrayMap BA64
+instance Component BA64 where type Storage BA64 = ArrayMapB BA64
 makeWorld "BA64World" [''BA64]
 instance NFData BA64World where rnf (BA64World _ _) = ()
 
 newtype UA64 = UA64 (V4 (V2 Double))
 $(derivingUnbox "UA64" [t| UA64 -> V4 (V2 Double) |] [| \(UA64 v) -> v |] [| UA64 |])
-instance Component UA64 where type Storage UA64 = UArrayMap UA64
+instance Component UA64 where type Storage UA64 = ArrayMapU UA64
 makeWorld "UA64World" [''UA64]
 instance NFData UA64World where rnf (UA64World _ _) = ()
 
@@ -195,8 +195,8 @@ writeGroup :: [Int] -> [Benchmark]
 writeGroup indices =
   [ bench "Map"          $ whnfIO (writeBench initMapWorld    (\i -> set (Entity i) (MInt i))                                    indices)
   , bench "Cache-16384"  $ whnfIO (writeBench initCacheWorld  (\i -> set (Entity i) (CInt i))                                    indices)
-  , bench "BArrayMap"    $ whnfIO (writeBench initBArrayWorld (\i -> set (Entity i) (BAInt i))                                   indices)
-  , bench "UArrayMap"    $ whnfIO (writeBench initUArrayWorld (\i -> set (Entity i) i)                                           indices)
+  , bench "ArrayMapB"    $ whnfIO (writeBench initArrayWorldB (\i -> set (Entity i) (BAInt i))                                   indices)
+  , bench "ArrayMapU"    $ whnfIO (writeBench initArrayWorldU (\i -> set (Entity i) i)                                           indices)
   , bench "BChunkStore"   $ whnfIO (writeBench initBChunkWorld  (\i -> set (Entity i) (BSInt i))                                  indices)
   , bench "UChunkStore"   $ whnfIO (writeBench initUChunkWorld  (\i -> set (Entity i) (fromIntegral i :: Double))                 indices)
   , bench "BSparseStore"     $ whnfIO (writeBench initBSparseWorld (\i -> set (Entity i) (BSSInt i))                      indices)
@@ -205,12 +205,12 @@ writeGroup indices =
 
 writeGroupLarge :: [Int] -> [Benchmark]
 writeGroupLarge indices =
-  [ bench "BArrayMap-32B"    $ whnfIO (writeBench initBA32World    (\i -> set (Entity i) (BA32 (mk32 i)))                 indices)
-  , bench "UArrayMap-32B"    $ whnfIO (writeBench initUA32World    (\i -> set (Entity i) (UA32 (mk32 i)))                 indices)
+  [ bench "ArrayMapB-32B"    $ whnfIO (writeBench initBA32World    (\i -> set (Entity i) (BA32 (mk32 i)))                 indices)
+  , bench "ArrayMapU-32B"    $ whnfIO (writeBench initUA32World    (\i -> set (Entity i) (UA32 (mk32 i)))                 indices)
   , bench "BSparseStore-32B" $ whnfIO (writeBench initBS32World    (\i -> set (Entity i) (BS32 (mk32 i)))                 indices)
   , bench "USparseStore-32B" $ whnfIO (writeBench initUS32World    (\i -> set (Entity i) (US32 (mk32 i)))                 indices)
-  , bench "BArrayMap-64B"    $ whnfIO (writeBench initBA64World    (\i -> set (Entity i) (BA64 (mk64 i)))                 indices)
-  , bench "UArrayMap-64B"    $ whnfIO (writeBench initUA64World    (\i -> set (Entity i) (UA64 (mk64 i)))                 indices)
+  , bench "ArrayMapB-64B"    $ whnfIO (writeBench initBA64World    (\i -> set (Entity i) (BA64 (mk64 i)))                 indices)
+  , bench "ArrayMapU-64B"    $ whnfIO (writeBench initUA64World    (\i -> set (Entity i) (UA64 (mk64 i)))                 indices)
   , bench "BSparseStore-64B" $ whnfIO (writeBench initBS64World    (\i -> set (Entity i) (BS64 (mk64 i)))                 indices)
   , bench "USparseStore-64B" $ whnfIO (writeBench initUS64World    (\i -> set (Entity i) (US64 (mk64 i)))                 indices)
   ]
@@ -219,8 +219,8 @@ readGroup :: [Int] -> [Benchmark]
 readGroup indices =
   [ namedReadBench "Map"         initMapWorld    (\i -> set (Entity i) (MInt i))  (\i -> (\(MInt x) -> x) <$> get (Entity i))   indices
   , namedReadBench "Cache-16384" initCacheWorld  (\i -> set (Entity i) (CInt i))  (\i -> (\(CInt x) -> x) <$> get (Entity i))   indices
-  , namedReadBench "BArrayMap"   initBArrayWorld (\i -> set (Entity i) (BAInt i)) (\i -> (\(BAInt x) -> x) <$> get (Entity i))  indices
-  , namedReadBench "UArrayMap"   initUArrayWorld (\i -> set (Entity i) i)         (\i -> get (Entity i))                         indices
+  , namedReadBench "ArrayMapB"   initArrayWorldB (\i -> set (Entity i) (BAInt i)) (\i -> (\(BAInt x) -> x) <$> get (Entity i))  indices
+  , namedReadBench "ArrayMapU"   initArrayWorldU (\i -> set (Entity i) i)         (\i -> get (Entity i))                         indices
   , namedReadBench "BChunkStore"  initBChunkWorld  (\i -> set (Entity i) (BSInt i))                    (\i -> (\(BSInt x) -> x) <$> get (Entity i))                           indices
   , namedReadBench "UChunkStore"  initUChunkWorld  (\i -> set (Entity i) (fromIntegral i :: Double))   (\i -> round <$> (get (Entity i) :: System UChunkWorld Double))           indices
   , namedReadBench "BSparseStore"     initBSparseWorld (\i -> set (Entity i) (BSSInt i))                   (\i -> (\(BSSInt x) -> x) <$> get (Entity i))                                                 indices
@@ -229,12 +229,12 @@ readGroup indices =
 
 readGroupLarge :: [Int] -> [Benchmark]
 readGroupLarge indices =
-  [ namedReadBench "BArrayMap-32B"    initBA32World    (\i -> set (Entity i) (BA32 (mk32 i)))              (\i -> (\(BA32 v) -> rd32 v) <$> get (Entity i))                                           indices
-  , namedReadBench "UArrayMap-32B"    initUA32World    (\i -> set (Entity i) (UA32 (mk32 i)))              (\i -> (\(UA32 v) -> rd32 v) <$> get (Entity i))                                           indices
+  [ namedReadBench "ArrayMapB-32B"    initBA32World    (\i -> set (Entity i) (BA32 (mk32 i)))              (\i -> (\(BA32 v) -> rd32 v) <$> get (Entity i))                                           indices
+  , namedReadBench "ArrayMapU-32B"    initUA32World    (\i -> set (Entity i) (UA32 (mk32 i)))              (\i -> (\(UA32 v) -> rd32 v) <$> get (Entity i))                                           indices
   , namedReadBench "BSparseStore-32B" initBS32World    (\i -> set (Entity i) (BS32 (mk32 i)))              (\i -> (\(BS32 v) -> rd32 v) <$> get (Entity i))                                           indices
   , namedReadBench "USparseStore-32B" initUS32World    (\i -> set (Entity i) (US32 (mk32 i)))              (\i -> (\(US32 v) -> rd32 v) <$> get (Entity i))                                           indices
-  , namedReadBench "BArrayMap-64B"    initBA64World    (\i -> set (Entity i) (BA64 (mk64 i)))              (\i -> (\(BA64 v) -> rd64 v) <$> get (Entity i))                                           indices
-  , namedReadBench "UArrayMap-64B"    initUA64World    (\i -> set (Entity i) (UA64 (mk64 i)))              (\i -> (\(UA64 v) -> rd64 v) <$> get (Entity i))                                           indices
+  , namedReadBench "ArrayMapB-64B"    initBA64World    (\i -> set (Entity i) (BA64 (mk64 i)))              (\i -> (\(BA64 v) -> rd64 v) <$> get (Entity i))                                           indices
+  , namedReadBench "ArrayMapU-64B"    initUA64World    (\i -> set (Entity i) (UA64 (mk64 i)))              (\i -> (\(UA64 v) -> rd64 v) <$> get (Entity i))                                           indices
   , namedReadBench "BSparseStore-64B" initBS64World    (\i -> set (Entity i) (BS64 (mk64 i)))              (\i -> (\(BS64 v) -> rd64 v) <$> get (Entity i))                                           indices
   , namedReadBench "USparseStore-64B" initUS64World    (\i -> set (Entity i) (US64 (mk64 i)))              (\i -> (\(US64 v) -> rd64 v) <$> get (Entity i))                                           indices
   ]

@@ -124,7 +124,7 @@ prop_destroyAll ety = assertSys initSimple $ do
 
 -- Tests whether this is also true for ArrayMap
 newtype ArrayMapInt = ArrayMapInt Int deriving (Eq, Show, Arbitrary)
-instance Component ArrayMapInt where type Storage ArrayMapInt = BArrayMap ArrayMapInt
+instance Component ArrayMapInt where type Storage ArrayMapInt = ArrayMapB ArrayMapInt
 makeWorld "ArrayMapped" [''ArrayMapInt]
 
 prop_setGetArrayMap = genericSetGet initArrayMapped (undefined :: ArrayMapInt)
@@ -144,20 +144,20 @@ prop_arrayMapDestroyOOB = assertSys initArrayMapped $ do
   pure True
 
 -- Tests the unboxed ArrayMap variant using Int directly (which already has Unbox)
-instance Component Int where type Storage Int = UArrayMap Int
+instance Component Int where type Storage Int = ArrayMapU Int
 makeWorld "UArrayMapped" [''Int]
 
-prop_setGetUArrayMap = genericSetGet initUArrayMapped (undefined :: Int)
-prop_setSetUArrayMap = genericSetSet initUArrayMapped (undefined :: Int)
+prop_setGetArrayMapU = genericSetGet initUArrayMapped (undefined :: Int)
+prop_setSetArrayMapU = genericSetSet initUArrayMapped (undefined :: Int)
 
-prop_uArrayMapGrow :: Int -> Property
-prop_uArrayMapGrow c = assertSys initUArrayMapped $ do
+prop_ArrayMapUGrow :: Int -> Property
+prop_ArrayMapUGrow c = assertSys initUArrayMapped $ do
   set (Entity 1024) c
   c' <- get (Entity 1024)
   pure (c == c')
 
-prop_uArrayMapDestroyOOB :: Property
-prop_uArrayMapDestroyOOB = assertSys initUArrayMapped $ do
+prop_ArrayMapUDestroyOOB :: Property
+prop_ArrayMapUDestroyOOB = assertSys initUArrayMapped $ do
   destroy (Entity 9999) (Proxy @Int)
   pure True
 

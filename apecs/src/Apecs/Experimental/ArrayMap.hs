@@ -20,15 +20,15 @@ the majority of entities, where that scan is not wasteful.
 
 Convenience aliases:
 
-* 'BArrayMap' — boxed storage via 'Data.Vector.Mutable.MVector', works for any component type.
-* 'UArrayMap' — unboxed storage via 'Data.Vector.Unboxed.Mutable.MVector', requires an
+* 'ArrayMapB' — boxed storage via 'Data.Vector.Mutable.MVector', works for any component type.
+* 'ArrayMapU' — unboxed storage via 'Data.Vector.Unboxed.Mutable.MVector', requires an
   'Data.Vector.Unboxed.Unbox' instance, but is significantly more memory-efficient for
   scalar and enum types.
 -}
 module Apecs.Experimental.ArrayMap
   ( ArrayMap (..)
-  , BArrayMap
-  , UArrayMap
+  , ArrayMapB
+  , ArrayMapU
   ) where
 
 import Control.Monad (when)
@@ -69,8 +69,8 @@ growTo dataRef presentRef ety = do
 
 -- | Direct-indexed, dynamically growing store parameterised over the mutable vector type.
 --
--- @v@ must be an instance of 'GMV.MVector'; use 'VM.MVector' (via 'BArrayMap') for any
--- component type, or 'UM.MVector' (via 'UArrayMap') for unboxed storage of scalar and
+-- @v@ must be an instance of 'GMV.MVector'; use 'VM.MVector' (via 'ArrayMapB') for any
+-- component type, or 'UM.MVector' (via 'ArrayMapU') for unboxed storage of scalar and
 -- enum types. @amPresent@ is always an unboxed 'Bool' vector.
 data ArrayMap v c = ArrayMap
   { amData    :: !(IORef (v RealWorld c))
@@ -78,11 +78,11 @@ data ArrayMap v c = ArrayMap
   }
 
 -- | 'ArrayMap' backed by boxed storage. Works for any component type.
-type BArrayMap = ArrayMap VM.MVector
+type ArrayMapB = ArrayMap VM.MVector
 
 -- | 'ArrayMap' backed by unboxed storage. Requires 'U.Unbox'; significantly more
 -- memory-efficient for scalar and enum component types.
-type UArrayMap = ArrayMap UM.MVector
+type ArrayMapU = ArrayMap UM.MVector
 
 type instance Elem (ArrayMap v c) = c
 
