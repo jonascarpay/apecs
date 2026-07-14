@@ -26,8 +26,11 @@ import Text.Printf (printf)
 
 import Apecs
 import Apecs.Core
+import Apecs.Experimental.ArrayMap
 import Apecs.Experimental.Children
+import Apecs.Experimental.ChunkStore
 import Apecs.Experimental.Reactive
+import Apecs.Experimental.SparseStore
 import Apecs.Experimental.Stores
 import Apecs.TH
 import Apecs.TH.Tags
@@ -118,6 +121,103 @@ prop_destroyAll ety = assertSys initSimple $ do
   set ety (MapInt 1)
   destroy ety (Proxy @SimpleDestructible)
   not <$> exists ety (Proxy @MapInt)
+
+-- Tests whether this is also true for ArrayMap
+newtype ArrayMapInt = ArrayMapInt Int deriving (Eq, Show, Arbitrary)
+instance Component ArrayMapInt where type Storage ArrayMapInt = ArrayMapB ArrayMapInt
+makeWorld "ArrayMapped" [''ArrayMapInt]
+
+prop_setGetArrayMap = genericSetGet initArrayMapped (undefined :: ArrayMapInt)
+prop_setSetArrayMap = genericSetSet initArrayMapped (undefined :: ArrayMapInt)
+
+-- Set a component at entity 1024, which is exactly at the initial capacity and triggers a grow.
+prop_arrayMapGrow :: ArrayMapInt -> Property
+prop_arrayMapGrow c = assertSys initArrayMapped $ do
+  set (Entity 1024) c
+  c' <- get (Entity 1024)
+  pure (c == c')
+
+-- Destroying an entity beyond current capacity should be a safe no-op.
+prop_arrayMapDestroyOOB :: Property
+prop_arrayMapDestroyOOB = assertSys initArrayMapped $ do
+  destroy (Entity 9999) (Proxy @ArrayMapInt)
+  pure True
+
+-- Tests the unboxed ArrayMap variant using Int directly (which already has Unbox)
+instance Component Int where type Storage Int = ArrayMapU Int
+makeWorld "UArrayMapped" [''Int]
+
+prop_setGetArrayMapU = genericSetGet initUArrayMapped (undefined :: Int)
+prop_setSetArrayMapU = genericSetSet initUArrayMapped (undefined :: Int)
+
+prop_ArrayMapUGrow :: Int -> Property
+prop_ArrayMapUGrow c = assertSys initUArrayMapped $ do
+  set (Entity 1024) c
+  c' <- get (Entity 1024)
+  pure (c == c')
+
+prop_ArrayMapUDestroyOOB :: Property
+prop_ArrayMapUDestroyOOB = assertSys initUArrayMapped $ do
+  destroy (Entity 9999) (Proxy @Int)
+  pure True
+
+-- ChunkStore tests — page size 4 so tests cross page boundaries easily
+newtype ChunkInt = ChunkInt Int deriving (Eq, Show, Arbitrary)
+instance Component ChunkInt where type Storage ChunkInt = ChunkStoreB 4 ChunkInt
+makeWorld "Chunk" [''ChunkInt]
+
+prop_setGetChunk = genericSetGet initChunk (undefined :: ChunkInt)
+prop_setSetChunk = genericSetSet initChunk (undefined :: ChunkInt)
+
+-- Entity 7 is in page 1 and entity 8 is in page 2 (with page size 4 -> bits=2, mask=3).
+-- Checks that components in different pages don't interfere.
+prop_chunkPageBoundary :: ChunkInt -> ChunkInt -> Property
+prop_chunkPageBoundary a b = assertSys initChunk $ do
+  set (Entity 7) a
+  set (Entity 8) b
+  a' <- get (Entity 7)
+  b' <- get (Entity 8)
+  pure (a == a' && b == b')
+
+-- Destroying in a non-existent page is a safe no-op.
+prop_chunkDestroyMissingPage :: Property
+prop_chunkDestroyMissingPage = assertSys initChunk $ do
+  destroy (Entity 9999) (Proxy @ChunkInt)
+  pure True
+
+-- SparseStore tests
+newtype SSInt = SSInt Int deriving (Eq, Show, Arbitrary)
+instance Component SSInt where type Storage SSInt = SparseStoreB SSInt
+makeWorld "SparseStoreW" [''SSInt]
+
+prop_setGetSparseStore = genericSetGet initSparseStoreW (undefined :: SSInt)
+prop_setSetSparseStore = genericSetSet initSparseStoreW (undefined :: SSInt)
+
+-- Destroy the middle of three entities: the last entity must be swapped into
+-- the vacated slot and remain readable at its original ID.
+prop_sparseStoreDestroySwap :: SSInt -> SSInt -> SSInt -> Property
+prop_sparseStoreDestroySwap a b c = assertSys initSparseStoreW $ do
+  set (Entity 0) a
+  set (Entity 1) b
+  set (Entity 2) c
+  destroy (Entity 1) (Proxy @SSInt)
+  a' <- get (Entity 0)
+  c' <- get (Entity 2)
+  ex1 <- exists (Entity 1) (Proxy @SSInt)
+  pure (a == a' && c == c' && not ex1)
+
+-- Sparse array grows when an entity ID exceeds initial capacity.
+prop_sparseStoreGrow :: SSInt -> Property
+prop_sparseStoreGrow x = assertSys initSparseStoreW $ do
+  set (Entity 1024) x
+  x' <- get (Entity 1024)
+  pure (x == x')
+
+-- Destroying a non-existent entity is a safe no-op.
+prop_sparseStoreDestroyOOB :: Property
+prop_sparseStoreDestroyOOB = assertSys initSparseStoreW $ do
+  destroy (Entity 9999) (Proxy @SSInt)
+  pure True
 
 -- Tests whether this is also true for caches
 newtype CacheInt = CacheInt Int deriving (Eq, Show, Arbitrary)
@@ -270,8 +370,8 @@ prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
     has_t12s = S.fromList (map (unEntity . fst) t12s)
     has_t3s = S.fromList (map (unEntity . fst) t3s)
     tags ety =
-        (if ety `S.member` has_t12s then [TT1, TT2] else [])
-          ++ (if ety `S.member` has_t3s then [TT3] else [])
+      (if ety `S.member` has_t12s then [TT1, TT2] else [])
+        ++ (if ety `S.member` has_t3s then [TT3] else [])
   let expected =
         M.fromListWith
           (+)
