@@ -10,10 +10,10 @@
 module Main where
 
 import Control.DeepSeq (NFData (..))
-import Criterion.Main
 import Data.List (sortBy)
 import Data.Ord (comparing)
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
+import Test.Tasty.Bench
 
 import Apecs
 import Apecs.Experimental.ArrayMap

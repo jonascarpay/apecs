@@ -11,11 +11,11 @@ module Main where
 
 import Control.DeepSeq (NFData (..))
 import Control.Monad (foldM)
-import Criterion.Main
 import Data.List (sortBy)
 import Data.Ord (comparing)
 import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import Linear (V2 (..), V4 (..))
+import Test.Tasty.Bench
 
 import Apecs
 import Apecs.Experimental.ArrayMap
