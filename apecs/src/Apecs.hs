@@ -20,6 +20,9 @@ module Apecs
   , Unique
   , Global
   , Cache
+  , SCache
+  , UCache
+  , GCache
   , explInit
 
     -- * Systems
