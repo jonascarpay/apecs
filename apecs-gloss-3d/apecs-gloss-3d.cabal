@@ -1,0 +1,38 @@
+cabal-version:      2.4
+name:               apecs-gloss-3d
+version:            0.1.0.0
+synopsis:           Depth-sorted 3D rendering for gloss and apecs
+homepage:           https://github.com/jonascarpay/apecs/apecs-gloss-3d
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             IC Rainbow
+maintainer:         aenor.realm@gmail.com
+copyright:          2026 IC Rainbow
+category:           Graphics, Game
+build-type:         Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+description:
+  CPU 3D rendering on top of gloss, for prototyping: depth-tagged
+  pieces assembled painter-style, backface-culled flat-shaded convex
+  solids, sphere impostors, wireframes, hidden-line rendering, fog and
+  shadow blobs. No physics-engine dependency; bring your own vectors
+  (linear) and convert at the boundary.
+
+library
+  hs-source-dirs:   src
+  exposed-modules:  Apecs.Gloss3D
+  build-depends:
+      apecs   >=0.9 && <0.11
+    , base    >=4.16 && <5
+    , gloss   >=1.11 && <2
+    , linear  >=1.22 && <2
+
+  default-language: GHC2021
+  ghc-options:      -Wall
+
+source-repository head
+  type:     git
+  location: https://github.com/jonascarpay/apecs

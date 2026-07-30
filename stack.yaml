@@ -4,10 +4,27 @@ packages:
   - apecs
   - apecs-physics
   - apecs-gloss
+  - apecs-gloss-3d
+  - apecs-box2d
+  - apecs-box3d
   - apecs-stm
   - examples
 
 allow-newer: true
+
+flags:
+  apecs-box2d:
+    examples: true
+  apecs-box3d:
+    examples: true
+
+extra-deps:
+  - git: https://gitlab.com/dpwiz/box-nd
+    commit: 991beeaa7f5610a44904d7c613cf6c88d200923f
+    subdirs:
+      - Box2D
+      - Box3D
+  - gloss-export-0.1.0.4
 
 nix:
   pure: false
