@@ -27,6 +27,7 @@ module Apecs.Stores.Internal
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.Primitive (PrimState)
 import Control.Monad.Trans.Class (lift)
 import Data.Bits (countLeadingZeros, finiteBitSize, shiftL, (.&.))
 import Data.IORef
@@ -178,7 +179,7 @@ instance (KnownNat n, Cachable s) => Cachable (Cache n s)
   This is allows most operations to be expressed as bit masks, for a large potential performance boost.
 -}
 data GCache v (n :: Nat) s
-  = Cache Int (UM.IOVector Int) (v (UM.PrimState IO) (Elem s)) s
+  = Cache Int (UM.IOVector Int) (v (PrimState IO) (Elem s)) s
 
 -- | A cache for arbitrary types, using a boxed vector, adding an extra indirection for each component.
 type Cache n s = GCache VM.MVector n s

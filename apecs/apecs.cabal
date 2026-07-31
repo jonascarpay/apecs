@@ -52,6 +52,7 @@ library
     , template-haskell  >=2.12   && <3
     , foreign-store     >=0.2    && <0.3
     , vector            >=0.11   && <0.14
+    , primitive         >=0.1    && <0.10
 
   ghc-options:      -Wall
 
