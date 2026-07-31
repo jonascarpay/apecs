@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -192,16 +193,16 @@ type SCache n s = GCache SM.MVector n s
 
 type instance Elem (GCache v n s) = Elem s
 
--- Hacker's Delight chapter 3.2 "flp2"
-nextPowerOfTwo :: Int -> Int
-nextPowerOfTwo n = 1 `shiftL` (finiteBitSize n - 1 - countLeadingZeros n)
+-- Hacker's Delight chapter 3
+roundToPowerOfTwo :: Int -> Int
+roundToPowerOfTwo n = 1 `shiftL` (finiteBitSize n - countLeadingZeros (n - 1))
 
 instance (MonadIO m, ExplInit m s, KnownNat n, Cachable s, GMV.MVector v (Elem s)) => ExplInit m (GCache v n s) where
   {-# INLINE explInit #-}
   explInit = do
     let
       n = fromIntegral $ natVal (Proxy @n) :: Int
-      size = nextPowerOfTwo n
+      size = roundToPowerOfTwo n
       mask = size - 1
     tags <- liftIO $ UM.replicate size (-2)
     cache <- liftIO $ GMV.unsafeNew size
