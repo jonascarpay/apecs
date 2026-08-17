@@ -130,6 +130,15 @@ module Apecs.Box2D
   , snapshotWorld
   , restoreWorld
 
+    -- * Debug drawing
+  , debugDraw
+  , debugDrawCommands
+  , Draw (..)
+  , noDraw
+  , Cmd (..)
+  , DebugDraw (..)
+  , defaultDebugDraw
+
     -- * Collisions
   , Collision (..)
   , ContactManifold (..)
@@ -156,6 +165,7 @@ import Box2D.Shape (Filter (..))
 
 import Apecs.Box2D.Body
 import Apecs.Box2D.Collision
+import Apecs.Box2D.Debug
 import Apecs.Box2D.Geometry
 import Apecs.Box2D.Joint
 import Apecs.Box2D.Mover

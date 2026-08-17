@@ -148,4 +148,4 @@ main = do
   w <- initWorld
   runSystem (initialize >> play disp black 60 draw handle step) w
   where
-    disp = InWindow "apecs-box3d demo" (720, 720) (10, 10)
+    disp = InWindow "apecs-box3d tumbler" (720, 720) (10, 10)

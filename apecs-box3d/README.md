@@ -12,14 +12,14 @@ your own build-depends to import the raw modules those ids unlock.
 
 ## Demos
 
-`apecs-box3d-demo` is the tumbler one dimension up: a kinematic box
+`apecs-box3d-tumbler` is the tumbler one dimension up: a kinematic box
 cage tumbling about two axes, full of spheres and cubes, rendered with
 apecs-gloss-3d (painter's-algorithm depth sort across bodies, backface
 culling within each convex cube, flat shading and distance fog) inside
 an apecs-gloss window. Click to drop in more debris.
 
 ```sh
-stack run apecs-box3d-demo
+stack run apecs-box3d-tumbler
 ```
 
 `apecs-box3d-elite` is a kinetic chase through an asteroid field,

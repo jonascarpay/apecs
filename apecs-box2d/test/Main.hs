@@ -44,6 +44,7 @@ main =
         , testCase "initPhysicsWith builds the store around a custom WorldDef" customWorldDef
         , testCase "moveCharacter reaches its target in free space" moverFreeSpace
         , testCase "moveCharacter stops at a wall and clips velocity" moverWall
+        , testCase "debugDrawCommands records shapes, joints and bounds" debugDrawRecords
         ]
 
 run :: SystemT World IO a -> IO a
@@ -234,3 +235,29 @@ moverWall = run $ do
     -- origin at least 0.3 before it
     assertBool ("stops before the wall: x = " <> show px) (px < 2.6)
     assertBool ("into-wall velocity is clipped: vx = " <> show vx) (vx < 0.5)
+
+debugDrawRecords :: Assertion
+debugDrawRecords = run $ do
+  a <- staticShape (Vec2 0 0) (GeoBox 1 1)
+  b <- newEntity (DynamicBody, Position (Vec2 3 0))
+  newEntity_ (Shape b (GeoCircle vec2Zero 0.5))
+  newEntity_ (Joint a b (PivotJoint (Vec2 1.5 0)))
+  base <- liftIO defaultDebugDraw
+  shapes <- debugDrawCommands base
+  overlays <- debugDrawCommands base{drawShapes = 0, drawJoints = 1, drawBounds = 1}
+  bare <- debugDrawCommands base{drawShapes = 0}
+  liftIO $ do
+    assertBool "a solid polygon for the box" (any isSolidPolygon shapes)
+    assertBool "a solid circle for the ball" (any isSolidCircle shapes)
+    assertBool "no bounds unless asked" (not (any isBounds shapes))
+    assertBool "bounds when asked" (any isBounds overlays)
+    assertBool "no shapes when switched off" (not (any isSolidCircle overlays))
+    assertBool "joint drawn as something" (length overlays > length bare)
+    bare @?= []
+  where
+    isSolidPolygon DrawSolidPolygon{} = True
+    isSolidPolygon _ = False
+    isSolidCircle DrawSolidCircle{} = True
+    isSolidCircle _ = False
+    isBounds DrawBounds{} = True
+    isBounds _ = False

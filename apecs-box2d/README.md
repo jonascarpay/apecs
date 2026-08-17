@@ -26,12 +26,12 @@ stack run apecs-box2d-tutorial
 
 ## Demo
 
-`apecs-box2d-demo` is a Box2D take on the apecs-physics tumbler,
+`apecs-box2d-tumbler` is a Box2D take on the apecs-physics tumbler,
 rendered with [apecs-gloss](https://hackage.haskell.org/package/apecs-gloss):
 a spinning kinematic box full of bouncing balls. Click to spawn more.
 
 ```sh
-stack run apecs-box2d-demo
+stack run apecs-box2d-tumbler
 ```
 
 `apecs-box2d-gallery` exhibits the joint kinds on a grid, after the

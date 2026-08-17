@@ -1,5 +1,24 @@
 {
   "nodes": {
+    "box-nd": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786972168,
+        "narHash": "sha256-2XiL44kVus5CCxcX98QtdtdyMScxzvpOLpVQoyESSEY=",
+        "ref": "refs/heads/main",
+        "rev": "ca8f1ee8e530fdeb0a0f3689c59d194622e78480",
+        "revCount": 39,
+        "submodules": true,
+        "type": "git",
+        "url": "https://gitlab.com/dpwiz/box-nd"
+      },
+      "original": {
+        "rev": "ca8f1ee8e530fdeb0a0f3689c59d194622e78480",
+        "submodules": true,
+        "type": "git",
+        "url": "https://gitlab.com/dpwiz/box-nd"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1676283394,
@@ -33,6 +52,7 @@
     },
     "root": {
       "inputs": {
+        "box-nd": "box-nd",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
       }

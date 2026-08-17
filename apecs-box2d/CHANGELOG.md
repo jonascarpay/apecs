@@ -27,5 +27,9 @@
   layer opt into both event kinds.
 - `BulletBody`: continuous collision detection toggle — without it,
   small fast bodies tunnel through dynamic targets between substeps.
-- `apecs-box2d-demo`: a tumbler scene driven by Box2D and rendered with
+- Debug drawing: `debugDraw` runs the engine's debug renderer over the
+  store's world through the upstream `Draw` callbacks, and
+  `debugDrawCommands` records a frame as a pure `[Cmd]` list to render
+  after the world is free again.
+- `apecs-box2d-tumbler`: a tumbler scene driven by Box2D and rendered with
   apecs-gloss.

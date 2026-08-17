@@ -147,6 +147,15 @@ module Apecs.Box3D
   , loadRecording
   , validateRecording
 
+    -- * Debug drawing
+  , debugDraw
+  , debugDrawCommands
+  , Draw (..)
+  , noDraw
+  , Cmd (..)
+  , DebugDraw (..)
+  , defaultDebugDraw
+
     -- * Collisions
   , Collision (..)
   , ContactManifold (..)
@@ -177,6 +186,7 @@ import Box3D.Shape (Filter (..))
 
 import Apecs.Box3D.Body
 import Apecs.Box3D.Collision
+import Apecs.Box3D.Debug
 import Apecs.Box3D.Geometry
 import Apecs.Box3D.Joint
 import Apecs.Box3D.Mover

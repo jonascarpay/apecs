@@ -25,7 +25,13 @@
   layer opt into both event kinds.
 - `BulletBody`: continuous collision detection toggle — without it,
   small fast bodies tunnel through dynamic targets between substeps.
-- `apecs-box3d-demo`: a 3D tumbler rendered with apecs-gloss via a CPU
+- Debug drawing: `debugDraw` runs the engine's debug renderer over the
+  store's world through the upstream `Draw` callbacks, and
+  `debugDrawCommands` records a frame as a pure `[Cmd]` list to render
+  after the world is free again. Shapes need debug-shape callbacks in the
+  `WorldDef`, which the store does not install yet, so only the overlays
+  come out of a plain `initPhysics` world.
+- `apecs-box3d-tumbler`: a 3D tumbler rendered with apecs-gloss via a CPU
   perspective projection and painter's-algorithm depth sorting.
 - `apecs-box3d-elite`: an autopiloted kinetic chase through an asteroid
   field of flat-shaded convex hulls — PD-controller ships flown with

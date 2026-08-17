@@ -2,7 +2,7 @@ cabal-version:      2.4
 name:               apecs-gloss-3d
 version:            0.1.0.0
 synopsis:           Depth-sorted 3D rendering for gloss and apecs
-homepage:           https://github.com/jonascarpay/apecs/apecs-gloss-3d
+homepage:           https://github.com/jonascarpay/apecs
 license:            BSD-3-Clause
 license-file:       LICENSE
 author:             IC Rainbow

@@ -53,6 +53,7 @@ main =
         , testCase "destroying a body drops its dependents' records" bodyDestroyDropsDeps
         , testCase "initPhysicsWith builds the store around a custom WorldDef" customWorldDef
         , testCase "moveCharacter reaches its target in free space" moverFreeSpace
+        , testCase "debugDrawCommands records overlays but no shapes without debug-shape callbacks" debugDrawRecords
         ]
 
 run :: SystemT World IO a -> IO a
@@ -271,3 +272,24 @@ moverFreeSpace = run $ do
   liftIO $ do
     assertBool ("reaches the target x: " <> show px) (abs (px - 1) < 0.05)
     assertBool ("stays on the line: " <> show (py, pz)) (abs py < 0.05 && abs pz < 0.05)
+
+debugDrawRecords :: Assertion
+debugDrawRecords = run $ do
+  a <- staticShape (Vec3 0 0 0) (GeoBox vec3Zero (Vec3 1 1 1))
+  b <- newEntity (DynamicBody, Position (Vec3 3 0 0))
+  newEntity_ (Shape b (GeoSphere vec3Zero 0.5))
+  newEntity_ (Joint a b (HingeJoint (Vec3 1.5 0 0) (Vec3 0 0 1)))
+  base <- liftIO defaultDebugDraw
+  shapes <- debugDrawCommands base{drawShapes = 1} maxBound
+  overlays <- debugDrawCommands base{drawShapes = 0, drawJoints = 1, drawBounds = 1} maxBound
+  bare <- debugDrawCommands base{drawShapes = 0} maxBound
+  liftIO $ do
+    assertBool "shapes need the world's debug-shape callbacks" (not (any isShape shapes))
+    assertBool "bounds when asked" (any isBounds overlays)
+    assertBool "joint drawn as something" (length overlays > length bare)
+    bare @?= []
+  where
+    isShape DrawShape{} = True
+    isShape _ = False
+    isBounds DrawBounds{} = True
+    isBounds _ = False

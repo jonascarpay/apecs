@@ -11,7 +11,7 @@ packages:
 source-repository-package
   type: git
   location: https://gitlab.com/dpwiz/box-nd
-  tag: 991beeaa7f5610a44904d7c613cf6c88d200923f
+  tag: ca8f1ee8e530fdeb0a0f3689c59d194622e78480
   subdir: Box2D Box3D
 
 package apecs

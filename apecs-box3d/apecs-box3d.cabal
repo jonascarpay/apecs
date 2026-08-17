@@ -2,7 +2,7 @@ cabal-version:      2.4
 name:               apecs-box3d
 version:            0.1.0.0
 synopsis:           Box3D physics for apecs
-homepage:           https://github.com/jonascarpay/apecs/apecs-box3d
+homepage:           https://github.com/jonascarpay/apecs
 license:            BSD-3-Clause
 license-file:       LICENSE
 author:             IC Rainbow
@@ -28,6 +28,7 @@ library
     Apecs.Box3D
     Apecs.Box3D.Body
     Apecs.Box3D.Collision
+    Apecs.Box3D.Debug
     Apecs.Box3D.Geometry
     Apecs.Box3D.Joint
     Apecs.Box3D.Mover

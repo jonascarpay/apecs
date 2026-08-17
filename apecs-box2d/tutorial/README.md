@@ -681,7 +681,7 @@ To go further:
 - The [package README](../README.md) and the `Apecs.Box2D` haddocks
   are the reference: joints, chains, sensors, the character mover,
   recording and snapshots, and the per-component fine print.
-- The demo (`stack run apecs-box2d-demo`) shows dynamic bodies under
+- The demo (`stack run apecs-box2d-tumbler`) shows dynamic bodies under
   real gravity plus a joint; the gallery
   (`stack run apecs-box2d-gallery`) exhibits every joint kind.
 - When you outgrow the wrapper, the engine is right there:

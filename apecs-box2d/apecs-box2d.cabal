@@ -2,7 +2,7 @@ cabal-version:      2.4
 name:               apecs-box2d
 version:            0.1.0.0
 synopsis:           Box2D physics for apecs
-homepage:           https://github.com/jonascarpay/apecs/apecs-box2d
+homepage:           https://github.com/jonascarpay/apecs
 license:            BSD-3-Clause
 license-file:       LICENSE
 author:             IC Rainbow
@@ -31,6 +31,7 @@ library
     Apecs.Box2D
     Apecs.Box2D.Body
     Apecs.Box2D.Collision
+    Apecs.Box2D.Debug
     Apecs.Box2D.Geometry
     Apecs.Box2D.Joint
     Apecs.Box2D.Mover
@@ -49,7 +50,7 @@ library
   default-language: GHC2021
   ghc-options:      -Wall
 
-executable apecs-box2d-demo
+executable apecs-box2d-tumbler
   if !flag(examples)
     buildable: False
 
