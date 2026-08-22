@@ -21,6 +21,13 @@ import Linear
 import Apecs
 import Foreign (Storable)
 
+-- pos_vel, uncached
+newtype Pos = Pos (V2 Float) deriving (Eq, Show)
+instance Component Pos where type Storage Pos = Map Pos
+
+newtype Vel = Vel (V2 Float) deriving (Eq, Show)
+instance Component Vel where type Storage Vel = Map Vel
+
 -- pos_vel, boxed cache
 newtype BPos = BPos (V2 Float) deriving (Eq, Show)
 instance Component BPos where type Storage BPos = Cache 10000 (Map BPos)
@@ -44,8 +51,16 @@ newtype UVel = UVel (V2 Float) deriving (Eq, Show)
 derivingUnbox "UVel" [t|UVel -> V2 Float|] [|\(UVel v) -> v|] [|UVel|]
 instance Component UVel where type Storage UVel = UCache 1000 (Map UVel)
 
-makeWorld "PosVel" [''BPos, ''BVel, ''SPos, ''SVel, ''UPos, ''UVel]
+makeWorld "PosVel" [''MPos, ''MVel, ''BPos, ''BVel, ''SPos, ''SVel, ''UPos, ''UVel]
 instance NFData PosVel where rnf PosVel{} = ()
+
+rawInit :: System PosVel ()
+rawInit = do
+  replicateM_ 1000 $ newEntity (Pos 0, Vel 1)
+  replicateM_ 9000 $ newEntity (Pos 0)
+
+rawStep :: System PosVel ()
+rawStep = cmap $ \(Vel v, Pos p) -> Pos (p + v)
 
 boxedInit :: System PosVel ()
 boxedInit = do
@@ -88,7 +103,8 @@ main =
     (C.defaultConfig{timeLimit = 10})
     [ bgroup
         "pos_vel"
-        [ posVelGroup "boxed" boxedInit boxedStep
+        [ posVelGroup "raw" rawInit rawStep
+        , posVelGroup "boxed" boxedInit boxedStep
         , posVelGroup "storable" storableInit storableStep
         , posVelGroup "unboxed" unboxedInit unboxedStep
         ]
