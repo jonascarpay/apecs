@@ -1,3 +1,7 @@
+## [0.10.1]
+
+- (#161) New Cache store variants. The old type is an alias for a cache parametrized by the old boxed vector. Faster Storable and Uboxed variants are available for the data that supports this.
+
 ## [0.10.0]
 
 ### Changed
