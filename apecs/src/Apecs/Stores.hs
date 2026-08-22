@@ -13,6 +13,9 @@
 module Apecs.Stores
   ( Map
   , Cache
+  , UCache
+  , SCache
+  , GCache
   , Unique
   , Global
   , Cachable

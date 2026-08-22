@@ -20,6 +20,7 @@ import qualified Data.IntSet as S
 import Data.List (delete, nub, sort, (\\))
 import qualified Data.Map.Strict as M
 import qualified Data.Set as Set
+import Data.Vector.Unboxed.Deriving (derivingUnbox)
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Text.Printf (printf)
@@ -33,6 +34,7 @@ import Apecs.TH
 import Apecs.TH.Tags
 import Apecs.Tags
 import Apecs.Util
+import Foreign (Storable)
 
 -- Preamble
 instance Arbitrary Entity where
@@ -133,6 +135,40 @@ prop_cacheUnique eInit eDel eSet = assertSys initCached $ do
   mapM_ (flip set (Not @CacheInt)) eDel
   mapM_ (uncurry set) eSet
   es <- cfold (\a (_ :: CacheInt, Entity e) -> e : a) []
+  pure $ es == nub es
+
+-- Tests whether this is also true for unboxed caches
+newtype UCacheInt = UCacheInt Int deriving (Eq, Show, Arbitrary)
+derivingUnbox "UCacheInt" [t|UCacheInt -> Int|] [|\(UCacheInt v) -> v|] [|UCacheInt|]
+instance Component UCacheInt where type Storage UCacheInt = UCache 2 (Map UCacheInt)
+makeWorld "UCached" [''UCacheInt]
+
+prop_setGetUCache = genericSetGet initUCached (undefined :: UCacheInt)
+prop_setSetUCache :: [(Entity, UCacheInt)] -> [Entity] -> Entity -> UCacheInt -> [(Entity, UCacheInt)] -> [Entity] -> UCacheInt -> [(Entity, UCacheInt)] -> [Entity] -> Property
+prop_setSetUCache = genericSetSet initUCached (undefined :: UCacheInt)
+
+prop_ucacheUnique :: [UCacheInt] -> [Entity] -> [(Entity, UCacheInt)] -> Property
+prop_ucacheUnique eInit eDel eSet = assertSys initUCached $ do
+  mapM_ newEntity eInit
+  mapM_ (flip set (Not @UCacheInt)) eDel
+  mapM_ (uncurry set) eSet
+  es <- cfold (\a (_ :: UCacheInt, Entity e) -> e : a) []
+  pure $ es == nub es
+
+-- Tests whether this is also true for unboxed caches
+newtype SCacheInt = SCacheInt Int deriving (Eq, Show, Arbitrary, Storable)
+instance Component SCacheInt where type Storage SCacheInt = SCache 2 (Map SCacheInt)
+makeWorld "SCached" [''SCacheInt]
+
+prop_setGetSCache = genericSetGet initSCached (undefined :: SCacheInt)
+prop_setSetSCache = genericSetSet initSCached (undefined :: SCacheInt)
+
+prop_scacheUnique :: [SCacheInt] -> [Entity] -> [(Entity, SCacheInt)] -> Property
+prop_scacheUnique eInit eDel eSet = assertSys initSCached $ do
+  mapM_ newEntity eInit
+  mapM_ (flip set (Not @SCacheInt)) eDel
+  mapM_ (uncurry set) eSet
+  es <- cfold (\a (_ :: SCacheInt, Entity e) -> e : a) []
   pure $ es == nub es
 
 -- Tests basic tuple functionality
@@ -270,8 +306,8 @@ prop_count_combinations t12s t3s = assertSys initWorldEnumerable $ do
     has_t12s = S.fromList (map (unEntity . fst) t12s)
     has_t3s = S.fromList (map (unEntity . fst) t3s)
     tags ety =
-        (if ety `S.member` has_t12s then [TT1, TT2] else [])
-          ++ (if ety `S.member` has_t3s then [TT3] else [])
+      (if ety `S.member` has_t12s then [TT1, TT2] else [])
+        ++ (if ety `S.member` has_t3s then [TT3] else [])
   let expected =
         M.fromListWith
           (+)
