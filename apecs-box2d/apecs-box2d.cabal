@@ -1,0 +1,127 @@
+cabal-version:      2.4
+name:               apecs-box2d
+version:            0.1.0.0
+synopsis:           Box2D physics for apecs
+homepage:           https://github.com/jonascarpay/apecs
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             IC Rainbow
+maintainer:         aenor.realm@gmail.com
+copyright:          2026 IC Rainbow
+category:           Physics, Game
+build-type:         Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  tutorial/*.md
+  tutorial/*.png
+
+description:
+  apecs components and systems backed by the Box2D physics engine.
+  Comes with a demo scene rendered with apecs-gloss.
+
+flag examples
+  description: Build the example executables.
+  default:     False
+  manual:      True
+
+library
+  hs-source-dirs:   src
+  exposed-modules:
+    Apecs.Box2D
+    Apecs.Box2D.Body
+    Apecs.Box2D.Collision
+    Apecs.Box2D.Debug
+    Apecs.Box2D.Geometry
+    Apecs.Box2D.Joint
+    Apecs.Box2D.Mover
+    Apecs.Box2D.Query
+    Apecs.Box2D.Recording
+    Apecs.Box2D.Shape
+    Apecs.Box2D.Space
+    Apecs.Box2D.Types
+  build-depends:
+      apecs       >=0.9 && <0.11
+    , base        >=4.16 && <5
+    , Box2D       >=0.1 && <0.2
+    , containers  >=0.6 && <0.9
+    , vector      >=0.12 && <0.14
+
+  default-language: GHC2021
+  ghc-options:      -Wall
+
+executable apecs-box2d-tumbler
+  if !flag(examples)
+    buildable: False
+
+  hs-source-dirs:   demo
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box2d
+    , apecs-gloss
+    , base         >=4.16 && <5
+    , gloss
+    , linear
+    , random
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+test-suite apecs-box2d-test
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box2d
+    , base         >=4.16 && <5
+    , Box2D
+    , tasty
+    , tasty-hunit
+    , vector
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+executable apecs-box2d-gallery
+  if !flag(examples)
+    buildable: False
+
+  hs-source-dirs:   gallery
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box2d
+    , apecs-gloss
+    , base         >=4.16 && <5
+    , gloss
+    , linear
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+executable apecs-box2d-tutorial
+  if !flag(examples)
+    buildable: False
+
+  hs-source-dirs:   tutorial
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box2d
+    , apecs-gloss
+    , base          >=4.16 && <5
+    , Box2D
+    , containers
+    , gloss
+    , gloss-export
+    , linear
+    , random
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+source-repository head
+  type:     git
+  location: https://github.com/jonascarpay/apecs

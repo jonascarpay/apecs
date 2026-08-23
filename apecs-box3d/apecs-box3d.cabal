@@ -1,0 +1,106 @@
+cabal-version:      2.4
+name:               apecs-box3d
+version:            0.1.0.0
+synopsis:           Box3D physics for apecs
+homepage:           https://github.com/jonascarpay/apecs
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             IC Rainbow
+maintainer:         aenor.realm@gmail.com
+copyright:          2026 IC Rainbow
+category:           Physics, Game
+build-type:         Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+description:
+  apecs components and systems backed by the Box3D physics engine.
+
+flag examples
+  description: Build the example executables.
+  default:     False
+  manual:      True
+
+library
+  hs-source-dirs:   src
+  exposed-modules:
+    Apecs.Box3D
+    Apecs.Box3D.Body
+    Apecs.Box3D.Collision
+    Apecs.Box3D.Debug
+    Apecs.Box3D.Geometry
+    Apecs.Box3D.Joint
+    Apecs.Box3D.Mover
+    Apecs.Box3D.Query
+    Apecs.Box3D.Recording
+    Apecs.Box3D.Shape
+    Apecs.Box3D.Space
+    Apecs.Box3D.Types
+  build-depends:
+      apecs       >=0.9 && <0.11
+    , base        >=4.16 && <5
+    , Box3D       >=0.1 && <0.2
+    , containers  >=0.6 && <0.9
+    , vector      >=0.12 && <0.14
+
+  default-language: GHC2021
+  ghc-options:      -Wall
+
+test-suite apecs-box3d-test
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box3d
+    , base         >=4.16 && <5
+    , Box3D
+    , tasty
+    , tasty-hunit
+    , vector
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+executable apecs-box3d-tumbler
+  if !flag(examples)
+    buildable: False
+
+  hs-source-dirs:   demo
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box3d
+    , apecs-gloss
+    , apecs-gloss-3d
+    , base            >=4.16 && <5
+    , linear
+    , random
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+executable apecs-box3d-elite
+  if !flag(examples)
+    buildable: False
+
+  hs-source-dirs:   elite
+  main-is:          Main.hs
+  build-depends:
+      apecs
+    , apecs-box3d
+    , apecs-gloss
+    , apecs-gloss-3d
+    , base            >=4.16 && <5
+    , gloss-export
+    , linear
+    , random
+    , vector
+
+  default-language: GHC2021
+  ghc-options:      -Wall -threaded
+
+source-repository head
+  type:     git
+  location: https://github.com/jonascarpay/apecs
