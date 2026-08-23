@@ -32,6 +32,22 @@ get (Entity ety) = do
   s :: Storage c <- getStore
   lift $ explGet s ety
 
+-- | Try reading a Component and act only when it does exist.
+--
+-- An alternative for blind 'get' if you don't have a good guarantee.
+--
+-- > with ety \(Rarely x) -> do
+-- >   set ety (ButThen x, AndAlso "cheers!")
+--
+-- Use 'whenExists' if you don't need the value.
+{-# INLINE with #-}
+with :: forall w m c. (Get w m c) => Entity -> (c -> SystemT w m ()) -> SystemT w m ()
+with (Entity ety) action = do
+  s :: Storage c <- getStore
+  possible <- lift $ explExists s ety
+  when possible $
+    lift (explGet s ety) >>= action
+
 -- | Writes a Component to a given Entity. Will overwrite existing Components.
 {-# INLINE set #-}
 set, ($=) :: forall w m c. (Set w m c) => Entity -> c -> SystemT w m ()
@@ -50,6 +66,19 @@ exists :: forall w m c. (Get w m c) => Entity -> Proxy c -> SystemT w m Bool
 exists (Entity ety) _ = do
   s :: Storage c <- getStore
   lift $ explExists s ety
+
+-- Guard an action on existence of a component.
+--
+-- > whenExists ety (Proxy @Rarely) do
+-- >   set ety (AndAlso "works")
+--
+-- Use 'with' if you need the value.
+{-# INLINE whenExists #-}
+whenExists :: forall w m c. (Get w m c) => Entity -> Proxy c -> SystemT w m () -> SystemT w m ()
+whenExists (Entity ety) _ action = do
+  s :: Storage c <- getStore
+  possible <- lift $ explExists s ety
+  when possible action
 
 -- | Destroys component @c@ for the given entity.
 {-# INLINE destroy #-}
@@ -195,3 +224,18 @@ collect
   => (components -> Maybe a)
   -> SystemT w m [a]
 collect f = cfold (\acc -> maybe acc (: acc) . f) []
+
+{- | Collect matching components into a list by using the specified test/process procedure.
+  You can use this to preprocess data before returning.
+  And you can do a test here that depends on data from multiple components.
+  You can run more system code to get/transform data, but don't delete the components you've got.
+
+  Unlike @sequence $ collect f@ this allows the extra effects to participate in filtering.
+-}
+{-# INLINE collectM #-}
+collectM
+  :: forall components w m a
+   . (Get w m components, Members w m components)
+  => (components -> SystemT w m (Maybe a))
+  -> SystemT w m [a]
+collectM m = cfoldM (\acc -> fmap (maybe acc (: acc)) . m) []
